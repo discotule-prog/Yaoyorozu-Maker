@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>MONSTER SCANNER</title>
+ <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+ <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+ <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+ <style>
+ :root { --main-color: #fff; --accent-color: #00ff00; }
+ body { 
+ font-family: 'DotGothic16', sans-serif; 
+ background-color: #443322; /* レンガ調のベース色 */
+ background-image: 
+ linear-gradient(30deg, #332211 12%, transparent 12.5%, transparent 87%, #332211 87.5%, #332211),
+ linear-gradient(150deg, #332211 12%, transparent 12.5%, transparent 87%, #332211 87.5%, #332211),
+ linear-gradient(30deg, #332211 12%, transparent 12.5%, transparent 87%, #332211 87.5%, #332211),
+ linear-gradient(150deg, #332211 12%, transparent 12.5%, transparent 87%, #332211 87.5%, #332211),
+ linear-gradient(60deg, #554433 25%, transparent 25.5%, transparent 75%, #554433 75%, #554433),
+ linear-gradient(60deg, #554433 25%, transparent 25.5%, transparent 75%, #554433 75%, #554433);
+ background-size: 80px 140px;
+ color: var(--main-color); margin: 0; display: flex; flex-direction: column; align-items: center;
+ }
+
+ #game-container { background: rgba(0,0,0,0.8); width: 95%; max-width: 400px; padding: 20px; border: 4px solid #fff; margin-top: 20px; box-shadow: 0 0 20px #000; }
+ h1 { font-size: 1.5rem; text-align: center; margin: 0 0 10px 0; letter-spacing: 2px; }
+
+ /* モニターエリア */
+ #monitor { width: 100%; height: 250px; border: 4px solid #fff; background: #000; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+ video, canvas { width: 100%; height: 100%; object-fit: cover; }
+ #pixel-canvas { display: none; image-rendering: pixelated; }
+
+ /* ステータスエリア */
+ #status-window { border: 4px double #fff; margin-top: 15px; padding: 10px; background: #000; }
+ .stat-row { display: flex; justify-content: space-between; font-family: 'Share Tech Mono', monospace; font-size: 1.2rem; color: var(--accent-color); }
+ 
+ /* バトルメッセージ */
+ #msg-log { height: 60px; border: 2px solid #fff; margin-top: 10px; padding: 5px; font-size: 0.9rem; overflow-y: auto; background: #111; text-align: left; }
+
+ /* ボタン */
+ .btn-group { display: flex; gap: 10px; margin-top: 15px; width: 100%; }
+ button { flex: 1; padding: 12px; font-family: 'DotGothic16'; font-size: 1rem; cursor: pointer; border: 3px solid #fff; background: #e60012; color: #fff; box-shadow: 4px 4px 0 #333; }
+ button:disabled { background: #666; }
+ button:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 #333; }
+ </style>
+</head>
+<body>
+
+<div id="game-container">
+ <h1>MONSTER SCANNER</h1>
+ 
+ <div id="monitor">
+ <video id="webcam" autoplay playsinline muted></video>
+ <canvas id="pixel-canvas"></canvas>
+ </div>
+
+ <div id="status-window">
+ <div id="mon-name" style="color:yellow; margin-bottom:5px;">READY TO SCAN...</div>
+ <div class="stat-row"><span>HP</span><span id="hp">0000</span></div>
+ <div class="stat-row"><span>ATK</span><span id="atk">000</span></div>
+ <div class="stat-row"><span>DEF</span><span id="def">000</span></div>
+ </div>
+
+ <div id="msg-log" id="log">SYSTEM ONLINE. SCAN SOMETHING!</div>
+
+ <div class="btn-group">
+ <button id="scan-btn">SCAN MONSTER</button>
+ <button id="attack-btn" disabled>ATTACK!</button>
+ </div>
+</div>
+
+<script>
+ let net;
+ let playerStat = { hp: 0, atk: 0, def: 0, name: "" };
+ let enemyStat = { hp: 1000, atk: 50, def: 30, name: "ENEMY ROBOT" };
+ 
+ const video = document.getElementById('webcam');
+ const canvas = document.getElementById('pixel-canvas');
+ const ctx = canvas.getContext('2d');
+ const log = document.getElementById('msg-log');
+
+ async function init() {
+ net = await mobilenet.load();
+ log.innerText = "AI READY. SCAN YOUR MONSTER!";
+ const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+ video.srcObject = stream;
+ }
+
+ // ドット絵加工処理
+ function pixelate() {
+ const size = 64; // 64x64ピクセルに圧縮
+ canvas.width = size;
+ canvas.height = size;
+ ctx.drawImage(video, 0, 0, size, size);
+ video.style.display = 'none';
+ canvas.style.display = 'block';
+ }
+
+ // スキャン処理
+ document.getElementById('scan-btn').onclick = async () => {
+ const result = await net.classify(video);
+ const name = result[0].className.split(',')[0].toUpperCase();
+ pixelate();
+
+ // ステータス生成
+ let seed = name.length * 100;
+ playerStat = {
+ hp: (seed % 800) + 500,
+ atk: (seed * 3 % 150) + 40,
+ def: (seed * 2 % 100) + 20,
+ name: name
+ };
+
+ document.getElementById('mon-name').innerText = "MONSTER: " + playerStat.name;
+ document.getElementById('hp').innerText = playerStat.hp.toString().padStart(4, '0');
+ document.getElementById('atk').innerText = playerStat.atk.toString().padStart(3, '0');
+ document.getElementById('def').innerText = playerStat.def.toString().padStart(3, '0');
+ 
+ log.innerText = name + " APPEARED!";
+ document.getElementById('attack-btn').disabled = false;
+ 
+ // 敵のステータスもランダムにセット
+ enemyStat.hp = 800 + Math.floor(Math.random() * 500);
+ };
+
+ // バトル処理（簡易ターン制）
+ document.getElementById('attack-btn').onclick = () => {
+ // プレイヤーの攻撃
+ let damage = Math.max(5, playerStat.atk - Math.floor(enemyStat.def / 2));
+ enemyStat.hp -= damage;
+ log.innerText = `YOU ATTACK! ${damage} DAMAGE TO ENEMY!`;
+
+ if (enemyStat.hp <= 0) {
+ log.innerText = "YOU WIN! TARGET DESTROYED.";
+ document.getElementById('attack-btn').disabled = true;
+ return;
+ }
+
+ // 敵の反撃（1秒後）
+ setTimeout(() => {
+ let eDamage = Math.max(5, enemyStat.atk - Math.floor(playerStat.def / 2));
+ playerStat.hp -= eDamage;
+ document.getElementById('hp').innerText = Math.max(0, playerStat.hp).toString().padStart(4, '0');
+ log.innerText = `ENEMY ATTACK! ${eDamage} DAMAGE TO YOU!`;
+
+ if (playerStat.hp <= 0) {
+ log.innerText = "YOU LOSE... SYSTEM ERROR.";
+ document.getElementById('attack-btn').disabled = true;
+ }
+ }, 1000);
+ };
+
+ init();
+</script>
+</body>
+</html>
