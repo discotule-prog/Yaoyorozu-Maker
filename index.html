@@ -3,7 +3,7 @@
 <head>
  <meta charset="UTF-8">
  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
- <title>MYTH SCANNER COMMAND</title>
+ <title>MYTH SCANNER CENTER</title>
  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
  <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
@@ -11,41 +11,36 @@
  :root { --p-color: #00f2ff; --e-color: #ff3c00; }
  body { font-family: 'DotGothic16', sans-serif; background: #000; color: #fff; margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
  
- #header-info { height: 35px; background: #222; display: flex; justify-content: space-around; align-items: center; font-size: 0.8rem; border-bottom: 2px solid #444; }
+ #header { height: 35px; background: #222; display: flex; justify-content: space-around; align-items: center; font-size: 0.8rem; border-bottom: 2px solid #444; }
 
- /* エリア設定 */
- .area { flex: 1; display: flex; flex-direction: row; border-bottom: 1px solid #333; padding: 5px; box-sizing: border-box; }
+ /* キャラクターエリア */
+ .char-area { height: 35%; display: flex; border-bottom: 1px solid #333; padding: 5px; box-sizing: border-box; background: #050505; }
  
  /* 左：カメラ */
- .camera-side { width: 35%; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
- .frame { width: 90%; aspect-ratio: 1/1; border: 2px solid #fff; background: #111; overflow: hidden; }
+ .cam-part { width: 40%; display: flex; align-items: center; justify-content: center; }
+ .cam-frame { width: 100px; height: 100px; border: 2px solid #fff; background: #000; position: relative; }
  video { width: 100%; height: 100%; object-fit: cover; }
 
- /* 右：情報表示（イラストと数値を完全に分ける） */
- .status-side { width: 65%; display: flex; flex-direction: column; padding-left: 10px; }
- 
- /* イラスト：最上段 */
- .visual-box { font-size: 3.5rem; height: 70px; display: flex; align-items: center; justify-content: center; background: #111; border: 1px solid #333; margin-bottom: 10px; opacity: 0; transition: opacity 0.3s; }
- .is-scanned .visual-box { opacity: 1; }
+ /* 右：イラスト・情報 */
+ .info-part { width: 60%; display: flex; flex-direction: column; padding-left: 10px; justify-content: space-between; }
+ .visual-disp { font-size: 4rem; text-align: center; height: 70px; background: #111; border: 1px solid #222; display: flex; align-items: center; justify-content: center; }
+ .name-label { font-size: 0.8rem; color: #ffff00; }
+ .stat-label { font-size: 0.75rem; color: #ccc; }
+ .hp-bar-bg { width: 100%; height: 8px; background: #333; border: 1px solid #fff; margin-top: 2px; }
+ .hp-bar-fill { height: 100%; transition: width 0.3s; }
 
- /* パラメーター：イラストの下に配置 */
- .info-group { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; padding-bottom: 5px; }
- .name-text { font-size: 0.8rem; color: #ffff00; margin-bottom: 2px; }
- .param-text { font-size: 0.75rem; color: #fff; line-height: 1.3; font-weight: bold; }
- .hp-cont { width: 100%; height: 10px; background: #333; border: 1px solid #fff; margin-top: 5px; }
- .hp-fill { height: 100%; width: 100%; transition: width 0.3s; }
+ /* 中央コマンドエリア */
+ #mid-ui { height: 90px; background: #1a1a1a; border-top: 2px solid #444; border-bottom: 2px solid #444; display: flex; flex-direction: column; align-items: center; padding: 5px; }
+ #msg { font-size: 0.75rem; color: #0f0; height: 30px; text-align: center; overflow: hidden; }
+ .btn-row { display: flex; gap: 5px; width: 100%; flex: 1; }
+ button { flex: 1; font-family: 'DotGothic16'; border: 2px solid #fff; color: #fff; background: #444; font-size: 0.8rem; }
+ #scan-btn { background: #0044cc; }
+ #atk-btn { background: #aa0000; }
+ #heal-btn { background: #008844; }
 
- /* UIパネル */
- #ui { height: 140px; background: #111; padding: 8px; border-top: 3px solid #fff; }
- #msg { height: 35px; font-size: 0.8rem; color: #0f0; text-align: center; margin-bottom: 5px; }
- .btns { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; height: 80px; }
- button { font-family: 'DotGothic16'; border: 2px solid #fff; color: #fff; font-size: 0.85rem; background: #444; cursor: pointer; }
- button:disabled { opacity: 0.3; color: #888; }
-
- /* オーバーレイ */
- .overlay-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 100; display: none; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; }
- .coll-header { color: #fff; font-size: 0.9rem; margin: 10px 0; width: 100%; text-align: left; border-bottom: 1px solid #555; }
- .coll-list { background: #111; border: 1px solid #333; padding: 8px; font-size: 0.7rem; width: 100%; flex:1; overflow-y:auto; margin-bottom:10px; color: #ccc; }
+ /* 図鑑・結果 */
+ .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 100; display: none; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; }
+ .coll-box { width: 100%; flex: 1; overflow-y: auto; background: #111; padding: 10px; font-size: 0.7rem; border: 1px solid #444; }
 
  .shake { animation: s 0.2s; }
  @keyframes s { 0% { transform:translateX(5px) } 50% { transform:translateX(-5px) } 100% { transform:translateX(0) } }
@@ -53,76 +48,73 @@
 </head>
 <body>
 
-<div id="header-info">
+<div id="header">
  <span>LV: <b id="p-lv">1</b></span>
  <span>EXP: <b id="p-exp">0</b>/<b id="p-next">100</b></span>
+ <button onclick="showColl()" style="font-size:0.6rem; height:20px; padding:0 5px;">LIBRARY</button>
 </div>
 
-<div class="area" id="p-area">
- <div class="camera-side"><div class="frame"><video id="pv" autoplay playsinline muted></video></div></div>
- <div class="status-side" id="p-status">
- <div id="pw-icon" class="visual-box"></div>
- <div class="info-group">
- <div id="p-name" class="name-text">WAITING SCAN...</div>
- <div class="param-text">HP: <span id="p-hp-cur">1000</span> / <span id="p-hp-max">1000</span><br>ATK: <span id="p-atk">0</span> | DEF: <span id="p-def">0</span></div>
- <div class="hp-cont"><div id="phf" class="hp-fill" style="background:var(--p-color);"></div></div>
- </div>
- </div>
-</div>
-
-<div class="area" id="e-area">
- <div class="camera-side"><div class="frame"><video id="ev" autoplay playsinline muted></video></div></div>
- <div class="status-side" id="e-status">
- <div id="em-icon" class="visual-box"></div>
- <div class="info-group">
- <div id="e-name" class="name-text" style="color:#ff4444;">WAITING ENEMY...</div>
- <div class="param-text">HP: <span id="e-hp-cur">1000</span> / <span id="e-hp-max">1000</span><br>ATK: <span id="e-atk">0</span> | DEF: <span id="e-def">0</span></div>
- <div class="hp-cont"><div id="ehf" class="hp-fill" style="background:var(--e-color);"></div></div>
+<div class="char-area" id="p-area">
+ <div class="cam-part"><div class="cam-frame"><video id="pv" autoplay playsinline muted></video></div></div>
+ <div class="info-part">
+ <div id="p-icon" class="visual-disp"> </div>
+ <div>
+ <div id="p-name" class="name-label">PLAYER</div>
+ <div class="stat-label">HP: <span id="p-hp-cur">1000</span>/<span id="p-hp-max">1000</span> ATK: <span id="p-atk">0</span></div>
+ <div class="hp-bar-bg"><div id="p-fill" class="hp-bar-fill" style="background:var(--p-color); width:100%"></div></div>
  </div>
  </div>
 </div>
 
-<div id="ui">
+<div id="mid-ui">
  <div id="msg">武器をスキャンしてください</div>
- <div class="btns">
- <button id="scan-btn" onclick="handleScan()" style="background:#0044cc; grid-row: span 2;">SCAN</button>
- <button id="atk-btn" disabled onclick="handleAttack()" style="background:#aa0000;">ATTACK</button>
- <button id="heal-btn" disabled onclick="handleHeal()" style="background:#008844;">HEAL (<span id="heal-count">2</span>)</button>
- <button onclick="showColl()" style="background:#444;">LIBRARY</button>
+ <div class="btn-row">
+ <button id="scan-btn" onclick="handleScan()">SCAN</button>
+ <button id="atk-btn" onclick="handleAttack()" disabled>ATTACK</button>
+ <button id="heal-btn" onclick="handleHeal()" disabled>HEAL (<span id="h-cnt">2</span>)</button>
  </div>
 </div>
 
-<div id="result-screen" class="overlay-screen" style="justify-content:center;">
- <div id="result-title" style="font-size:2.5rem; font-weight:bold;"></div>
- <div id="result-msg" style="margin:20px 0; text-align:center; font-size:0.9rem;"></div>
- <button onclick="nextCycle()" style="width:200px; height:50px; background:#0044cc; border:2px solid #fff;">NEXT SCAN</button>
+<div class="char-area" id="e-area">
+ <div class="cam-part"><div class="cam-frame"><video id="ev" autoplay playsinline muted></video></div></div>
+ <div class="info-part">
+ <div id="e-icon" class="visual-disp"> </div>
+ <div>
+ <div id="e-name" class="name-label" style="color:red">ENEMY</div>
+ <div class="stat-label">HP: <span id="e-hp-cur">1000</span>/<span id="e-hp-max">1000</span> ATK: <span id="e-atk">0</span></div>
+ <div class="hp-bar-bg"><div id="e-fill" class="hp-bar-fill" style="background:var(--e-color); width:100%"></div></div>
+ </div>
+ </div>
 </div>
 
-<div id="coll-screen" class="overlay-screen">
- <h2 style="color:yellow; margin:0;">LIBRARY</h2>
- <div class="coll-header">WEAPONS: <span id="w-count-disp">0/100</span></div>
- <div class="coll-list" id="w-list"></div>
- <div class="coll-header">MONSTERS: <span id="m-count-disp">0/100</span></div>
- <div class="coll-list" id="m-list"></div>
- <button onclick="document.getElementById('coll-screen').style.display='none'" style="width:100px; height:40px;">CLOSE</button>
+<div id="res-screen" class="overlay" style="justify-content:center;">
+ <div id="res-title" style="font-size:3rem; font-weight:bold;"></div>
+ <div id="res-msg" style="text-align:center; margin:20px 0;"></div>
+ <button onclick="nextCycle()" style="width:200px; height:50px; background:#0044cc; border:3px solid #fff;">NEXT SCAN</button>
+</div>
+
+<div id="coll-screen" class="overlay">
+ <h2 id="coll-count-total" style="color:yellow; margin:0;">LIBRARY</h2>
+ <div id="w-coll-box" class="coll-box" style="margin-bottom:10px;"></div>
+ <div id="m-coll-box" class="coll-box"></div>
+ <button onclick="document.getElementById('coll-screen').style.display='none'" style="margin-top:10px; width:100px;">CLOSE</button>
 </div>
 
 <script>
  let net, mode = "W", lv = 1, exp = 0, nextExp = 100;
  let php = 1000, pMax = 1000, ehp = 1000, eMax = 1000;
  let patk=0, pdef=0, eatk=0, edef=0, heals = 2;
- let collection = JSON.parse(localStorage.getItem('myth_v_cmd')) || { weapons: {}, monsters: {} };
+ let collection = JSON.parse(localStorage.getItem('myth_v_center')) || { weapons: {}, monsters: {} };
 
  const db = {
  weapons: [{r:"COMMON",n:["アイアンソード","石の斧"],i:" ",b:100}, {r:"RARE",n:["焔の剣","雷光杖"],i:" ",b:220}, {r:"SUPER",n:["聖剣","魔導書"],i:" ",b:450}, {r:"MYTH",n:["神槍","ラグナロク"],i:" ",b:900}],
- monsters: [{r:"COMMON",n:["スライム","ゴブリン"],i:" ",b:80}, {r:"RARE",n:["ドラゴン","オーク"],i:" ",b:200}, {r:"SUPER",n:["フェニックス","死神"],i:" ",b:400}, {r:"MYTH",n:["破壊神","バハムート"],i:" ",b:800}]
+ monsters: [{r:"COMMON",n:["スライム","ゴブリン"],i:" ",b:80}, {r:"RARE",n:["ドラゴン","オーク"],i:" ",b:200}, {r:"SUPER",n:["フェニックス","死神"],i:" ",b:450}, {r:"MYTH",n:["破壊神","バハムート"],i:" ",b:900}]
  };
 
  async function init() {
  net = await mobilenet.load();
- const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
- document.getElementById('pv').srcObject = stream;
- document.getElementById('ev').srcObject = stream;
+ const s = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
+ document.getElementById('pv').srcObject = s; document.getElementById('ev').srcObject = s;
  }
 
  async function handleScan() {
@@ -133,39 +125,32 @@
  if (mode === "W") {
  const data = db.weapons[rarity];
  const name = data.n[seed % data.n.length];
- patk = data.b + (seed * 2) + (lv * 12);
- pdef = Math.floor(data.b / 2) + (lv * 6);
- php = Math.min(pMax, php + Math.floor(pMax * 0.8));
+ patk = data.b + (seed * 2) + (lv * 15);
+ pdef = Math.floor(data.b / 2) + (lv * 7);
+ php = Math.min(pMax, php + Math.floor(pMax * 0.8)); // 持ち越しHPに武器回復
 
  document.getElementById('p-name').innerText = `No.${seed} ${name}`;
- document.getElementById('pw-icon').innerText = data.i;
+ document.getElementById('p-icon').innerText = data.i;
  document.getElementById('p-atk').innerText = patk;
- document.getElementById('p-def').innerText = pdef;
- document.getElementById('p-status').classList.add('is-scanned');
- 
- collection.weapons[seed] = {no:seed, name:name, icon:data.i, r:data.r};
- localStorage.setItem('myth_v_cmd', JSON.stringify(collection));
+ collection.weapons[seed] = {no:seed, name:name, icon:data.i};
+ localStorage.setItem('myth_v_center', JSON.stringify(collection));
  mode = "M";
- document.getElementById('msg').innerText = "武器を装備！ 敵をスキャンせよ";
+ document.getElementById('msg').innerText = "敵をスキャンしてください";
  } else {
  const data = db.monsters[rarity];
  const name = data.n[seed % data.n.length];
- eatk = data.b + (seed * 2) + (lv * 10);
- edef = Math.floor(data.b / 2) + (lv * 5);
- eMax = 800 + (lv * 150) + seed;
- ehp = eMax;
+ eatk = data.b + (seed * 2) + (lv * 12);
+ edef = Math.floor(data.b / 2) + (lv * 6);
+ eMax = 800 + (lv * 150) + seed; ehp = eMax;
 
  document.getElementById('e-name').innerText = `No.${seed} ${name}`;
- document.getElementById('em-icon').innerText = data.i;
+ document.getElementById('e-icon').innerText = data.i;
  document.getElementById('e-atk').innerText = eatk;
- document.getElementById('e-def').innerText = edef;
- document.getElementById('e-status').classList.add('is-scanned');
- 
- this.tempMonster = {no:seed, name:name, icon:data.i, r:data.r};
+ this.tempM = {no:seed, name:name, icon:data.i};
  document.getElementById('atk-btn').disabled = false;
  document.getElementById('heal-btn').disabled = false;
  document.getElementById('scan-btn').disabled = true;
- document.getElementById('msg').innerText = "バトル開始！ コマンドを選択せよ";
+ document.getElementById('msg').innerText = "戦闘開始！";
  }
  updateUI();
  }
@@ -174,8 +159,6 @@
  document.getElementById('e-area').classList.add('shake');
  let d = Math.max(30, patk - Math.floor(edef/2));
  ehp -= d;
- document.getElementById('msg').innerText = `攻撃！ ${d} のダメージ！`;
- 
  setTimeout(() => {
  document.getElementById('e-area').classList.remove('shake');
  if(ehp <= 0) return finish(true);
@@ -187,13 +170,10 @@
  function handleHeal() {
  if(heals > 0) {
  let h = Math.floor(pMax * 0.3);
- php = Math.min(pMax, php + h);
- heals--;
- document.getElementById('heal-count').innerText = heals;
- document.getElementById('msg').innerText = `回復アイテム使用！ HPが ${h} 回復！`;
- if(heals <= 0) document.getElementById('heal-btn').disabled = true;
+ php = Math.min(pMax, php + h); heals--;
+ document.getElementById('h-cnt').innerText = heals;
  updateUI();
- setTimeout(enemyTurn, 600);
+ enemyTurn();
  }
  }
 
@@ -205,44 +185,48 @@
  setTimeout(() => {
  document.getElementById('p-area').classList.remove('shake');
  if(php <= 0) finish(false);
- else document.getElementById('msg').innerText = `敵の攻撃！ ${ed} のダメージ！`;
  }, 200);
  }
 
  function finish(win) {
- const screen = document.getElementById('result-screen');
- screen.style.display = "flex";
+ document.getElementById('res-screen').style.display = "flex";
  if(win) {
- document.getElementById('result-title').innerText = "WIN!";
- document.getElementById('result-title').style.color = "yellow";
- exp += 50; if(exp >= nextExp) { lv++; exp=0; nextExp+=50; }
- collection.monsters[this.tempMonster.no] = this.tempMonster;
- localStorage.setItem('myth_v_cmd', JSON.stringify(collection));
- document.getElementById('result-msg').innerText = "経験値を獲得し、図鑑に記録した！";
- } else {
- document.getElementById('result-title').innerText = "GAME OVER";
- document.getElementById('result-title').style.color = "red";
- lv = Math.max(1, lv - 5); php = pMax;
- document.getElementById('result-msg').innerText = "敗北... レベルが 5 低下した。";
+ document.getElementById('res-title').innerText = "WIN!";
+ document.getElementById('res-title').style.color = "yellow";
+ exp += 50; 
+ if(exp >= nextExp) { 
+ lv++; exp=0; nextExp+=50; 
+ pMax = Math.floor(pMax * 1.1); // LV UPでHP最大値10%増
+ php = pMax; // LV UP時はボーナスで全快
  }
+ collection.monsters[this.tempM.no] = this.tempM;
+ localStorage.setItem('myth_v_center', JSON.stringify(collection));
+ document.getElementById('res-msg').innerText = "レベルアップ！ 最大HPが上昇した！";
+ } else {
+ document.getElementById('res-title').innerText = "GAME OVER";
+ document.getElementById('res-title').style.color = "red";
+ lv = Math.max(1, lv - 5);
+ pMax = 1000 + (lv-1)*150; // LVに応じたHPにリセット
+ php = pMax;
+ document.getElementById('res-msg').innerText = "敗北。レベルが低下し、HPがリセットされた。";
+ }
+ updateUI();
  }
 
  function nextCycle() {
  mode = "W"; heals = 2;
- document.getElementById('heal-count').innerText = heals;
- document.getElementById('p-status').classList.remove('is-scanned');
- document.getElementById('e-status').classList.remove('is-scanned');
- document.getElementById('scan-btn').disabled = false;
+ document.getElementById('h-cnt').innerText = heals;
  document.getElementById('atk-btn').disabled = true;
  document.getElementById('heal-btn').disabled = true;
- document.getElementById('result-screen').style.display = "none";
- document.getElementById('msg').innerText = "次の武器をスキャンしてください";
+ document.getElementById('scan-btn').disabled = false;
+ document.getElementById('res-screen').style.display = "none";
+ document.getElementById('msg').innerText = "武器をスキャンしてください";
  updateUI();
  }
 
  function updateUI() {
- document.getElementById('phf').style.width = (php / pMax * 100) + "%";
- document.getElementById('ehf').style.width = (ehp / eMax * 100) + "%";
+ document.getElementById('p-fill').style.width = (php / pMax * 100) + "%";
+ document.getElementById('e-fill').style.width = (ehp / eMax * 100) + "%";
  document.getElementById('p-hp-cur').innerText = Math.max(0, php);
  document.getElementById('p-hp-max').innerText = pMax;
  document.getElementById('e-hp-cur').innerText = Math.max(0, ehp);
@@ -253,17 +237,15 @@
  }
 
  function showColl() {
- const wBox = document.getElementById('w-list');
- const mBox = document.getElementById('m-list');
- const wCount = Object.keys(collection.weapons).length;
- const mCount = Object.keys(collection.monsters).length;
- 
- document.getElementById('w-count-disp').innerText = `${wCount}/100`;
- document.getElementById('m-count-disp').innerText = `${mCount}/100`;
-
- wBox.innerHTML = ""; mBox.innerHTML = "";
- Object.values(collection.weapons).sort((a,b)=>a.no-b.no).forEach(v => wBox.innerHTML += `No.${v.no} ${v.icon} ${v.name} [${v.r}]<br>`);
- Object.values(collection.monsters).sort((a,b)=>a.no-b.no).forEach(v => mBox.innerHTML += `No.${v.no} ${v.icon} ${v.name} [${v.r}]<br>`);
+ const wBox = document.getElementById('w-coll-box');
+ const mBox = document.getElementById('m-coll-box');
+ const wC = Object.keys(collection.weapons).length;
+ const mC = Object.keys(collection.monsters).length;
+ document.getElementById('coll-count-total').innerText = `LIB: W ${wC}/100 M ${mC}/100`;
+ wBox.innerHTML = "<b>[WEAPONS]</b><br>";
+ mBox.innerHTML = "<b>[MONSTERS]</b><br>";
+ Object.values(collection.weapons).sort((a,b)=>a.no-b.no).forEach(v => wBox.innerHTML += `No.${v.no} ${v.icon} ${v.name}<br>`);
+ Object.values(collection.monsters).sort((a,b)=>a.no-b.no).forEach(v => mBox.innerHTML += `No.${v.no} ${v.icon} ${v.name}<br>`);
  document.getElementById('coll-screen').style.display = "flex";
  }
 
