@@ -3,92 +3,75 @@
 <head>
  <meta charset="UTF-8">
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
- <title>MONSTER BATTLE EVO</title>
+ <title>MONSTER & WEAPON SCANNER</title>
  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
  <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Share+Tech+Mono&display=swap" rel="stylesheet">
  <style>
  :root { --p-color: #00ff00; --e-color: #ff0000; }
- body { 
- font-family: 'DotGothic16', sans-serif; 
- background: #221100; color: #fff; margin: 0; 
- display: flex; justify-content: center;
- }
- #game-container { 
- width: 100vw; max-width: 450px; height: 100vh;
- background: #000; border: 4px solid #444;
- display: flex; flex-direction: column;
- }
- /* 上下分割レイアウト */
- .battle-area { flex: 1; position: relative; border: 2px solid #333; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; }
- #player-area { background: linear-gradient(to bottom, #112211, #000); }
- #enemy-area { background: linear-gradient(to top, #221111, #000); }
-
- .unit-label { position: absolute; top: 5px; left: 10px; font-size: 0.8rem; color: #aaa; z-index: 10; }
+ body { font-family: 'DotGothic16', sans-serif; background: #1a0f00; color: #fff; margin: 0; display: flex; justify-content: center; overflow: hidden; }
+ #game-container { width: 100vw; max-width: 450px; height: 100vh; background: #000; border: 4px solid #444; display: flex; flex-direction: column; }
  
- /* モニター/カメラ */
- #monitor { width: 180px; height: 180px; border: 3px solid #fff; position: relative; background: #111; }
- video { width: 100%; height: 100%; object-fit: cover; display: block; }
- canvas { width: 100%; height: 100%; object-fit: cover; display: none; image-rendering: pixelated; }
+ .battle-area { flex: 1; position: relative; border: 2px solid #333; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: background 0.5s; }
+ #player-area { background: linear-gradient(180deg, #001a00, #000); }
+ #enemy-area { background: linear-gradient(0deg, #1a0000, #000); }
 
- .enemy-sprite { font-size: 5rem; text-shadow: 0 0 20px #f00; transition: transform 0.1s; }
+ .unit-label { position: absolute; top: 5px; left: 10px; font-size: 0.7rem; color: #888; z-index: 10; letter-spacing: 1px; }
+ 
+ /* イラスト表示エリア */
+ .visual-frame { width: 160px; height: 160px; border: 3px solid #fff; background: #111; position: relative; overflow: hidden; box-shadow: 0 0 15px rgba(255,255,255,0.2); }
+ video { width: 100%; height: 100%; object-fit: cover; }
+ .generated-img { width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; display: none; }
 
- /* ステータスバー */
- .stat-box { width: 80%; margin-top: 5px; background: rgba(0,0,0,0.5); padding: 5px; border: 1px solid #555; }
- .hp-bar { height: 10px; background: #333; width: 100%; margin-top: 3px; }
+ /* ステータス */
+ .stat-box { width: 85%; margin-top: 8px; }
+ .hp-bar { height: 8px; background: #333; width: 100%; margin: 4px 0; border: 1px solid #fff; }
  .hp-fill { height: 100%; transition: width 0.3s; }
- #p-hp-fill { background: var(--p-color); }
- #e-hp-fill { background: var(--e-color); }
+ #p-hp-fill { background: var(--p-color); box-shadow: 0 0 10px var(--p-color); }
+ #e-hp-fill { background: var(--e-color); box-shadow: 0 0 10px var(--e-color); }
 
- /* 操作パネル */
- #ui-panel { height: 140px; background: #111; border-top: 4px solid #fff; padding: 10px; display: flex; flex-direction: column; }
- #msg-log { flex: 1; font-size: 0.85rem; color: #0f0; margin-bottom: 10px; overflow-y: hidden; }
- .btn-group { display: flex; gap: 10px; }
- button { flex: 1; padding: 12px; font-family: 'DotGothic16'; font-size: 1rem; border: 3px solid #fff; cursor: pointer; color: #fff; }
- #scan-btn { background: #0055ff; }
- #atk-btn { background: #cc0000; }
- button:disabled { background: #333; color: #888; border-color: #555; }
+ /* UI */
+ #ui-panel { height: 160px; background: #111; border-top: 4px solid #fff; padding: 12px; display: flex; flex-direction: column; }
+ #msg-log { flex: 1; font-size: 0.8rem; color: #0f0; line-height: 1.4; border-left: 2px solid #0f0; padding-left: 10px; }
+ .btn-group { display: flex; gap: 8px; margin-top: 10px; }
+ button { flex: 1; padding: 12px; font-family: 'DotGothic16'; font-size: 0.9rem; border: 3px solid #fff; cursor: pointer; color: #fff; transition: 0.1s; }
+ #scan-btn { background: #0044cc; }
+ #atk-btn { background: #aa0000; }
+ button:active { transform: scale(0.95); }
+ button:disabled { background: #222; color: #555; border-color: #444; }
 
- /* エフェクト */
  .shake { animation: shake 0.3s; }
- @keyframes shake {
- 0%, 100% { transform: translate(0,0); }
- 25% { transform: translate(5px, 5px); }
- 50% { transform: translate(-5px, -5px); }
- 75% { transform: translate(5px, -5px); }
- }
+ @keyframes shake { 0%, 100% { transform: translate(0,0); } 25% { transform: translate(4px,4px); } 50% { transform: translate(-4px,-4px); } 75% { transform: translate(4px,-4px); } }
  </style>
 </head>
 <body>
 
 <div id="game-container">
  <div class="battle-area" id="player-area">
- <div class="unit-label">PLAYER UNIT</div>
- <div id="monitor">
+ <div class="unit-label">PLAYER WEAPON</div>
+ <div class="visual-frame" id="p-frame">
  <video id="webcam" autoplay playsinline muted></video>
- <canvas id="p-canvas"></canvas>
+ <img id="p-img" class="generated-img" src="" />
  </div>
  <div class="stat-box">
- <div style="display:flex; justify-content:space-between; font-size:0.8rem;">
- <span id="p-name">UNKNOWN</span> <span>LV:<span id="lv">1</span></span>
- </div>
+ <div style="font-size:0.8rem; color:yellow;">WEAPON: <span id="p-name">NONE</span></div>
  <div class="hp-bar"><div id="p-hp-fill" class="hp-fill" style="width:100%"></div></div>
- <div style="font-size:0.7rem; text-align:right;">HP: <span id="p-hp-val">0</span></div>
  </div>
  </div>
 
  <div class="battle-area" id="enemy-area">
- <div class="unit-label">ENEMY UNIT</div>
- <div id="enemy-sprite" class="enemy-sprite"> </div>
+ <div class="unit-label">ENEMY MONSTER</div>
+ <div class="visual-frame" id="e-frame">
+ <img id="e-img" class="generated-img" style="display:block; opacity: 0.3;" src="https://source.unsplash.com/featured/?robot,pixel" />
+ </div>
  <div class="stat-box">
- <div style="font-size:0.8rem;">TARGET: <span id="e-name">DARK ROBOT</span></div>
+ <div style="font-size:0.8rem; color:red;">MONSTER: <span id="e-name">WAITING...</span></div>
  <div class="hp-bar"><div id="e-hp-fill" class="hp-fill" style="width:100%"></div></div>
- <div style="font-size:0.7rem; text-align:right;">HP: <span id="e-hp-val">0</span></div>
  </div>
  </div>
 
  <div id="ui-panel">
- <div id="msg-log">SYSTEM READY. SCAN A MONSTER!</div>
+ <div id="msg-log">1. SCAN YOUR WEAPON!</div>
  <div class="btn-group">
  <button id="scan-btn">SCAN</button>
  <button id="atk-btn" disabled>ATTACK!</button>
@@ -98,94 +81,74 @@
 
 <script>
  let net;
- let player = { lv: 1, hp: 100, maxHp: 100, atk: 25, def: 15, name: "???" };
- let enemy = { hp: 150, maxHp: 150, atk: 35, def: 10, name: "DARK ROBOT" };
+ let mode = "WEAPON"; // WEAPON -> MONSTER -> BATTLE
+ let player = { hp: 1000, maxHp: 1000, atk: 50 };
+ let enemy = { hp: 1000, maxHp: 1000, atk: 60 };
  
  const video = document.getElementById('webcam');
- const canvas = document.getElementById('p-canvas');
- const ctx = canvas.getContext('2d');
  const log = document.getElementById('msg-log');
 
  async function init() {
- try {
  net = await mobilenet.load();
  const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
  video.srcObject = stream;
- log.innerText = "CAMERA ONLINE. FIND YOUR MONSTER.";
- } catch(e) { log.innerText = "ERROR: ACCESS DENIED."; }
  }
 
- function updateUI() {
- document.getElementById('p-name').innerText = player.name;
- document.getElementById('p-hp-val').innerText = Math.max(0, player.hp);
- document.getElementById('e-hp-val').innerText = Math.max(0, enemy.hp);
- document.getElementById('p-hp-fill').style.width = (player.hp / player.maxHp * 100) + "%";
- document.getElementById('e-hp-fill').style.width = (enemy.hp / enemy.maxHp * 100) + "%";
- document.getElementById('lv').innerText = player.lv;
+ async function generateVisual(keyword, targetImgId) {
+ const img = document.getElementById(targetImgId);
+ // UnsplashのAPIを利用して、キーワードに基づいた画像をランダム取得
+ const url = `https://source.unsplash.com/160x160/?${keyword},object`;
+ img.src = url;
+ img.style.display = "block";
+ img.style.opacity = "1";
  }
 
  document.getElementById('scan-btn').onclick = async () => {
  const result = await net.classify(video);
- player.name = result[0].className.split(',')[0].toUpperCase();
+ const name = result[0].className.split(',')[0].toUpperCase();
  
- // ドット絵化
- canvas.width = 128; canvas.height = 128;
- ctx.drawImage(video, 0, 0, 128, 128);
- video.style.display = 'none';
- canvas.style.display = 'block';
-
- // ハードモードなステータス生成
- let seed = player.name.length;
- player.maxHp = 400 + (seed * 20) + (player.lv * 30);
- player.hp = player.maxHp;
- player.atk = 40 + (seed * 5);
- 
- // 敵も強化
- enemy.maxHp = 500 + (player.lv * 60);
- enemy.hp = enemy.maxHp;
- enemy.atk = 35 + (player.lv * 8);
-
- log.innerText = "DETECTION SUCCESS: " + player.name;
+ if (mode === "WEAPON") {
+ document.getElementById('p-name').innerText = name;
+ await generateVisual(name, "p-img");
+ video.style.display = "none";
+ log.innerText = `WEAPON CREATED: ${name}!\nNEXT: SCAN ENEMY MONSTER!`;
+ mode = "MONSTER";
+ } else if (mode === "MONSTER") {
+ document.getElementById('e-name').innerText = name;
+ await generateVisual(name, "e-img");
+ log.innerText = `MONSTER BORN: ${name}!\nBATTLE START!`;
  document.getElementById('atk-btn').disabled = false;
- updateUI();
+ document.getElementById('scan-btn').disabled = true;
+ mode = "BATTLE";
+ }
  };
 
  document.getElementById('atk-btn').onclick = () => {
- // PLAYER ATTACK
+ // Player Attack
  document.getElementById('enemy-area').classList.add('shake');
- let dmg = Math.max(5, player.atk - Math.floor(Math.random() * 10));
- enemy.hp -= dmg;
- log.innerText = `YOU DEAL ${dmg} DAMAGE!`;
+ enemy.hp -= player.atk + Math.floor(Math.random() * 20);
  
- setTimeout(() => document.getElementById('enemy-area').classList.remove('shake'), 300);
-
- if (enemy.hp <= 0) {
- log.innerText = "TARGET DESTROYED! LV UP!";
- player.lv++;
- document.getElementById('atk-btn').disabled = true;
- // 復活準備
- setTimeout(() => { 
- video.style.display = 'block'; canvas.style.display = 'none'; 
- log.innerText = "SCAN NEXT TARGET...";
- }, 2000);
- } else {
- // ENEMY COUNTER (強め)
+ // Enemy Counter
  setTimeout(() => {
+ document.getElementById('enemy-area').classList.remove('shake');
  document.getElementById('player-area').classList.add('shake');
- let eDmg = Math.max(10, enemy.atk - Math.floor(Math.random() * 5));
- player.hp -= eDmg;
- log.innerText = `ENEMY COUNTER! ${eDmg} DAMAGE!`;
+ player.hp -= enemy.atk + Math.floor(Math.random() * 20);
  updateUI();
  setTimeout(() => document.getElementById('player-area').classList.remove('shake'), 300);
+ }, 500);
  
- if (player.hp <= 0) {
- log.innerText = "CRITICAL ERROR: YOU ARE DEFEATED.";
+ updateUI();
+ log.innerText = "EXCHANGING BLOWS!!";
+ if(player.hp <= 0 || enemy.hp <= 0) {
+ log.innerText = player.hp > 0 ? "VICTORY!" : "DEFEAT...";
  document.getElementById('atk-btn').disabled = true;
  }
- }, 600);
- }
- updateUI();
  };
+
+ function updateUI() {
+ document.getElementById('p-hp-fill').style.width = (player.hp / player.maxHp * 100) + "%";
+ document.getElementById('e-hp-fill').style.width = (enemy.hp / enemy.maxHp * 100) + "%";
+ }
 
  init();
 </script>
