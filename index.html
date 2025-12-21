@@ -2,152 +2,149 @@
 <html lang="ja">
 <head>
  <meta charset="UTF-8">
- <meta name="viewport" content="width=device-width, initial-scale=1.0">
- <title>MONSTER & WEAPON SCANNER</title>
+ <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+ <title>SCANNER 100</title>
  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
- <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+ <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
  <style>
- :root { --p-color: #00ff00; --e-color: #ff0000; }
- body { font-family: 'DotGothic16', sans-serif; background: #1a0f00; color: #fff; margin: 0; display: flex; justify-content: center; overflow: hidden; }
- #game-container { width: 100vw; max-width: 450px; height: 100vh; background: #000; border: 4px solid #444; display: flex; flex-direction: column; }
- 
- .battle-area { flex: 1; position: relative; border: 2px solid #333; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: background 0.5s; }
- #player-area { background: linear-gradient(180deg, #001a00, #000); }
- #enemy-area { background: linear-gradient(0deg, #1a0000, #000); }
+ :root { --p-color: #00f2ff; --e-color: #ff3c00; }
+ body { 
+ font-family: 'DotGothic16', sans-serif; background: #000; color: #fff; 
+ margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; 
+ }
+ .area { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; border-bottom: 1px solid #333; }
+ #player-area { background: linear-gradient(180deg, #001, #000); }
+ #enemy-area { background: linear-gradient(0deg, #100, #000); }
 
- .unit-label { position: absolute; top: 5px; left: 10px; font-size: 0.7rem; color: #888; z-index: 10; letter-spacing: 1px; }
- 
- /* イラスト表示エリア */
- .visual-frame { width: 160px; height: 160px; border: 3px solid #fff; background: #111; position: relative; overflow: hidden; box-shadow: 0 0 15px rgba(255,255,255,0.2); }
- video { width: 100%; height: 100%; object-fit: cover; }
- .generated-img { width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; display: none; }
+ /* カメラとイラストのコンテナ */
+ .frame { width: 130px; height: 130px; border: 3px solid #fff; background: #111; position: relative; overflow: hidden; }
+ video { width: 100%; height: 100%; object-fit: cover; opacity: 0.6; }
+ .visual-overlay { 
+ position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+ display: flex; align-items: center; justify-content: center; 
+ font-size: 4rem; pointer-events: none; text-shadow: 0 0 15px rgba(255,255,255,0.5);
+ transition: 0.3s; transform: scale(0);
+ }
+ .active .visual-overlay { transform: scale(1); }
 
- /* ステータス */
- .stat-box { width: 85%; margin-top: 8px; }
- .hp-bar { height: 8px; background: #333; width: 100%; margin: 4px 0; border: 1px solid #fff; }
+ .label { position: absolute; top: 5px; left: 5px; font-size: 0.6rem; color: #888; }
+ .name-tag { font-size: 0.8rem; margin: 4px 0; color: #fff; text-align: center; }
+ .hp-cont { width: 80%; height: 6px; background: #333; border: 1px solid #fff; position: relative; }
  .hp-fill { height: 100%; transition: width 0.3s; }
- #p-hp-fill { background: var(--p-color); box-shadow: 0 0 10px var(--p-color); }
- #e-hp-fill { background: var(--e-color); box-shadow: 0 0 10px var(--e-color); }
 
- /* UI */
- #ui-panel { height: 160px; background: #111; border-top: 4px solid #fff; padding: 12px; display: flex; flex-direction: column; }
- #msg-log { flex: 1; font-size: 0.8rem; color: #0f0; line-height: 1.4; border-left: 2px solid #0f0; padding-left: 10px; }
- .btn-group { display: flex; gap: 8px; margin-top: 10px; }
- button { flex: 1; padding: 12px; font-family: 'DotGothic16'; font-size: 0.9rem; border: 3px solid #fff; cursor: pointer; color: #fff; transition: 0.1s; }
+ #ui { height: 110px; background: #111; padding: 10px; border-top: 3px solid #fff; display: flex; flex-direction: column; }
+ #msg { flex: 1; font-size: 0.75rem; color: #0f0; }
+ .btns { display: flex; gap: 10px; height: 45px; }
+ button { flex: 1; font-family: 'DotGothic16'; border: 3px solid #fff; color: #fff; font-size: 1rem; }
  #scan-btn { background: #0044cc; }
  #atk-btn { background: #aa0000; }
- button:active { transform: scale(0.95); }
- button:disabled { background: #222; color: #555; border-color: #444; }
+ button:disabled { opacity: 0.2; }
 
- .shake { animation: shake 0.3s; }
- @keyframes shake { 0%, 100% { transform: translate(0,0); } 25% { transform: translate(4px,4px); } 50% { transform: translate(-4px,-4px); } 75% { transform: translate(4px,-4px); } }
+ .shake { animation: s 0.2s infinite; }
+ @keyframes s { 0% { transform:translate(3px,3px) } 50% { transform:translate(-3px,-3px) } 100% { transform:translate(0,0) } }
  </style>
 </head>
 <body>
 
-<div id="game-container">
- <div class="battle-area" id="player-area">
- <div class="unit-label">PLAYER WEAPON</div>
- <div class="visual-frame" id="p-frame">
- <video id="webcam" autoplay playsinline muted></video>
- <img id="p-img" class="generated-img" src="" />
+<div class="area" id="player-area">
+ <div class="label">PLAYER WEAPON</div>
+ <div class="frame" id="pf">
+ <video id="pv" autoplay playsinline muted></video>
+ <div id="pw-icon" class="visual-overlay"> </div>
  </div>
- <div class="stat-box">
- <div style="font-size:0.8rem; color:yellow;">WEAPON: <span id="p-name">NONE</span></div>
- <div class="hp-bar"><div id="p-hp-fill" class="hp-fill" style="width:100%"></div></div>
- </div>
- </div>
+ <div class="name-tag"><span id="pn">SCAN OBJECT</span> <span id="p-id" style="color:var(--p-color)"></span></div>
+ <div class="hp-cont"><div id="phf" class="hp-fill" style="background:var(--p-color); width:100%"></div></div>
+</div>
 
- <div class="battle-area" id="enemy-area">
- <div class="unit-label">ENEMY MONSTER</div>
- <div class="visual-frame" id="e-frame">
- <img id="e-img" class="generated-img" style="display:block; opacity: 0.3;" src="https://source.unsplash.com/featured/?robot,pixel" />
+<div class="area" id="enemy-area">
+ <div class="label">ENEMY MONSTER</div>
+ <div class="frame" id="ef">
+ <video id="ev" autoplay playsinline muted></video>
+ <div id="em-icon" class="visual-overlay"> </div>
  </div>
- <div class="stat-box">
- <div style="font-size:0.8rem; color:red;">MONSTER: <span id="e-name">WAITING...</span></div>
- <div class="hp-bar"><div id="e-hp-fill" class="hp-fill" style="width:100%"></div></div>
- </div>
- </div>
+ <div class="name-tag"><span id="en">SCAN TARGET</span> <span id="e-id" style="color:var(--e-color)"></span></div>
+ <div class="hp-cont"><div id="ehf" class="hp-fill" style="background:var(--e-color); width:100%"></div></div>
+</div>
 
- <div id="ui-panel">
- <div id="msg-log">1. SCAN YOUR WEAPON!</div>
- <div class="btn-group">
+<div id="ui">
+ <div id="msg">1. SCAN FOR WEAPON</div>
+ <div class="btns">
  <button id="scan-btn">SCAN</button>
  <button id="atk-btn" disabled>ATTACK!</button>
- </div>
  </div>
 </div>
 
 <script>
- let net;
- let mode = "WEAPON"; // WEAPON -> MONSTER -> BATTLE
- let player = { hp: 1000, maxHp: 1000, atk: 50 };
- let enemy = { hp: 1000, maxHp: 1000, atk: 60 };
+ let net, mode = "W", php=1000, ehp=1000, patk=100, eatk=120;
  
- const video = document.getElementById('webcam');
- const log = document.getElementById('msg-log');
+ // 武器(100)とモンスター(100)の絵文字リスト（一部抜粋しつつ100種カバーするロジック）
+ const weapons = [" "," "," "," "," "," "," "," "," "," "," "," "," "," "," "," "," "," "," "," "];
+ const monsters = [" "," "," "," "," "," "," "," "," "," "," "," "," "," "," "," "," "," "," "," "];
 
  async function init() {
  net = await mobilenet.load();
- const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
- video.srcObject = stream;
+ const s = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
+ document.getElementById('pv').srcObject = s;
+ document.getElementById('ev').srcObject = s;
  }
 
- async function generateVisual(keyword, targetImgId) {
- const img = document.getElementById(targetImgId);
- // UnsplashのAPIを利用して、キーワードに基づいた画像をランダム取得
- const url = `https://source.unsplash.com/160x160/?${keyword},object`;
- img.src = url;
- img.style.display = "block";
- img.style.opacity = "1";
+ // 名前のアルファベットを数値化してID(0-99)を作る
+ function getID(name) {
+ let sum = 0;
+ for (let i = 0; i < name.length; i++) {
+ sum += name.charCodeAt(i);
+ }
+ return sum % 100;
  }
 
  document.getElementById('scan-btn').onclick = async () => {
- const result = await net.classify(video);
- const name = result[0].className.split(',')[0].toUpperCase();
+ const video = document.getElementById('pv');
+ const r = await net.classify(video);
+ const name = r[0].className.split(',')[0].toUpperCase();
+ const id = getID(name);
  
- if (mode === "WEAPON") {
- document.getElementById('p-name').innerText = name;
- await generateVisual(name, "p-img");
- video.style.display = "none";
- log.innerText = `WEAPON CREATED: ${name}!\nNEXT: SCAN ENEMY MONSTER!`;
- mode = "MONSTER";
- } else if (mode === "MONSTER") {
- document.getElementById('e-name').innerText = name;
- await generateVisual(name, "e-img");
- log.innerText = `MONSTER BORN: ${name}!\nBATTLE START!`;
+ if (mode === "W") {
+ document.getElementById('pn').innerText = name;
+ document.getElementById('p-id').innerText = "#" + id;
+ document.getElementById('pw-icon').innerText = weapons[id % weapons.length]; // 実際は100種に拡張可能
+ document.getElementById('pf').classList.add('active');
+ patk = 100 + id;
+ msg.innerText = "WEAPON FOUND! NEXT: SCAN ENEMY";
+ mode = "M";
+ } else if (mode === "M") {
+ document.getElementById('en').innerText = name;
+ document.getElementById('e-id').innerText = "#" + id;
+ document.getElementById('em-icon').innerText = monsters[id % monsters.length];
+ document.getElementById('ef').classList.add('active');
+ eatk = 120 + id;
+ msg.innerText = "ENEMY DETECTED! FIGHT!";
  document.getElementById('atk-btn').disabled = false;
  document.getElementById('scan-btn').disabled = true;
- mode = "BATTLE";
  }
  };
 
  document.getElementById('atk-btn').onclick = () => {
- // Player Attack
- document.getElementById('enemy-area').classList.add('shake');
- enemy.hp -= player.atk + Math.floor(Math.random() * 20);
- 
- // Enemy Counter
+ // Battle
+ document.getElementById('ef').classList.add('shake');
+ ehp -= (patk + Math.random() * 50);
  setTimeout(() => {
- document.getElementById('enemy-area').classList.remove('shake');
- document.getElementById('player-area').classList.add('shake');
- player.hp -= enemy.atk + Math.floor(Math.random() * 20);
- updateUI();
- setTimeout(() => document.getElementById('player-area').classList.remove('shake'), 300);
- }, 500);
- 
- updateUI();
- log.innerText = "EXCHANGING BLOWS!!";
- if(player.hp <= 0 || enemy.hp <= 0) {
- log.innerText = player.hp > 0 ? "VICTORY!" : "DEFEAT...";
+ document.getElementById('ef').classList.remove('shake');
+ document.getElementById('pf').classList.add('shake');
+ php -= (eatk + Math.random() * 50);
+ update();
+ setTimeout(() => document.getElementById('pf').classList.remove('shake'), 200);
+ }, 400);
+ update();
+ if(php<=0 || ehp<=0) {
+ msg.innerText = php>0 ? "VICTORY!" : "DEFEAT...";
  document.getElementById('atk-btn').disabled = true;
  }
  };
 
- function updateUI() {
- document.getElementById('p-hp-fill').style.width = (player.hp / player.maxHp * 100) + "%";
- document.getElementById('e-hp-fill').style.width = (enemy.hp / enemy.maxHp * 100) + "%";
+ function update() {
+ document.getElementById('phf').style.width = Math.max(0, (php/1000)*100) + "%";
+ document.getElementById('ehf').style.width = Math.max(0, (ehp/1000)*100) + "%";
  }
 
  init();
