@@ -3,103 +3,107 @@
 <head>
  <meta charset="UTF-8">
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
- <title>MONSTER SCANNER EVO</title>
+ <title>MONSTER BATTLE EVO</title>
  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
  <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Share+Tech+Mono&display=swap" rel="stylesheet">
  <style>
- :root { --main-color: #fff; --accent-color: #00ff00; }
+ :root { --p-color: #00ff00; --e-color: #ff0000; }
  body { 
  font-family: 'DotGothic16', sans-serif; 
- background-color: #443322;
- background-image: repeating-linear-gradient(0deg, #332211, #332211 10px, #443322 10px, #443322 20px);
- color: var(--main-color); margin: 0; display: flex; flex-direction: column; align-items: center;
- overflow: hidden;
+ background: #221100; color: #fff; margin: 0; 
+ display: flex; justify-content: center;
  }
+ #game-container { 
+ width: 100vw; max-width: 450px; height: 100vh;
+ background: #000; border: 4px solid #444;
+ display: flex; flex-direction: column;
+ }
+ /* 上下分割レイアウト */
+ .battle-area { flex: 1; position: relative; border: 2px solid #333; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+ #player-area { background: linear-gradient(to bottom, #112211, #000); }
+ #enemy-area { background: linear-gradient(to top, #221111, #000); }
 
- #game-container { background: rgba(0,0,0,0.9); width: 95%; max-width: 400px; padding: 15px; border: 4px solid #fff; margin-top: 10px; position: relative; }
+ .unit-label { position: absolute; top: 5px; left: 10px; font-size: 0.8rem; color: #aaa; z-index: 10; }
  
- /* バトルフィールド */
- #battle-field { width: 100%; height: 200px; border: 4px solid #fff; background: #111; position: relative; display: flex; justify-content: space-around; align-items: flex-end; padding-bottom: 10px; }
- .unit-container { width: 45%; text-align: center; }
- .unit-sprite { width: 100%; height: 120px; object-fit: contain; image-rendering: pixelated; border: 1px solid #333; }
- 
- /* アニメーション */
+ /* モニター/カメラ */
+ #monitor { width: 180px; height: 180px; border: 3px solid #fff; position: relative; background: #111; }
+ video { width: 100%; height: 100%; object-fit: cover; display: block; }
+ canvas { width: 100%; height: 100%; object-fit: cover; display: none; image-rendering: pixelated; }
+
+ .enemy-sprite { font-size: 5rem; text-shadow: 0 0 20px #f00; transition: transform 0.1s; }
+
+ /* ステータスバー */
+ .stat-box { width: 80%; margin-top: 5px; background: rgba(0,0,0,0.5); padding: 5px; border: 1px solid #555; }
+ .hp-bar { height: 10px; background: #333; width: 100%; margin-top: 3px; }
+ .hp-fill { height: 100%; transition: width 0.3s; }
+ #p-hp-fill { background: var(--p-color); }
+ #e-hp-fill { background: var(--e-color); }
+
+ /* 操作パネル */
+ #ui-panel { height: 140px; background: #111; border-top: 4px solid #fff; padding: 10px; display: flex; flex-direction: column; }
+ #msg-log { flex: 1; font-size: 0.85rem; color: #0f0; margin-bottom: 10px; overflow-y: hidden; }
+ .btn-group { display: flex; gap: 10px; }
+ button { flex: 1; padding: 12px; font-family: 'DotGothic16'; font-size: 1rem; border: 3px solid #fff; cursor: pointer; color: #fff; }
+ #scan-btn { background: #0055ff; }
+ #atk-btn { background: #cc0000; }
+ button:disabled { background: #333; color: #888; border-color: #555; }
+
+ /* エフェクト */
  .shake { animation: shake 0.3s; }
  @keyframes shake {
- 0% { transform: translate(1px, 1px) rotate(0deg); }
- 20% { transform: translate(-3px, 0px) rotate(-1deg); }
- 40% { transform: translate(3px, 2px) rotate(1deg); }
- 60% { transform: translate(-1px, -1px) rotate(1deg); }
- 80% { transform: translate(-3px, 1px) rotate(-1deg); }
- 100% { transform: translate(1px, -2px) rotate(0deg); }
+ 0%, 100% { transform: translate(0,0); }
+ 25% { transform: translate(5px, 5px); }
+ 50% { transform: translate(-5px, -5px); }
+ 75% { transform: translate(5px, -5px); }
  }
- .flash { animation: flash 0.2s; }
- @keyframes flash {
- 0% { background: #fff; }
- 100% { background: #111; }
- }
-
- /* ステータス */
- #status-area { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; font-family: 'Share Tech Mono', monospace; font-size: 0.9rem; }
- .window { border: 2px solid #fff; padding: 5px; background: #000; }
- .hp-bar { height: 8px; background: #555; margin-top: 4px; }
- .hp-fill { height: 100%; background: var(--accent-color); transition: width 0.3s; }
-
- #msg-log { height: 50px; border: 2px solid #fff; margin-top: 10px; padding: 5px; font-size: 0.8rem; background: #111; overflow-y: hidden; }
-
- .btn-group { display: flex; gap: 5px; margin-top: 10px; }
- button { flex: 1; padding: 10px; font-family: 'DotGothic16'; background: #e60012; color: #fff; border: 3px solid #fff; cursor: pointer; }
- button:disabled { background: #444; border-color: #888; }
-
- video { display: none; }
  </style>
 </head>
 <body>
 
-<video id="webcam" autoplay playsinline muted></video>
-
 <div id="game-container">
- <div id="level-display" style="text-align:right; font-size:0.8rem; color:yellow;">LV: <span id="lv">1</span> EXP: <span id="exp">0</span></div>
- 
- <div id="battle-field">
- <div class="unit-container" id="player-unit">
- <div style="font-size:0.7rem;">PLAYER</div>
- <canvas id="player-canvas" class="unit-sprite"></canvas>
+ <div class="battle-area" id="player-area">
+ <div class="unit-label">PLAYER UNIT</div>
+ <div id="monitor">
+ <video id="webcam" autoplay playsinline muted></video>
+ <canvas id="p-canvas"></canvas>
  </div>
- <div class="unit-container" id="enemy-unit">
- <div style="font-size:0.7rem;">ENEMY</div>
- <div id="enemy-view" class="unit-sprite" style="background:#300; display:flex; align-items:center; justify-content:center; font-size:2rem;"> </div>
+ <div class="stat-box">
+ <div style="display:flex; justify-content:space-between; font-size:0.8rem;">
+ <span id="p-name">UNKNOWN</span> <span>LV:<span id="lv">1</span></span>
  </div>
- </div>
-
- <div id="status-area">
- <div class="window">
- <div>HP: <span id="p-hp">0</span></div>
  <div class="hp-bar"><div id="p-hp-fill" class="hp-fill" style="width:100%"></div></div>
- </div>
- <div class="window">
- <div>ENEMY HP: <span id="e-hp">0</span></div>
- <div class="hp-bar"><div id="e-hp-fill" class="hp-fill" style="width:100%; background:red;"></div></div>
+ <div style="font-size:0.7rem; text-align:right;">HP: <span id="p-hp-val">0</span></div>
  </div>
  </div>
 
- <div id="msg-log">SYSTEM READY...</div>
+ <div class="battle-area" id="enemy-area">
+ <div class="unit-label">ENEMY UNIT</div>
+ <div id="enemy-sprite" class="enemy-sprite"> </div>
+ <div class="stat-box">
+ <div style="font-size:0.8rem;">TARGET: <span id="e-name">DARK ROBOT</span></div>
+ <div class="hp-bar"><div id="e-hp-fill" class="hp-fill" style="width:100%"></div></div>
+ <div style="font-size:0.7rem; text-align:right;">HP: <span id="e-hp-val">0</span></div>
+ </div>
+ </div>
 
+ <div id="ui-panel">
+ <div id="msg-log">SYSTEM READY. SCAN A MONSTER!</div>
  <div class="btn-group">
  <button id="scan-btn">SCAN</button>
  <button id="atk-btn" disabled>ATTACK!</button>
+ </div>
  </div>
 </div>
 
 <script>
  let net;
- let player = { lv: 1, exp: 0, hp: 100, maxHp: 100, atk: 20, def: 10, name: "" };
- let enemy = { hp: 100, maxHp: 100, atk: 15, def: 5 };
+ let player = { lv: 1, hp: 100, maxHp: 100, atk: 25, def: 15, name: "???" };
+ let enemy = { hp: 150, maxHp: 150, atk: 35, def: 10, name: "DARK ROBOT" };
  
  const video = document.getElementById('webcam');
- const pCanvas = document.getElementById('player-canvas');
- const pCtx = pCanvas.getContext('2d');
+ const canvas = document.getElementById('p-canvas');
+ const ctx = canvas.getContext('2d');
  const log = document.getElementById('msg-log');
 
  async function init() {
@@ -107,72 +111,78 @@
  net = await mobilenet.load();
  const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
  video.srcObject = stream;
- log.innerText = "SCANNER STANDBY.";
- } catch(e) { log.innerText = "ERROR: CAMERA NOT FOUND."; }
+ log.innerText = "CAMERA ONLINE. FIND YOUR MONSTER.";
+ } catch(e) { log.innerText = "ERROR: ACCESS DENIED."; }
  }
 
  function updateUI() {
- document.getElementById('lv').innerText = player.lv;
- document.getElementById('exp').innerText = player.exp;
- document.getElementById('p-hp').innerText = Math.max(0, player.hp);
- document.getElementById('e-hp').innerText = Math.max(0, enemy.hp);
+ document.getElementById('p-name').innerText = player.name;
+ document.getElementById('p-hp-val').innerText = Math.max(0, player.hp);
+ document.getElementById('e-hp-val').innerText = Math.max(0, enemy.hp);
  document.getElementById('p-hp-fill').style.width = (player.hp / player.maxHp * 100) + "%";
  document.getElementById('e-hp-fill').style.width = (enemy.hp / enemy.maxHp * 100) + "%";
+ document.getElementById('lv').innerText = player.lv;
  }
 
  document.getElementById('scan-btn').onclick = async () => {
  const result = await net.classify(video);
  player.name = result[0].className.split(',')[0].toUpperCase();
  
- // 高解像度ドット絵化 (128x128)
- pCanvas.width = 128;
- pCanvas.height = 128;
- pCtx.drawImage(video, 0, 0, 128, 128);
- 
- // ステータス設定 (レベルに応じて強化)
- player.maxHp = 500 + (player.lv * 50);
+ // ドット絵化
+ canvas.width = 128; canvas.height = 128;
+ ctx.drawImage(video, 0, 0, 128, 128);
+ video.style.display = 'none';
+ canvas.style.display = 'block';
+
+ // ハードモードなステータス生成
+ let seed = player.name.length;
+ player.maxHp = 400 + (seed * 20) + (player.lv * 30);
  player.hp = player.maxHp;
- player.atk = 50 + (player.lv * 10);
+ player.atk = 40 + (seed * 5);
  
- enemy.maxHp = 400 + Math.floor(Math.random() * 200);
+ // 敵も強化
+ enemy.maxHp = 500 + (player.lv * 60);
  enemy.hp = enemy.maxHp;
- 
- log.innerText = "FOUND: " + player.name + "!";
+ enemy.atk = 35 + (player.lv * 8);
+
+ log.innerText = "DETECTION SUCCESS: " + player.name;
  document.getElementById('atk-btn').disabled = false;
  updateUI();
  };
 
  document.getElementById('atk-btn').onclick = () => {
- // 攻撃演出
- document.getElementById('enemy-unit').classList.add('shake');
- document.getElementById('battle-field').classList.add('flash');
- setTimeout(() => {
- document.getElementById('enemy-unit').classList.remove('shake');
- document.getElementById('battle-field').classList.remove('flash');
- }, 300);
-
- let dmg = Math.max(10, player.atk - enemy.def);
+ // PLAYER ATTACK
+ document.getElementById('enemy-area').classList.add('shake');
+ let dmg = Math.max(5, player.atk - Math.floor(Math.random() * 10));
  enemy.hp -= dmg;
- log.innerText = `YOU DEAL ${dmg} DMG!`;
+ log.innerText = `YOU DEAL ${dmg} DAMAGE!`;
+ 
+ setTimeout(() => document.getElementById('enemy-area').classList.remove('shake'), 300);
 
  if (enemy.hp <= 0) {
- log.innerText = "ENEMY DEFEATED! +50 EXP";
- player.exp += 50;
- if (player.exp >= player.lv * 100) {
+ log.innerText = "TARGET DESTROYED! LV UP!";
  player.lv++;
- log.innerText = "LEVEL UP! LV " + player.lv;
- }
  document.getElementById('atk-btn').disabled = true;
+ // 復活準備
+ setTimeout(() => { 
+ video.style.display = 'block'; canvas.style.display = 'none'; 
+ log.innerText = "SCAN NEXT TARGET...";
+ }, 2000);
  } else {
- // 反撃
+ // ENEMY COUNTER (強め)
  setTimeout(() => {
- document.getElementById('player-unit').classList.add('shake');
- let eDmg = Math.max(5, enemy.atk - player.def);
+ document.getElementById('player-area').classList.add('shake');
+ let eDmg = Math.max(10, enemy.atk - Math.floor(Math.random() * 5));
  player.hp -= eDmg;
- log.innerText = `ENEMY DEALS ${eDmg} DMG!`;
- setTimeout(() => document.getElementById('player-unit').classList.remove('shake'), 300);
+ log.innerText = `ENEMY COUNTER! ${eDmg} DAMAGE!`;
  updateUI();
- }, 800);
+ setTimeout(() => document.getElementById('player-area').classList.remove('shake'), 300);
+ 
+ if (player.hp <= 0) {
+ log.innerText = "CRITICAL ERROR: YOU ARE DEFEATED.";
+ document.getElementById('atk-btn').disabled = true;
+ }
+ }, 600);
  }
  updateUI();
  };
