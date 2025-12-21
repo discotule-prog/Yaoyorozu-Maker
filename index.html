@@ -1,175 +1,231 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>SCANNER 100 FIXED</title>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
-<link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
-<style>
-:root { --p-color: #00f2ff; --e-color: #ff3c00; }
-body {
-font-family: 'DotGothic16', sans-serif; background: #000; color: #fff;
-margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column;
-}
-.area { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; border-bottom: 2px solid #333; }
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+ <title>MYTH SCANNER SURVIVAL</title>
+ <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+ <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+ <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+ <style>
+ :root { --p-color: #00f2ff; --e-color: #ff3c00; }
+ body { font-family: 'DotGothic16', sans-serif; background: #000; color: #fff; margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+ 
+ /* ヘッダー情報 */
+ #header-info { height: 30px; background: #222; display: flex; justify-content: space-around; align-items: center; font-size: 0.8rem; border-bottom: 1px solid #444; }
 
-/* ユニット表示枠 */
-.frame {
-width: 140px; height: 140px; border: 3px solid #fff;
-background: #111; position: relative; overflow: hidden;
-box-shadow: inset 0 0 20px rgba(255,255,255,0.2);
-}
+ .area { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; border-bottom: 2px solid #333; }
+ .frame { width: 110px; height: 110px; border: 3px solid #fff; background: #111; position: relative; overflow: hidden; }
+ video { position: absolute; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
+ .visual-overlay { position: absolute; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 4rem; z-index: 2; transform: scale(0); transition: 0.4s; }
+ .is-active .visual-overlay { transform: scale(1); }
+ .is-active video { display: none; }
 
-/* 背面のカメラ映像 */
-video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.5; z-index: 1; }
+ .label { position: absolute; top: 5px; left: 5px; font-size: 0.6rem; color: #888; }
+ .rarity-tag { font-size: 0.6rem; font-weight: bold; padding: 1px 5px; border-radius: 3px; margin-bottom: 2px; }
+ .name-tag { font-size: 0.8rem; color: #ffff00; }
+ .hp-cont { width: 70%; height: 6px; background: #333; border: 1px solid #fff; margin-top: 4px; position: relative; }
+ .hp-fill { height: 100%; transition: width 0.3s; }
 
-/* 前面のイラスト（ここが表示されるべき場所） */
-.visual-overlay {
-position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-display: flex; align-items: center; justify-content: center;
-font-size: 5rem; z-index: 2; /* ビデオより上に配置 */
-transform: scale(0); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-pointer-events: none;
-}
-/* スキャン後にこのクラスを付与 */
-.is-active .visual-overlay { transform: scale(1); }
+ #ui { height: 140px; background: #111; padding: 10px; border-top: 3px solid #fff; display: flex; flex-direction: column; }
+ #msg { flex: 1; font-size: 0.75rem; color: #0f0; white-space: pre-line; }
+ .btns { display: flex; gap: 5px; height: 40px; }
+ button { flex: 1; font-family: 'DotGothic16'; border: 2px solid #fff; color: #fff; font-size: 0.8rem; cursor: pointer; background: #444; }
+ #scan-btn { background: #0044cc; }
+ #atk-btn { background: #aa0000; }
 
-.label { position: absolute; top: 5px; left: 5px; font-size: 0.7rem; color: #888; z-index: 3; }
-.name-tag { font-size: 0.85rem; margin: 5px 0; z-index: 3; }
-.hp-cont { width: 80%; height: 8px; background: #333; border: 1px solid #fff; z-index: 3; }
-.hp-fill { height: 100%; transition: width 0.3s; }
+ .overlay-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 100; display: none; flex-direction: column; padding: 20px; box-sizing: border-box; align-items: center; justify-content: center; }
+ .result-text { font-size: 3rem; margin-bottom: 10px; text-align: center; }
+ .win { color: #ffff00; text-shadow: 0 0 20px #ff0; }
+ .lose { color: #ff0000; text-shadow: 0 0 20px #f00; }
 
-#ui { height: 120px; background: #111; padding: 10px; border-top: 3px solid #fff; display: flex; flex-direction: column; z-index: 10; }
-#msg { flex: 1; font-size: 0.8rem; color: #0f0; }
-.btns { display: flex; gap: 10px; height: 50px; }
-button { flex: 1; font-family: 'DotGothic16'; border: 3px solid #fff; color: #fff; font-size: 1rem; cursor: pointer; }
-#scan-btn { background: #0044cc; }
-#atk-btn { background: #aa0000; }
-button:disabled { opacity: 0.2; cursor: default; }
-
-.shake { animation: s 0.2s infinite; }
-@keyframes s { 0% { transform:translate(3px,3px) } 50% { transform:translate(-3px,-3px) } 100% { transform:translate(0,0) } }
-</style>
+ .shake { animation: s 0.2s infinite; }
+ @keyframes s { 0% { transform:translate(2px,2px) } 50% { transform:translate(-2px,-2px) } 100% { transform:translate(0,0) } }
+ </style>
 </head>
 <body>
 
-<div class="area" id="p-area">
-<div class="label">PLAYER WEAPON</div>
-<div class="frame" id="pf">
-<video id="pv" autoplay playsinline muted></video>
-<div id="pw-icon" class="visual-overlay">⚔️</div>
+<div id="header-info">
+ <span>LEVEL: <b id="p-lv">1</b></span>
+ <span>EXP: <b id="p-exp">0</b> / <b id="p-next">100</b></span>
 </div>
-<div class="name-tag"><span id="pn">SCAN OBJECT</span> <span id="p-id" style="color:var(--p-color)"></span></div>
-<div class="hp-cont"><div id="phf" class="hp-fill" style="background:var(--p-color); width:100%"></div></div>
+
+<div class="area" id="p-area">
+ <div class="label">PLAYER</div>
+ <div id="p-rarity" class="rarity-tag"></div>
+ <div class="frame" id="pf">
+ <video id="pv" autoplay playsinline muted></video>
+ <div id="pw-icon" class="visual-overlay"></div>
+ </div>
+ <div id="p-name" class="name-tag">READY...</div>
+ <div class="hp-cont"><div id="phf" class="hp-fill" style="background:var(--p-color); width:100%"></div></div>
 </div>
 
 <div class="area" id="e-area">
-<div class="label">ENEMY MONSTER</div>
-<div class="frame" id="ef">
-<video id="ev" autoplay playsinline muted></video>
-<div id="em-icon" class="visual-overlay">👾</div>
-</div>
-<div class="name-tag"><span id="en">SCAN TARGET</span> <span id="e-id" style="color:var(--e-color)"></span></div>
-<div class="hp-cont"><div id="ehf" class="hp-fill" style="background:var(--e-color); width:100%"></div></div>
+ <div class="label">ENEMY</div>
+ <div id="e-rarity" class="rarity-tag"></div>
+ <div class="frame" id="ef">
+ <video id="ev" autoplay playsinline muted></video>
+ <div id="em-icon" class="visual-overlay"></div>
+ </div>
+ <div id="e-name" class="name-tag">WAITING...</div>
+ <div class="hp-cont"><div id="ehf" class="hp-fill" style="background:var(--e-color); width:100%"></div></div>
 </div>
 
 <div id="ui">
-<div id="msg">1. WEAPON スキャンを開始してください</div>
-<div class="btns">
-<button id="scan-btn">SCAN</button>
-<button id="atk-btn" disabled>ATTACK!</button>
+ <div id="msg">SCAN YOUR WEAPON</div>
+ <div class="btns">
+ <button id="scan-btn">SCAN</button>
+ <button id="atk-btn" disabled>ATTACK!</button>
+ <button id="coll-btn" onclick="openColl()">COLLECTION</button>
+ </div>
 </div>
+
+<div id="result-screen" class="overlay-screen">
+ <div id="result-title" class="result-text">WIN</div>
+ <div id="result-msg" style="text-align:center; margin-bottom:20px; font-size: 0.8rem;"></div>
+ <button id="next-btn" onclick="resetGame(false)" style="width:200px; height:50px; background:#0044cc; font-family:'DotGothic16'; color:white; border:3px solid white;">NEXT SCAN</button>
 </div>
 
 <script>
-let net, mode = "W", php=1000, ehp=1000, patk=100, eatk=120;
+ let net, mode = "W";
+ let lv = 1, exp = 0, nextExp = 100;
+ let php = 1000, maxPhp = 1000, ehp = 1000;
+ let patk=0, pdef=0, eatk=0, edef=0;
+ let currentWeapon, currentMonster;
+ let collection = JSON.parse(localStorage.getItem('myth_coll')) || { weapons: {}, monsters: {} };
 
-// 武器(100)とモンスター(100)のリストをしっかり定義
-const weapons = ["⚔️","🗡️","🔫","🏹","🔨","🪓","🪄","🧪","🛡️","🔱","🎸","🧹","🥢","🪃","⛓️","🛸","🧤","💍","🔔","🕯️","🔨","⛏️","⚒️","🧱","🏹","💣","🧨","🪚","🔩","⚙️","⚖️","⛓️","💎","⚗️","🔭","💈","🔦","🏮","📜","🔑"];
-const monsters = ["👾","👹","🐺","🐉","🧟","🧛","🐍","🕷️","🐙","🦂","🌵","👻","🤖","🦁","🐯","🐻","🦅","🦈","🦖","🌋","👺","💀","👽","🦠","🦂","🦟","🦗","🐜","🐝","🐞","🦋","🐚","🐌","🐢","🐍","🦎","🐅","🐆","🐘"];
+ const db = {
+ weapons: {
+ common: { n: ["アイアンソード", "木の棒", "練習用弓"], i: [" "," "," "], exp: 10 },
+ rare: { n: ["ファイヤソード", "雷光の杖"], i: [" "," "], exp: 30 },
+ super: { n: ["エクスカリバー", "ロンギヌス"], i: [" "," "], exp: 100 },
+ myth: { n: ["神剣ゼウス", "ラグナロク"], i: [" "," "], exp: 500 }
+ },
+ monsters: {
+ common: { n: ["スライム", "ゴブリン", "コウモリ"], i: [" "," "," "], exp: 20 },
+ rare: { n: ["ドラゴン", "オークキング"], i: [" "," "], exp: 60 },
+ super: { n: ["フェニックス", "ハイドラ"], i: [" "," "], exp: 200 },
+ myth: { n: ["破壊神シヴァ", "邪神クトゥルフ"], i: [" "," "], exp: 1000 }
+ }
+ };
 
-async function init() {
-try {
-net = await mobilenet.load();
-const s = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
-document.getElementById('pv').srcObject = s;
-document.getElementById('ev').srcObject = s;
-document.getElementById('msg').innerText = "READY. WEAPONをスキャン！";
-} catch(e) {
-document.getElementById('msg').innerText = "CAMERA ERROR: " + e;
-}
-}
+ async function init() {
+ net = await mobilenet.load();
+ const s = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
+ document.getElementById('pv').srcObject = s;
+ document.getElementById('ev').srcObject = s;
+ updateUI();
+ }
 
-function getID(name) {
-let sum = 0;
-for (let i = 0; i < name.length; i++) sum += name.charCodeAt(i);
-return sum % 100;
-}
+ function getInfo(id, type) {
+ let r, data, base;
+ if (id < 70) { r = "COMMON"; data = db[type].common; base = 80; }
+ else if (id < 90) { r = "RARE"; data = db[type].rare; base = 180; }
+ else if (id < 99) { r = "SUPER RARE"; data = db[type].super; base = 350; }
+ else { r = "MYTHICAL"; data = db[type].myth; base = 700; }
+ return { id, rarity: r, name: data.n[id % data.n.length], icon: data.i[id % data.i.length], atk: base + (id * 2) + (lv * 10), def: Math.floor(base/2) + (lv * 5), expBonus: data.exp };
+ }
 
-document.getElementById('scan-btn').onclick = async () => {
-const video = document.getElementById('pv');
-const r = await net.classify(video);
-const name = r[0].className.split(',')[0].toUpperCase();
-const id = getID(name);
+ document.getElementById('scan-btn').onclick = async () => {
+ const r = await net.classify(document.getElementById('pv'));
+ const id = (r[0].className.length * 13) % 100;
 
-if (mode === "W") {
-document.getElementById('pn').innerText = name;
-document.getElementById('p-id').innerText = "#" + id.toString().padStart(2, '0');
-// イラストをセットして表示
-const icon = weapons[id % weapons.length];
-document.getElementById('pw-icon').innerText = icon;
-document.getElementById('pf').classList.add('is-active');
+ if (mode === "W") {
+ currentWeapon = getInfo(id, "weapons");
+ document.getElementById('p-name').innerText = currentWeapon.name;
+ document.getElementById('pw-icon').innerText = currentWeapon.icon;
+ document.getElementById('p-rarity').innerText = currentWeapon.rarity;
+ document.getElementById('pf').classList.add('is-active');
+ patk = currentWeapon.atk; pdef = currentWeapon.def;
+ collection.weapons[currentWeapon.name] = currentWeapon;
+ save();
+ mode = "M";
+ document.getElementById('msg').innerText = "WEAPON 装備！\nENEMY をスキャン！";
+ } else if (mode === "M") {
+ currentMonster = getInfo(id, "monsters");
+ document.getElementById('e-name').innerText = currentMonster.name;
+ document.getElementById('em-icon').innerText = currentMonster.icon;
+ document.getElementById('e-rarity').innerText = currentMonster.rarity;
+ document.getElementById('ef').classList.add('is-active');
+ ehp = 1000 + (lv * 50);
+ eatk = currentMonster.atk; edef = currentMonster.def;
+ document.getElementById('atk-btn').disabled = false;
+ document.getElementById('scan-btn').disabled = true;
+ document.getElementById('msg').innerText = "BATTLE START!";
+ }
+ };
 
-patk = 100 + id;
-document.getElementById('msg').innerText = "WEAPON確認！次はENEMYをスキャン！";
-mode = "M";
-} else if (mode === "M") {
-document.getElementById('en').innerText = name;
-document.getElementById('e-id').innerText = "#" + id.toString().padStart(2, '0');
-// イラストをセットして表示
-const icon = monsters[id % monsters.length];
-document.getElementById('em-icon').innerText = icon;
-document.getElementById('ef').classList.add('is-active');
+ document.getElementById('atk-btn').onclick = () => {
+ document.getElementById('ef').classList.add('shake');
+ ehp -= Math.max(20, patk - Math.floor(edef/2));
+ setTimeout(() => {
+ document.getElementById('ef').classList.remove('shake');
+ if(ehp <= 0) { finish(true); } 
+ else {
+ document.getElementById('pf').classList.add('shake');
+ php -= Math.max(20, eatk - Math.floor(pdef/2));
+ updateUI();
+ setTimeout(() => {
+ document.getElementById('pf').classList.remove('shake');
+ if(php <= 0) finish(false);
+ }, 200);
+ }
+ }, 400);
+ updateUI();
+ };
 
-eatk = 120 + id;
-document.getElementById('msg').innerText = "ENEMY確認！バトル開始！";
-document.getElementById('atk-btn').disabled = false;
-document.getElementById('scan-btn').disabled = true;
-mode = "B";
-}
-};
+ function finish(isWin) {
+ const screen = document.getElementById('result-screen');
+ const title = document.getElementById('result-title');
+ const rMsg = document.getElementById('result-msg');
+ 
+ if(isWin) {
+ title.innerText = "WIN"; title.className = "result-text win";
+ let getExp = currentMonster.expBonus;
+ exp += getExp;
+ while(exp >= nextExp) { lv++; exp -= nextExp; nextExp += 50; }
+ let recover = Math.floor(maxPhp * 0.5);
+ php = Math.min(maxPhp, php + recover);
+ rMsg.innerHTML = `${currentMonster.name}を撃破！\nEXP +${getExp}獲得！\nHPが ${recover} 回復した！`;
+ collection.monsters[currentMonster.name] = currentMonster;
+ save();
+ document.getElementById('next-btn').onclick = () => resetGame(false);
+ } else {
+ title.innerText = "GAME OVER"; title.className = "result-text lose";
+ let oldLv = lv;
+ lv = Math.max(1, lv - 5);
+ rMsg.innerHTML = `敗北しました...\nLEVEL: ${oldLv} → ${lv}\nHPがリセットされます。`;
+ document.getElementById('next-btn').onclick = () => resetGame(true);
+ }
+ screen.style.display = "flex";
+ updateUI();
+ }
 
-document.getElementById('atk-btn').onclick = () => {
-// ダメージ計算と演出
-document.getElementById('ef').classList.add('shake');
-let d = patk + Math.floor(Math.random() * 50);
-ehp -= d;
+ function resetGame(fullReset) {
+ if(fullReset) php = maxPhp;
+ mode = "W";
+ document.getElementById('pf').classList.remove('is-active');
+ document.getElementById('ef').classList.remove('is-active');
+ document.getElementById('atk-btn').disabled = true;
+ document.getElementById('scan-btn').disabled = false;
+ document.getElementById('result-screen').style.display = "none";
+ document.getElementById('msg').innerText = "SCAN NEXT WEAPON";
+ updateUI();
+ }
 
-setTimeout(() => {
-document.getElementById('ef').classList.remove('shake');
-if(ehp > 0) {
-document.getElementById('pf').classList.add('shake');
-let ed = eatk + Math.floor(Math.random() * 50);
-php -= ed;
-update();
-setTimeout(() => document.getElementById('pf').classList.remove('shake'), 200);
-}
-if(php <= 0 || ehp <= 0) {
-document.getElementById('msg').innerText = php > 0 ? "VICTORY! 目標を完全破壊。" : "DEFEAT... システム大破。";
-document.getElementById('atk-btn').disabled = true;
-}
-}, 400);
-update();
-};
+ function updateUI() {
+ document.getElementById('phf').style.width = (php/maxPhp*100) + "%";
+ document.getElementById('ehf').style.width = Math.max(0, ehp/1000*100) + "%";
+ document.getElementById('p-lv').innerText = lv;
+ document.getElementById('p-exp').innerText = exp;
+ document.getElementById('p-next').innerText = nextExp;
+ }
 
-function update() {
-document.getElementById('phf').style.width = Math.max(0, (php/1000)*100) + "%";
-document.getElementById('ehf').style.width = Math.max(0, (ehp/1000)*100) + "%";
-}
+ function save() { localStorage.setItem('myth_coll', JSON.stringify(collection)); }
+ function openColl() { alert("図鑑機能：取得数 " + Object.keys(collection.monsters).length + "/100"); }
 
-init();
+ init();
 </script>
 </body>
 </html>
