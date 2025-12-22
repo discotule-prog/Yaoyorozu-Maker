@@ -3,36 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER 3.8</title>
+    <title>MYTH SCANNER 3.9</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
     <style>
-        :root { --p-color: #00f2ff; --e-color: #ff3c00; --exp-color: #00ff44; --gold: #ffd700; }
+        :root { --p-color: #00f2ff; --e-color: #ff3c00; --exp-color: #32ff32; --gold: #ffd700; }
         body { font-family: 'DotGothic16', sans-serif; background: #000; color: #fff; margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         #header { height: 40px; background: #222; display: flex; justify-content: center; align-items: center; border-bottom: 2px solid #444; }
         .lib-btn { width: 50%; font-size: 0.6rem; height: 24px; background: #555; border: 1px solid #fff; color: #fff; cursor: pointer; }
+        
+        /* Character Area */
         .char-area { height: 32%; display: flex; border-bottom: 1px solid #333; padding: 10px; box-sizing: border-box; }
         .cam-part { width: 35%; display: flex; align-items: center; justify-content: center; }
         .cam-frame { width: 90px; height: 90px; border: 2px solid #555; background: #111; overflow: hidden; position: relative; border-radius: 8px; }
         video { width: 100%; height: 100%; object-fit: cover; display: none; }
         .cam-active video { display: block; border-color: #0f0; }
+        
         .info-part { width: 65%; display: flex; flex-direction: column; padding-left: 10px; justify-content: center; }
         .visual-card { width: 100%; height: 80px; border: 2px solid #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #111; position: relative; border-radius: 4px; overflow: hidden; }
-        .stat-text { font-size: 0.7rem; color: #ccc; margin-top: 4px; line-height: 1.2; }
-        .bar-bg { width: 100%; height: 8px; background: #333; border: 1px solid #fff; margin-top: 3px; position: relative; }
-        .bar-fill { height: 100%; transition: width 0.3s; }
+        
+        .stat-text { font-size: 0.65rem; color: #ccc; margin-top: 2px; line-height: 1.2; }
+        
+        /* Bar Designs */
+        .bar-container { width: 100%; margin-top: 4px; }
+        .bar-label { font-size: 0.5rem; margin-bottom: 1px; display: block; }
+        .bar-bg { width: 100%; height: 8px; background: #222; border: 1px solid #666; position: relative; overflow: hidden; }
+        .bar-fill { height: 100%; width: 0%; transition: width 0.4s ease-out; }
+        
+        /* Rarity & Element */
         .rarity-tag { position: absolute; top: 2px; right: 2px; font-size: 0.5rem; padding: 1px 3px; background: #fff; color: #000; }
         .elem-tag { position: absolute; top: 2px; left: 2px; font-size: 0.7rem; }
+        
+        /* UI Middle */
         #mid-ui { height: 140px; background: #111; border-top: 2px solid #444; display: flex; flex-direction: column; align-items: center; padding: 5px; }
-        #msg { font-size: 0.8rem; color: #0f0; height: 45px; text-align: center; display: flex; align-items: center; padding: 0 10px; line-height: 1.2; }
+        #msg { font-size: 0.8rem; color: #0f0; height: 45px; text-align: center; display: flex; align-items: center; padding: 0 10px; line-height: 1.2; white-space: pre-wrap; }
         .btn-row { display: flex; gap: 5px; width: 95%; justify-content: center; margin-bottom: 5px; }
         button { flex: 1; height: 40px; font-family: 'DotGothic16'; border: 2px solid #fff; color: #fff; background: #444; font-size: 0.75rem; cursor: pointer; }
         button:disabled { opacity: 0.3; cursor: not-allowed; }
+        
+        /* Overlays */
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 100; display: none; flex-direction: column; align-items: center; padding: 15px; box-sizing: border-box; }
+        .res-box { background:#222; padding:15px; border:2px solid #fff; margin:10px 0; width:85%; font-size:0.8rem; line-height:1.6; text-align:center; }
+        
         .lib-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; width: 100%; max-height: 55vh; overflow-y: auto; padding: 5px; background: #111; border: 1px solid #444; }
         .lib-slot { aspect-ratio: 1/1; background: #222; border: 1px solid #444; font-size: 0.4rem; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #444; text-align: center; }
         .lib-slot.found { color: #fff; border-color: #aaa; }
+        
         .detail-pop { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #222; border: 3px solid var(--gold); padding: 20px; z-index: 200; width: 80%; text-align: center; display: none; border-radius: 10px; }
         .shake { animation: s 0.2s; }
         @keyframes s { 0%,100%{transform:translateX(0)} 25%{transform:translateX(5px)} 75%{transform:translateX(-5px)} }
@@ -43,6 +60,7 @@
 <body>
 
 <div id="header"><button onclick="openLibrary()" class="lib-btn">COLLECTION / RESET</button></div>
+
 <div class="char-area" id="p-area">
     <div class="cam-part"><div class="cam-frame"><video id="pv" autoplay playsinline muted></video></div></div>
     <div class="info-part">
@@ -52,9 +70,19 @@
             <div id="p-sym" class="q-mark">?</div>
             <div id="p-name" style="font-size:0.6rem; text-align:center;">SCANNER READY</div>
         </div>
-        <div class="stat-text">LV:<span id="p-lv">1</span> HP:<span id="p-hp-cur">1000</span>/<span id="p-hp-max">1000</span><br>ATK:<span id="p-atk-val">0</span> DEF:<span id="p-def-val">50</span></div>
-        <div class="bar-bg"><div id="p-fill" class="bar-fill" style="background:var(--p-color); width:100%"></div></div>
-        <div class="bar-bg" style="height:4px; border:none; background:#111;"><div id="exp-fill" class="bar-fill" style="background:var(--exp-color); width:0%"></div></div>
+        <div class="stat-text">
+            LV:<span id="p-lv">1</span> HP:<span id="p-hp-cur">1000</span>/<span id="p-hp-max">1000</span><br>
+            ATK:<span id="p-atk-val">0</span> DEF:<span id="p-def-val">50</span>
+        </div>
+        <div class="bar-container">
+            <div class="bar-bg"><div id="p-fill" class="bar-fill" style="background:var(--p-color); width:100%"></div></div>
+        </div>
+        <div class="bar-container">
+            <div style="display:flex; justify-content:space-between; font-size:0.5rem; color:var(--exp-color);">
+                <span>EXP</span><span id="exp-text">0 / 100</span>
+            </div>
+            <div class="bar-bg" style="height:5px;"><div id="exp-fill" class="bar-fill" style="background:var(--exp-color);"></div></div>
+        </div>
     </div>
 </div>
 
@@ -78,13 +106,15 @@
             <div id="e-name" style="font-size:0.6rem; text-align:center;">???</div>
         </div>
         <div class="stat-text">HP:<span id="e-hp-cur">0</span>/<span id="e-hp-max">0</span><br>ATK:<span id="e-atk-val">0</span> DEF:<span id="e-def-val">0</span></div>
-        <div class="bar-bg"><div id="e-fill" class="bar-fill" style="background:var(--e-color); width:0%"></div></div>
+        <div class="bar-container">
+            <div class="bar-bg"><div id="e-fill" class="bar-fill" style="background:var(--e-color);"></div></div>
+        </div>
     </div>
 </div>
 
 <div id="res-screen" class="overlay" style="justify-content:center;">
     <h1 id="res-title" style="font-size:3rem; margin:0;"></h1>
-    <div id="res-stats" style="background:#222; padding:15px; border:1px solid #fff; margin:10px 0; width:80%; font-size:0.8rem; line-height:1.5;"></div>
+    <div id="res-stats" class="res-box"></div>
     <button onclick="closeResult()" style="width:200px; height:50px; background:#0044cc;">NEXT BATTLE</button>
 </div>
 
@@ -117,7 +147,6 @@
     let atkBoostMult=1, prismaMode=false, currentEnemyRank=1;
     let inventory = [], library = JSON.parse(localStorage.getItem('myth_v3_final')) || { W: {}, M: {}, I: {}, stats: {lv:1, exp:0, pMax:1000} };
 
-    // Load saved stats
     if(library.stats) { lv = library.stats.lv; exp = library.stats.exp; pMax = library.stats.pMax; php = pMax; }
 
     async function init() {
@@ -143,6 +172,8 @@
         } catch(e) { console.error(e); }
     }
 
+    function getNextLvExp() { return 100 + (lv - 1) * 50; }
+
     async function handleScan() {
         const vid = mode==="W" ? document.getElementById('pv') : document.getElementById('ev');
         let id, aiName = "UNKNOWN";
@@ -165,14 +196,10 @@
             let base = DB_MONSTER[id] || DB_MONSTER[0];
             eelem = ["🔥", "💧", "⚡", "🌿"][id % 4];
             let mult = (id === 99) ? 7.0 : (id > 80) ? 5.0 : (id > 40) ? 3.0 : 1.5;
-            currentEnemyRank = mult; // 経験値計算用にランクを保存
+            currentEnemyRank = mult;
             eMax = Math.floor(800 * mult * (1 + (lv-1)*0.1));
             ehp = eMax; eatk = Math.floor(80 * mult); edef = Math.floor(30 * mult);
             updateCardUI('e', id>=95?"極限":id>=80?"ボス":"通常", "👾", `${aiName}の${base}`, eelem);
-            document.getElementById('e-hp-cur').innerText = ehp;
-            document.getElementById('e-hp-max').innerText = eMax;
-            document.getElementById('e-atk-val').innerText = eatk;
-            document.getElementById('e-def-val').innerText = edef;
             library.M[id+100] = {t: base, e: eelem};
             switchCamera('OFF');
             document.getElementById('atk-btn').disabled = false;
@@ -181,17 +208,6 @@
             document.getElementById('msg').innerText = "BATTLE START!\n攻撃してください！";
         }
         save(); updateUI();
-    }
-
-    // --- EXP Calculation ---
-    function getNextLvExp() { return 100 + (lv - 1) * 50; }
-
-    function calculateGainedExp() {
-        const nextExp = getNextLvExp();
-        // 敵の強さ(mult)に応じて次のレベルまでの10%〜60%を獲得
-        // multが1.5(雑魚)なら約15%、multが7.0(神)なら約60%
-        let percent = Math.min(0.6, (currentEnemyRank * 0.08) + 0.05);
-        return Math.floor(nextExp * percent);
     }
 
     function handleAttack() {
@@ -234,23 +250,22 @@
         
         if(win) { 
             resTit.innerText = "WIN!"; resTit.style.color = "var(--gold)";
-            let gained = calculateGainedExp();
             let nextReq = getNextLvExp();
+            let gained = Math.floor(nextReq * Math.min(0.6, (currentEnemyRank * 0.08) + 0.05));
             let oldLv = lv;
             exp += gained;
-            
-            let resultHtml = `敵を撃破！<br>経験値を <span style="color:var(--exp-color)">${gained}</span> 獲得した！<br>(次のLVまであと ${nextReq - exp})`;
-            
+            let resultHtml = `敵を撃破！<br>経験値を <span style="color:var(--exp-color)">${gained}</span> 獲得した！`;
             if(exp >= nextReq){ 
-                lv++; exp = 0; 
-                let hpInc = 200; pMax += hpInc;
-                resultHtml = `<span style="color:var(--gold); font-size:1.5rem;">LEVEL UP! ${oldLv} -> ${lv}</span><br>最大HPが <span style="color:var(--p-color)">+${hpInc}</span> 上昇！<br>攻撃効率が向上した！`;
+                lv++; exp = 0; pMax += 200;
+                resultHtml = `<span style="color:var(--gold); font-size:1.5rem;">LEVEL UP! ${oldLv} -> ${lv}</span><br>最大HPが <span style="color:var(--p-color)">+200</span> 上昇！`;
+            } else {
+                resultHtml += `<br>次のLVまであと ${nextReq - exp}`;
             }
             resSts.innerHTML = resultHtml;
         } else { 
             resTit.innerText = "LOSE..."; resTit.style.color = "var(--e-color)";
             lv = Math.max(1, lv - 1); pMax = 1000 + (lv-1)*200; exp = 0;
-            resSts.innerHTML = "力尽きた。LVと経験値が減少した。";
+            resSts.innerHTML = "力尽きた。LVが1下がり、経験値がリセットされた。";
         }
         php = pMax; save(); updateUI();
     }
@@ -263,22 +278,17 @@
         resetCardIcons(); switchCamera('P'); updateUI();
     }
 
-    function resetCardIcons() {
-        document.getElementById('p-sym').innerHTML = "?"; document.getElementById('p-sym').className = "q-mark";
-        document.getElementById('p-name').innerText = "SCANNER READY";
-        document.getElementById('e-sym').innerHTML = "?"; document.getElementById('e-sym').className = "q-mark";
-        document.getElementById('e-name').innerText = "???";
-        document.getElementById('p-rare').innerText = "-"; document.getElementById('e-rare').innerText = "-";
-        document.getElementById('p-elem').innerText = ""; document.getElementById('e-elem').innerText = "";
-    }
-
     function updateUI() {
-        const nextLvExp = getNextLvExp();
+        const nextReq = getNextLvExp();
         document.getElementById('p-lv').innerText = lv;
         document.getElementById('p-hp-cur').innerText = Math.max(0, Math.floor(php));
         document.getElementById('p-hp-max').innerText = pMax;
         document.getElementById('p-fill').style.width = (php/pMax*100) + "%";
-        document.getElementById('exp-fill').style.width = (exp/nextLvExp*100) + "%";
+        
+        // EXP UI UPDATE
+        document.getElementById('exp-text').innerText = `${exp} / ${nextReq}`;
+        document.getElementById('exp-fill').style.width = (exp/nextReq*100) + "%";
+        
         document.getElementById('e-hp-cur').innerText = Math.max(0, Math.floor(ehp));
         document.getElementById('e-hp-max').innerText = eMax;
         document.getElementById('e-fill').style.width = (eMax>0 ? (ehp/eMax*100) : 0) + "%";
@@ -288,25 +298,21 @@
         document.getElementById('bag-status').innerText = `BAG: ${inventory.length}/${5+Math.floor(lv/5)}`;
     }
 
+    function resetCardIcons() {
+        document.getElementById('p-sym').innerHTML = "?"; document.getElementById('p-sym').className = "q-mark";
+        document.getElementById('p-name').innerText = "SCANNER READY";
+        document.getElementById('e-sym').innerHTML = "?"; document.getElementById('e-sym').className = "q-mark";
+        document.getElementById('e-name').innerText = "???";
+        document.getElementById('p-rare').innerText = "-"; document.getElementById('e-rare').innerText = "-";
+        document.getElementById('p-elem').innerText = ""; document.getElementById('e-elem').innerText = "";
+    }
+
     function updateCardUI(side, rare, sym, name, elem) {
         document.getElementById(`${side}-rare`).innerText = rare;
         const symEle = document.getElementById(`${side}-sym`);
         symEle.innerText = sym; symEle.className = ""; symEle.style.fontSize = "2rem";
         document.getElementById(`${side}-name`).innerText = name;
         document.getElementById(`${side}-elem`).innerText = elem;
-    }
-
-    function getItemDesc(data) {
-        if(!data.et) return "特殊な力が宿っている。";
-        let p = Math.floor((data.v || 0.5) * 100);
-        switch(data.et) {
-            case "HE": return `HPを最大値の${p}%回復する。`;
-            case "AT": return `次の自分の攻撃力が${p+100}%アップする。`;
-            case "PO": return `敵の現HPを${p}%削り取るダメージ。`;
-            case "WE": return `敵の防御力を${p}%ダウンさせる。`;
-            case "ORB": return `武器の属性を変化させるオーブ。`;
-            default: return "不思議な効果を持ったアイテム。";
-        }
     }
 
     function renderLib(type) {
@@ -319,7 +325,7 @@
             slot.className = "lib-slot" + (data ? " found" : "");
             if(data) slot.onclick = () => {
                 document.getElementById('det-name').innerText = data.t;
-                document.getElementById('det-desc').innerHTML = data.e ? `属性: ${data.e}` : getItemDesc(data);
+                document.getElementById('det-desc').innerText = data.e ? `属性: ${data.e}` : "特殊効果あり";
                 document.getElementById('detail-pop').style.display = 'block';
             };
             slot.innerHTML = data ? data.t : `No.${id}`;
@@ -339,7 +345,7 @@
         const list = document.getElementById('item-list'); list.innerHTML = "";
         inventory.forEach((itm, i) => {
             const b = document.createElement('button'); b.style.width = "100%"; b.style.marginBottom = "5px";
-            b.innerHTML = `${itm.n}<br><small>${getItemDesc(itm)}</small>`;
+            b.innerHTML = `${itm.n}`;
             b.onclick = () => useItem(itm, i);
             list.appendChild(b);
         });
@@ -359,20 +365,9 @@
         save(); document.getElementById('bonus-overlay').style.display='none'; finish(true);
     }
     function useItem(itm, idx) {
-        if(itm.n === "創世のプリズム") prismaMode = true;
-        else if(itm.t === "ORB") {
-            pelem = (itm.n.includes("火")||itm.n.includes("焔"))?"🔥":(itm.n.includes("水")||itm.n.includes("氷"))?"💧":(itm.n.includes("雷")||itm.n.includes("電"))?"⚡":"🌿";
-            document.getElementById('p-elem').innerText = pelem;
-        } else {
-            switch(itm.t) {
-                case "HE": php = Math.min(pMax, php + pMax * itm.v); break;
-                case "AT": atkBoostMult = 1.5 + itm.v * 1.5; break;
-                case "PO": ehp -= Math.floor(ehp * itm.v); break;
-                case "WE": edef = Math.floor(edef * (1 - itm.v)); break;
-            }
-        }
+        if(itm.t === "HE") php = Math.min(pMax, php + pMax * itm.v);
+        else if(itm.t === "AT") atkBoostMult = 2;
         inventory.splice(idx, 1); closeOverlay('item-overlay'); 
-        document.getElementById('msg').innerText = `${itm.n}を使用した！`;
         updateUI();
     }
 
