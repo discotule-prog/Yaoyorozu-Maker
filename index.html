@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER 4.0</title>
+    <title>MYTH SCANNER 4.1</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
@@ -23,7 +23,7 @@
         .bar-container { width: 100%; margin-top: 4px; }
         .bar-bg { width: 100%; height: 8px; background: #222; border: 1px solid #666; position: relative; overflow: hidden; }
         .bar-fill { height: 100%; width: 0%; transition: width 0.4s ease-out; }
-        .rarity-tag { position: absolute; top: 2px; right: 2px; font-size: 0.5rem; padding: 1px 3px; background: #fff; color: #000; }
+        .rarity-tag { position: absolute; top: 2px; right: 2px; font-size: 0.5rem; padding: 1px 3px; background: #fff; color: #000; font-weight: bold; }
         .elem-tag { position: absolute; top: 2px; left: 2px; font-size: 0.7rem; }
         #mid-ui { height: 140px; background: #111; border-top: 2px solid #444; display: flex; flex-direction: column; align-items: center; padding: 5px; }
         #msg { font-size: 0.8rem; color: #0f0; height: 45px; text-align: center; display: flex; align-items: center; padding: 0 10px; line-height: 1.2; white-space: pre-wrap; }
@@ -33,8 +33,9 @@
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 100; display: none; flex-direction: column; align-items: center; padding: 15px; box-sizing: border-box; }
         .res-box { background:#222; padding:15px; border:2px solid #fff; margin:10px 0; width:85%; font-size:0.8rem; line-height:1.6; text-align:center; }
         .lib-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; width: 100%; max-height: 55vh; overflow-y: auto; padding: 5px; }
-        .lib-slot { aspect-ratio: 1/1; background: #222; border: 1px solid #444; font-size: 0.4rem; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #444; text-align: center; }
+        .lib-slot { aspect-ratio: 1/1; background: #222; border: 1px solid #444; font-size: 0.4rem; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #444; text-align: center; position: relative; }
         .lib-slot.found { color: #fff; border-color: #aaa; }
+        .lib-rare-dot { position: absolute; bottom: 1px; right: 1px; font-size: 0.35rem; scale: 0.8; }
         .detail-pop { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #222; border: 3px solid var(--gold); padding: 20px; z-index: 200; width: 80%; text-align: center; display: none; border-radius: 10px; }
         .shake { animation: s 0.2s; }
         @keyframes s { 0%,100%{transform:translateX(0)} 25%{transform:translateX(5px)} 75%{transform:translateX(-5px)} }
@@ -119,9 +120,13 @@
     let net, mode="W", lv=1, exp=0, php=1000, pMax=1000, ehp=0, eMax=0;
     let patk=0, pdef=50, eatk=0, edef=0, pelem="", eelem="", stream=null;
     let atkBoostMult=1, currentEnemyRank=1, pAtkBonus=1.0;
-    let inventory = [], library = JSON.parse(localStorage.getItem('myth_v3_final')) || { W: {}, M: {}, I: {}, stats: {lv:1, exp:0, pMax:1000, pAtkBonus:1.0} };
+    let inventory = [], library = JSON.parse(localStorage.getItem('myth_v4_final')) || { W: {}, M: {}, I: {}, stats: {lv:1, exp:0, pMax:1000, pAtkBonus:1.0} };
 
-    if(library.stats) { lv = library.stats.lv; exp = library.stats.exp; pMax = library.stats.pMax; pAtkBonus = library.stats.pAtkBonus || 1.0; php = pMax; }
+    if(library.stats) { 
+        lv = library.stats.lv; exp = library.stats.exp; 
+        pMax = library.stats.pMax; pAtkBonus = library.stats.pAtkBonus || 1.0; 
+        php = pMax; 
+    }
 
     async function init() {
         try {
@@ -130,7 +135,7 @@
             document.getElementById('scan-btn').innerText = "SCAN";
             document.getElementById('msg').innerText = "武器をスキャンしてください";
             switchCamera('P');
-        } catch (e) { document.getElementById('msg').innerText = "AIエラー"; }
+        } catch (e) { document.getElementById('msg').innerText = "AI ERROR"; }
         updateUI();
     }
 
@@ -146,53 +151,57 @@
         } catch(e) { console.error(e); }
     }
 
+    function getRarityLabel(id) {
+        if(id >= 95) return "MYTH";
+        if(id >= 80) return "LEGEND";
+        if(id >= 60) return "RARE";
+        if(id >= 40) return "ELITE";
+        return "NORMAL";
+    }
+
     function getItemDesc(data) {
-        if(!data.et) return "詳細不明のアイテム。";
+        if(!data.et) return "No description.";
         let p = Math.floor((data.v || 0.5) * 100);
         switch(data.et) {
-            case "HE": return `HPを${p}%回復`;
-            case "AT": return `次の攻撃ダメージが${p+100}%アップ`;
-            case "PO": return `敵のHPを${p}%削る`;
-            case "WE": return `敵の防御を${p}%下げる`;
-            case "ORB": return `武器の属性を変化させる`;
-            default: return "特殊効果あり";
+            case "HE": return `Restore HP ${p}%`;
+            case "AT": return `Next ATK +${p+100}%`;
+            case "PO": return `Reduce Enemy HP ${p}%`;
+            case "WE": return `Enemy DEF -${p}%`;
+            case "ORB": return `Change Element`;
+            default: return "Special Effect";
         }
     }
 
     async function handleScan() {
         const vid = mode==="W" ? document.getElementById('pv') : document.getElementById('ev');
-        let id, aiName = "UNKNOWN", prob = 0.5;
+        let id, aiName = "UNKNOWN";
         try {
             const r = await net.classify(vid);
             aiName = r[0].className.split(',')[0].toUpperCase();
-            prob = r[0].probability;
-            id = Math.floor(prob * 100);
+            id = Math.floor(r[0].probability * 100);
         } catch (e) { id = Math.floor(Math.random() * 100); }
+
+        const rareLabel = getRarityLabel(id);
 
         if(mode==="W") {
             let base = DB_WEAPON[id] || DB_WEAPON[0];
             pelem = ["🔥", "💧", "⚡", "🌿"][id % 4];
             let rarityMult = (id >= 95) ? 6.0 : (id >= 80) ? 4.0 : (id >= 40) ? 2.2 : 1.2;
             patk = Math.floor(100 * rarityMult * pAtkBonus);
-            updateCardUI('p', id>=95?"神話":id>=80?"伝説":"通常", "⚔️", `${aiName}の${base}`, pelem);
-            library.W[id] = {t: base, e: pelem};
+            updateCardUI('p', rareLabel, "⚔️", `${aiName}の${base}`, pelem);
+            library.W[id] = {t: base, e: pelem, r: rareLabel};
             mode="M"; switchCamera('E');
             document.getElementById('msg').innerText = "モンスターをスキャン！";
         } else {
             let base = DB_MONSTER[id] || DB_MONSTER[0];
             eelem = ["🔥", "💧", "⚡", "🌿"][id % 4];
-            // 敵の強さをAIの確信度とランダム性でバラつかせる
             let variance = 0.8 + (Math.random() * 0.4); 
             let rarityMult = (id >= 95) ? 7.0 : (id >= 80) ? 4.5 : (id >= 40) ? 2.5 : 1.1;
             currentEnemyRank = rarityMult * variance; 
-            
             eMax = Math.floor(800 * currentEnemyRank * (1 + (lv-1)*0.05));
-            ehp = eMax; 
-            eatk = Math.floor(70 * currentEnemyRank); 
-            edef = Math.floor(30 * currentEnemyRank);
-            
-            updateCardUI('e', id>=95?"極限":id>=80?"ボス":"通常", "👾", `${aiName}の${base}`, eelem);
-            library.M[id+100] = {t: base, e: eelem};
+            ehp = eMax; eatk = Math.floor(70 * currentEnemyRank); edef = Math.floor(30 * currentEnemyRank);
+            updateCardUI('e', rareLabel === "NORMAL" ? "NORMAL" : (id>=95?"MYTH":id>=80?"BOSS":"ELITE"), "👾", `${aiName}の${base}`, eelem);
+            library.M[id+100] = {t: base, e: eelem, r: rareLabel};
             switchCamera('OFF');
             document.getElementById('atk-btn').disabled = false;
             document.getElementById('item-open-btn').disabled = false;
@@ -242,21 +251,25 @@
             document.getElementById('res-title').innerText = "WIN!";
             let nextReq = 100 + (lv-1)*50;
             let gained = Math.floor(nextReq * (0.1 + (currentEnemyRank * 0.05)));
-            let oldLv = lv;
             exp += gained;
-            let resultHtml = `敵を撃破！ 経験値を ${gained} 獲得！`;
+            let resultHtml = `敵を撃破！ EXP +${gained}`;
             if(exp >= nextReq){ 
                 lv++; exp = 0; 
-                let hpBonus = Math.floor(pMax * 0.1);
-                pMax += hpBonus; php = pMax; // 全回復
+                pMax = Math.floor(pMax * 1.1); // 10%上昇
                 pAtkBonus += 0.05; // 攻撃力+5%
-                resultHtml = `<span style="color:var(--gold)">LEVEL UP! ${oldLv}->${lv}</span><br>HP+${hpBonus} & 全回復！<br>攻撃力が5%上昇！`;
+                php = pMax; // 全回復
+                resultHtml = `<span style="color:var(--gold)">LEVEL UP! LV.${lv}</span><br>HP MAX +10% & Fully Restored!<br>ATK +5% Permanent Bonus!`;
             }
             resSts.innerHTML = resultHtml;
         } else { 
             document.getElementById('res-title').innerText = "LOSE...";
-            lv = Math.max(1, lv - 1); pMax = 1000 + (lv-1)*200; exp = 0; php = pMax;
-            resSts.innerHTML = "敗北した... レベルが1下がった。";
+            lv = Math.max(1, lv - 5); // 5レベルダウン
+            exp = 0;
+            // 基礎ステータスを現在のレベルに合わせて再計算
+            pMax = 1000 + (lv - 1) * 200; 
+            pAtkBonus = 1.0 + (lv - 1) * 0.05;
+            php = pMax;
+            resSts.innerHTML = `敗北した... LVが ${lv} に低下し、ステータスがリセットされた。`;
         }
         save(); updateUI();
     }
@@ -265,6 +278,7 @@
         mode="W"; ehp = 0; eMax = 0;
         document.getElementById('scan-btn').disabled = false;
         document.getElementById('res-screen').style.display='none'; 
+        document.getElementById('msg').innerText = "武器をスキャンしてください"; // ここを確実にリセット
         resetCardIcons(); switchCamera('P'); updateUI();
     }
 
@@ -279,7 +293,7 @@
         document.getElementById('e-hp-cur').innerText = Math.max(0, Math.floor(ehp));
         document.getElementById('e-hp-max').innerText = eMax;
         document.getElementById('e-fill').style.width = (eMax>0 ? (ehp/eMax*100) : 0) + "%";
-        document.getElementById('p-atk-val').innerText = patk;
+        document.getElementById('p-atk-val').innerText = Math.floor(patk);
         document.getElementById('e-atk-val').innerText = eatk;
         document.getElementById('e-def-val').innerText = edef;
         document.getElementById('bag-status').innerText = `BAG: ${inventory.length}/${5+Math.floor(lv/5)}`;
@@ -297,6 +311,8 @@
         document.getElementById('p-sym').innerText = "?"; document.getElementById('p-sym').className = "q-mark";
         document.getElementById('e-sym').innerText = "?"; document.getElementById('e-sym').className = "q-mark";
         document.getElementById('p-name').innerText = "SCANNER READY"; document.getElementById('e-name').innerText = "???";
+        document.getElementById('p-rare').innerText = "-"; document.getElementById('e-rare').innerText = "-";
+        document.getElementById('p-elem').innerText = ""; document.getElementById('e-elem').innerText = "";
     }
 
     function renderLib(type) {
@@ -307,12 +323,21 @@
             const id = offset + i; const data = library[type][id];
             const slot = document.createElement('div');
             slot.className = "lib-slot" + (data ? " found" : "");
-            if(data) slot.onclick = () => {
-                document.getElementById('det-name').innerText = data.t;
-                document.getElementById('det-desc').innerText = data.e ? `属性: ${data.e}` : getItemDesc(data);
-                document.getElementById('detail-pop').style.display = 'block';
-            };
-            slot.innerHTML = data ? data.t : `No.${id}`;
+            if(data) {
+                slot.onclick = () => {
+                    document.getElementById('det-name').innerText = data.t;
+                    document.getElementById('det-desc').innerText = (data.e ? `Element: ${data.e}\n` : "") + (data.r ? `Rarity: ${data.r}\n` : "") + (type==='I' ? getItemDesc(data) : "");
+                    document.getElementById('detail-pop').style.display = 'block';
+                };
+                if(data.r) {
+                    const dot = document.createElement('div');
+                    dot.className = "lib-rare-dot";
+                    dot.innerText = data.r.substring(0,1);
+                    dot.style.color = data.r === "MYTH" ? "var(--gold)" : data.r === "LEGEND" ? "orange" : "white";
+                    slot.appendChild(dot);
+                }
+            }
+            slot.innerHTML += data ? data.t : `No.${id}`;
             grid.appendChild(slot);
         }
     }
@@ -338,7 +363,7 @@
 
     function save() { 
         library.stats = {lv, exp, pMax, pAtkBonus};
-        localStorage.setItem('myth_v3_final', JSON.stringify(library)); 
+        localStorage.setItem('myth_v4_final', JSON.stringify(library)); 
     }
     function fullReset() { if(confirm("消去しますか？")) { localStorage.clear(); location.reload(); } }
     function openLibrary() { renderLib('W'); document.getElementById('lib-overlay').style.display='flex'; }
@@ -350,8 +375,9 @@
         catch(e) { id = Math.floor(Math.random()*100); }
         let type = ["HE", "AT", "PO", "WE", "ORB"][Math.floor(id / 20)];
         let val = (0.1 + (id % 20 / 20) * 0.8);
-        inventory.push({ n: DB_ITEM[id], t: type, v: val });
-        library.I[id+200] = {t: DB_ITEM[id], et: type, v: val};
+        const name = DB_ITEM[id] || DB_ITEM[0];
+        inventory.push({ n: name, t: type, v: val });
+        library.I[id+200] = {t: name, et: type, v: val, r: getRarityLabel(id)};
         save(); document.getElementById('bonus-overlay').style.display='none'; finish(true);
     }
 
