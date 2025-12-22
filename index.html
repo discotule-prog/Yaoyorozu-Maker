@@ -3,44 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER COMPLETE</title>
+    <title>MYTH SCANNER ULTIMATE</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
     <style>
         :root { --p-color: #00f2ff; --e-color: #ff3c00; }
         body { font-family: 'DotGothic16', sans-serif; background: #000; color: #fff; margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-        
-        /* ヘッダー */
         #header { height: 40px; background: #222; display: flex; justify-content: space-around; align-items: center; font-size: 0.75rem; border-bottom: 2px solid #444; }
-        
-        /* キャラクターエリア（カメラとカード） */
         .char-area { height: 32%; display: flex; border-bottom: 1px solid #333; padding: 5px; box-sizing: border-box; }
         .cam-part { width: 40%; display: flex; align-items: center; justify-content: center; }
         .cam-frame { width: 100px; height: 100px; border: 2px solid #555; background: #111; overflow: hidden; position: relative; border-radius: 4px; }
         video { width: 100%; height: 100%; object-fit: cover; display: none; }
         .cam-active video { display: block; border-color: #0f0; }
-
         .info-part { width: 60%; display: flex; flex-direction: column; padding-left: 10px; justify-content: center; }
-        .visual-card { 
-            width: 100%; height: 80px; border: 2px solid #fff; 
-            display: flex; flex-direction: column; align-items: center; justify-content: center; 
-            background: #111; position: relative; overflow: hidden;
-            box-shadow: inset 0 0 10px rgba(255,255,255,0.1);
-        }
+        .visual-card { width: 100%; height: 80px; border: 2px solid #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #111; position: relative; box-shadow: inset 0 0 15px rgba(255,255,255,0.1); }
         .rarity-tag { position: absolute; top: 0; right: 0; font-size: 0.5rem; background: #fff; color: #000; padding: 1px 4px; z-index: 3; }
         .stat-text { font-size: 0.7rem; color: #ccc; margin-top: 3px; line-height: 1.2; }
-        .hp-bar-bg { width: 100%; height: 8px; background: #333; border: 1px solid #fff; margin-top: 3px; position: relative; }
+        .hp-bar-bg { width: 100%; height: 8px; background: #333; border: 1px solid #fff; margin-top: 3px; }
         .hp-bar-fill { height: 100%; transition: width 0.3s; }
-
-        /* 中央コマンドエリア */
         #mid-ui { height: 140px; background: #111; border-top: 2px solid #444; display: flex; flex-direction: column; align-items: center; padding: 5px; }
-        #msg { font-size: 0.75rem; color: #0f0; height: 30px; text-align: center; display: flex; align-items: center; }
+        #msg { font-size: 0.75rem; color: #0f0; height: 35px; text-align: center; display: flex; align-items: center; padding: 0 10px; line-height: 1.3; }
         .btn-row { display: flex; gap: 6px; width: 100%; flex-wrap: wrap; justify-content: center; }
         button { flex: 1; max-width: 100px; height: 38px; font-family: 'DotGothic16'; border: 2px solid #fff; color: #fff; background: #444; font-size: 0.75rem; cursor: pointer; }
         button:disabled { opacity: 0.3; cursor: not-allowed; }
-        
-        /* オーバーレイ */
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 100; display: none; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; }
         .coll-box { width: 100%; flex: 1; overflow-y: auto; background: #111; border: 1px solid #444; padding: 8px; font-size: 0.65rem; margin-bottom: 5px; line-height: 1.6; }
         .shake { animation: s 0.2s; }
@@ -51,7 +37,7 @@
 
 <div id="header">
     <span>LV: <b id="p-lv">1</b> (+<b id="stat-boost">0</b>%)</span>
-    <button onclick="showColl()" style="width:70px; height:25px; border-width:1px;">LIBRARY</button>
+    <button onclick="showColl()" style="width:80px; height:25px;">LIBRARY</button>
 </div>
 
 <div class="char-area" id="p-area">
@@ -59,8 +45,8 @@
     <div class="info-part">
         <div id="p-card" class="visual-card">
             <div id="p-rare" class="rarity-tag">-</div>
-            <div id="p-sym" style="font-size:2rem; z-index:2;">❓</div>
-            <div id="p-name" style="font-size:0.65rem; z-index:2; text-align:center;">READY</div>
+            <div id="p-sym" style="font-size:2rem;">❓</div>
+            <div id="p-name" style="font-size:0.6rem; text-align:center;">READY</div>
         </div>
         <div class="stat-text">HP: <span id="p-hp-cur">1000</span>/<span id="p-hp-max">1000</span><br>ATK: <span id="p-atk-val">0</span> DEF: <span id="p-def-val">0</span></div>
         <div class="hp-bar-bg"><div id="p-fill" class="hp-bar-fill" style="background:var(--p-color); width:100%"></div></div>
@@ -74,7 +60,7 @@
         <button id="atk-btn" onclick="handleAttack()" disabled style="background:#aa0000">ATTACK</button>
         <button id="item-btn" onclick="useItem()" disabled style="background:#008844">ITEM</button>
     </div>
-    <div id="inventory-label" style="font-size:0.65rem; color:yellow; margin-top:8px; letter-spacing: 1px;">ITEM: なし</div>
+    <div id="inventory-label" style="font-size:0.65rem; color:yellow; margin-top:8px;">ITEM: なし</div>
 </div>
 
 <div class="char-area" id="e-area">
@@ -82,8 +68,8 @@
     <div class="info-part">
         <div id="e-card" class="visual-card">
             <div id="e-rare" class="rarity-tag">-</div>
-            <div id="e-sym" style="font-size:2rem; z-index:2;">❓</div>
-            <div id="e-name" style="font-size:0.65rem; z-index:2; text-align:center;">???</div>
+            <div id="e-sym" style="font-size:2rem;">❓</div>
+            <div id="e-name" style="font-size:0.6rem; text-align:center;">???</div>
         </div>
         <div class="stat-text">HP: <span id="e-hp-cur">1000</span>/<span id="e-hp-max">1000</span><br>ATK: <span id="e-atk-val">0</span> DEF: <span id="e-def-val">0</span></div>
         <div class="hp-bar-bg"><div id="e-fill" class="hp-bar-fill" style="background:var(--e-color); width:100%"></div></div>
@@ -91,35 +77,38 @@
 </div>
 
 <div id="bonus-screen" class="overlay">
-    <h2 style="color:gold; margin:10px 0;">VICTORY! BONUS SCAN</h2>
+    <h2 style="color:gold;">VICTORY! BONUS SCAN</h2>
     <div class="cam-frame" style="width:160px; height:160px;" id="b-cam-box"><video id="bv" autoplay playsinline muted></video></div>
-    <p style="text-align:center; font-size:0.8rem; margin:15px 0;">勝利ボーナス！何かをスキャンして<br>アイテムを入手せよ</p>
-    <button id="bonus-btn" onclick="getBonusItem()" style="background:#0044cc; width:180px; height:45px;">GET ITEM</button>
+    <p style="text-align:center; font-size:0.8rem; margin:10px;">何かをスキャンしてアイテム獲得！</p>
+    <button id="bonus-btn" onclick="getBonusItem()" style="background:#0044cc; width:180px;">GET ITEM</button>
 </div>
 
 <div id="res-screen" class="overlay" style="justify-content:center;">
     <h1 id="res-title" style="margin:0;"></h1>
-    <p id="res-msg" style="text-align:center; margin:20px 0;"></p>
-    <button onclick="closeResult()" style="width:200px; height:50px; background:#0044cc">CONTINUE</button>
+    <p id="res-msg" style="text-align:center; white-space: pre-wrap; margin:20px 0;"></p>
+    <button onclick="closeResult()" style="width:200px; height:50px; background:#0044cc">NEXT</button>
 </div>
 
 <div id="coll-screen" class="overlay">
-    <h2 id="lib-total" style="color:yellow; font-size:1rem; margin:5px 0;">COLLECTION LIBRARY</h2>
+    <h2 style="color:yellow; font-size:1rem; margin:5px 0;">LIBRARY (No.001-100)</h2>
     <div id="w-coll" class="coll-box"></div>
     <div id="m-coll" class="coll-box"></div>
     <div id="i-coll" class="coll-box"></div>
-    <button onclick="document.getElementById('coll-screen').style.display='none'" style="margin-top:5px; height:35px; width:120px;">CLOSE</button>
+    <button onclick="document.getElementById('coll-screen').style.display='none'">CLOSE</button>
 </div>
 
 <script>
     let net, mode = "W", lv = 1, exp = 0, nextExp = 100, php = 1000, pMax = 1000, ehp = 1000, eMax = 1000;
-    let patk=0, pdef=0, eatk=0, edef=0, stream = null, inventory = null;
+    let patk=0, pdef=0, eatk=0, edef=0, stream = null, inventory = null, currentMData = null;
     let buffAtk = 0, buffDef = 0;
-    let coll = JSON.parse(localStorage.getItem('myth_v_final_set')) || { weapons: {}, monsters: {}, items: {} };
+    let coll = JSON.parse(localStorage.getItem('myth_v_final_logic')) || { weapons: {}, monsters: {}, items: {} };
 
-    const db = {
-        W: [{n:"ブレード",i:"🗡️",c:"#444"},{n:"アックス",i:"🪓",c:"#532"},{n:"スピア",i:"🔱",c:"#235"},{n:"ワンド",i:"🪄",c:"#525"}],
-        M: [{n:"スライム",i:"💧",c:"#04a"},{n:"ビースト",i:"🐾",c:"#642"},{n:"ドラゴン",i:"🐉",c:"#a11"},{n:"ファントム",i:"👻",c:"#777"},{n:"ゴーレム",i:"🧱",c:"#443"}]
+    const naming = {
+        W1: ["鉄","鋼","輝","魔","龍","氷","炎","雷","聖","神"],
+        W2: ["の剣","の斧","の槍","の杖","の弓","の鎌","の槌","の刀","の大剣","の短剣"],
+        M1: ["毒","火","水","影","空","森","霊","古","真","滅"],
+        M2: ["スライム","ウルフ","ドラゴン","ゾンビ","ゴーレム","バード","デーモン","騎士","王","神"],
+        I: ["ポーション","爆弾","力の薬","守りの薬","不思議な粉","古びた瓶","聖水","魔力石","幸運のコイン","お守り"]
     };
 
     async function init() {
@@ -128,22 +117,19 @@
     }
 
     async function stopCamera() {
-        if(stream) {
-            stream.getTracks().forEach(t => t.stop());
-            stream = null;
-        }
+        if(stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
         ['p-cam-box','e-cam-box','b-cam-box'].forEach(b=>document.getElementById(b).classList.remove('cam-active'));
     }
 
     async function switchCamera(target) {
         await stopCamera();
-        const ids = {P:'pv', E:'ev', B:'bv'};
-        const boxes = {P:'p-cam-box', E:'e-cam-box', B:'b-cam-box'};
         try {
             stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
-            document.getElementById(ids[target]).srcObject = stream;
-            document.getElementById(boxes[target]).classList.add('cam-active');
-        } catch(e) { console.error("Camera Error"); }
+            const vidId = {P:'pv', E:'ev', B:'bv'}[target];
+            const boxId = {P:'p-cam-box', E:'e-cam-box', B:'b-cam-box'}[target];
+            document.getElementById(vidId).srcObject = stream;
+            document.getElementById(boxId).classList.add('cam-active');
+        } catch(e) { console.error(e); }
     }
 
     async function handleScan() {
@@ -152,24 +138,24 @@
         const seed = Math.floor((r[0].className.length * Date.now() * r[0].probability) % 1000);
         const rareIdx = seed % 100 < 70 ? 0 : seed % 100 < 90 ? 1 : seed % 100 < 98 ? 2 : 3;
         const rarity = ["COMMON","RARE","SUPER","MYTHIC"][rareIdx];
-        const boost = 1 + (lv - 1) * 0.03;
         const no = (seed % 100) + 1;
+        const boost = 1 + (lv - 1) * 0.03;
 
         if (mode === "W") {
-            const base = db.W[seed % db.W.length];
+            const name = naming.W1[Math.floor((no-1)/10)] + naming.W2[(no-1)%10];
             patk = Math.floor(((rareIdx + 1) * 120 + (seed % 50)) * boost);
             pdef = Math.floor(((rareIdx + 1) * 60 + (seed % 30)) * boost);
             php = Math.min(pMax, php + Math.floor(pMax * 0.5));
-            updateCard('p', rarity, base.i, `No.${no} ${rarity} ${base.n}`, base.c);
-            coll.weapons[no] = {n:`${rarity} ${base.n}`, i:base.i};
+            updateCard('p', rarity, "⚔️", `No.${no} ${rarity} ${name}`, "#444");
+            coll.weapons[no] = {n:`${rarity} ${name}`, i:"⚔️"};
             mode = "M"; switchCamera('E');
-            document.getElementById('msg').innerText = "敵（モンスター）をスキャンしてください";
+            document.getElementById('msg').innerText = "モンスターをスキャンしてください";
         } else {
-            const base = db.M[seed % db.M.length];
+            const name = naming.M1[Math.floor((no-1)/10)] + naming.M2[(no-1)%10];
             eMax = Math.floor((800 + (rareIdx * 600) + (lv * 150))); ehp = eMax;
             eatk = Math.floor((rareIdx + 1) * 100 + (lv * 10)); edef = (rareIdx + 1) * 50;
-            updateCard('e', rarity, base.i, `No.${no} ${rarity} ${base.n}`, base.c);
-            coll.monsters[no] = {n:`${rarity} ${base.n}`, i:base.i};
+            updateCard('e', rarity, "👾", `No.${no} ${rarity} ${name}`, "#a11");
+            currentMData = {no, n:`${rarity} ${name}`, i:"👾"};
             await stopCamera();
             document.getElementById('atk-btn').disabled = false;
             document.getElementById('item-btn').disabled = !inventory;
@@ -181,8 +167,7 @@
 
     function updateCard(side, rare, sym, name, color) {
         const card = document.getElementById(`${side}-card`);
-        card.style.background = `radial-gradient(circle at center, ${color}ee, #000)`;
-        card.style.borderColor = rare === "MYTHIC" ? "gold" : rare === "SUPER" ? "silver" : "#fff";
+        card.style.background = `radial-gradient(circle, ${color}ee, #000)`;
         document.getElementById(`${side}-rare`).innerText = rare;
         document.getElementById(`${side}-sym`).innerText = sym;
         document.getElementById(`${side}-name`).innerText = name;
@@ -190,7 +175,7 @@
 
     function handleAttack() {
         document.getElementById('e-area').classList.add('shake');
-        let d = Math.max(30, (patk + buffAtk) - Math.floor(edef/2));
+        const d = Math.max(30, (patk + buffAtk) - Math.floor(edef/2));
         ehp -= d;
         setTimeout(() => {
             document.getElementById('e-area').classList.remove('shake');
@@ -202,7 +187,7 @@
 
     function enemyTurn() {
         document.getElementById('p-area').classList.add('shake');
-        let ed = Math.max(20, eatk - Math.floor((pdef + buffDef)/2));
+        const ed = Math.max(20, eatk - Math.floor((pdef + buffDef)/2));
         php -= ed; updateUI();
         setTimeout(() => {
             document.getElementById('p-area').classList.remove('shake');
@@ -210,69 +195,87 @@
         }, 200);
     }
 
-    function showBonus() {
-        document.getElementById('bonus-screen').style.display = "flex";
-        switchCamera('B');
-    }
+    function showBonus() { document.getElementById('bonus-screen').style.display = "flex"; switchCamera('B'); }
 
     async function getBonusItem() {
         const r = await net.classify(document.getElementById('bv'));
         const seed = Math.floor((Date.now() * r[0].probability) % 100);
         const no = seed + 1;
-        let item = { n: "古いコイン", t: "TR", i: "🪙", v: 0 };
+        const baseName = naming.I[Math.floor((no-1)/10)];
+        let item = { n: baseName, t: "TR", i: "📦", v: 0 };
         
-        if (seed < 25) item = { n: "癒しの薬", t: "HE", i: "🧪", v: 400 };
-        else if (seed < 50) item = { n: "炎の魔石", t: "DM", i: "💥", v: 500 };
-        else if (seed < 60) item = { n: "剛力の丸薬", t: "AT", i: "💊", v: 120 };
-        else if (seed < 70) item = { n: "鉄壁の丸薬", t: "DF", i: "🛡️", v: 100 };
-        else if (seed >= 98) item = { n: "神の遺物", t: "TR", i: "💎", v: 0 };
+        if (no <= 25) { // 回復 (30-100%)
+            const val = Math.floor(Math.random() * 71) + 30;
+            item = { n: `${baseName}(回復${val}%)`, t: "HE", i: "🧪", v: val };
+        } else if (no <= 50) { // ダメージ (10-40%)
+            const val = Math.floor(Math.random() * 31) + 10;
+            item = { n: `${baseName}(${val}% DMG)`, t: "DM", i: "💥", v: val };
+        } else if (no <= 60) { // ATKバフ (20-60%)
+            const val = Math.floor(Math.random() * 41) + 20;
+            item = { n: `${baseName}(+${val}% ATK)`, t: "AT", i: "💊", v: val };
+        } else if (no <= 70) { // DEFバフ (20-60%)
+            const val = Math.floor(Math.random() * 41) + 20;
+            item = { n: `${baseName}(+${val}% DEF)`, t: "DF", i: "🛡️", v: val };
+        } else {
+            item = { n: baseName + (no >= 98 ? " (秘宝)":""), t: "TR", i: "💎", v: 0 };
+        }
 
         inventory = item;
         coll.items[no] = item;
-        save();
-        await stopCamera();
+        save(); await stopCamera();
         document.getElementById('bonus-screen').style.display = "none";
         finish(true);
     }
 
     function useItem() {
         if(!inventory) return;
-        if(inventory.t === "HE") php = Math.min(pMax, php + inventory.v);
-        if(inventory.t === "DM") ehp -= inventory.v;
-        if(inventory.t === "AT") buffAtk += inventory.v;
-        if(inventory.t === "DF") buffDef += inventory.v;
-        document.getElementById('msg').innerText = `${inventory.n}を使用！`;
-        inventory = null;
+        let log = "";
+        if(inventory.t === "HE") {
+            const h = Math.floor(pMax * (inventory.v / 100)); php = Math.min(pMax, php + h); log = `${h}回復！`;
+        } else if(inventory.t === "DM") {
+            const d = Math.floor(eMax * (inventory.v / 100)); ehp -= d; log = `${d}ダメ！`;
+        } else if(inventory.t === "AT") {
+            const u = Math.floor(patk * (inventory.v / 100)); buffAtk += u; log = `ATK+${u}！`;
+        } else if(inventory.t === "DF") {
+            const u = Math.floor(pdef * (inventory.v / 100)); buffDef += u; log = `DEF+${u}！`;
+        }
+        document.getElementById('msg').innerText = `${inventory.n}使用：${log}`;
+        inventory = null; updateUI();
         document.getElementById('item-btn').disabled = true;
-        updateUI();
-        if(ehp <= 0) showBonus(); else setTimeout(enemyTurn, 600);
+        if(ehp <= 0) setTimeout(showBonus, 600); else setTimeout(enemyTurn, 800);
     }
 
     function finish(win) {
-        document.getElementById('res-screen').style.display = "flex";
+        const screen = document.getElementById('res-screen');
+        screen.style.display = "flex";
         if(win) {
             document.getElementById('res-title').innerText = "VICTORY";
-            exp += 50; if(exp >= nextExp) { 
-                lv++; exp=0; nextExp+=50; 
-                pMax = Math.floor(pMax * 1.1); php = pMax;
+            if(currentMData) coll.monsters[currentMData.no] = currentMData;
+            exp += 50;
+            let lvLog = "経験値獲得！";
+            if(exp >= nextExp) {
+                lv++; exp = 0; nextExp += 50;
+                const boost = (lv - 1) * 3;
+                pMax = Math.floor(1000 * (1 + (lv - 1) * 0.1)); php = pMax;
+                lvLog = `LEVEL UP! [LV:${lv}]\n全ステ補正: +${boost}%\n最大HP: ${pMax}に上昇！`;
             }
-            document.getElementById('res-msg').innerText = "経験値とアイテムを獲得しました！";
+            document.getElementById('res-msg').innerText = `モンスターを記録しました。\n${lvLog}`;
         } else {
             document.getElementById('res-title').innerText = "DEFEAT";
-            lv = Math.max(1, lv - 5);
-            pMax = Math.floor(1000 * Math.pow(1.1, lv-1)); php = pMax;
-            inventory = null;
-            document.getElementById('res-msg').innerText = "レベルが低下し、装備が失われました。";
+            const old = lv; lv = Math.max(1, lv - 5);
+            pMax = Math.floor(1000 * (1 + (lv - 1) * 0.1)); php = pMax;
+            document.getElementById('res-msg').innerText = `敗北... LVが${old}から${lv}に低下。\n補正: +${(lv-1)*3}%`;
         }
-        updateUI();
+        save(); updateUI();
     }
 
     function closeResult() {
         document.getElementById('res-screen').style.display = "none";
-        mode = "W"; buffAtk = 0; buffDef = 0;
+        mode = "W"; buffAtk = 0; buffDef = 0; currentMData = null;
         document.getElementById('atk-btn').disabled = true;
         document.getElementById('item-btn').disabled = true;
         document.getElementById('scan-btn').disabled = false;
+        document.getElementById('msg').innerText = "武器をスキャンしてください";
         switchCamera('P');
         updateUI();
     }
@@ -291,21 +294,19 @@
         document.getElementById('inventory-label').innerText = `ITEM: ${inventory ? inventory.i + inventory.n : "なし"}`;
     }
 
-    function save() { localStorage.setItem('myth_v_final_set', JSON.stringify(coll)); }
+    function save() { localStorage.setItem('myth_v_final_logic', JSON.stringify(coll)); }
 
     function showColl() {
         const render = (id, data, title) => {
             const el = document.getElementById(id);
-            const count = Object.keys(data).length;
-            el.innerHTML = `<b style="color:white; border-bottom:1px solid #555; display:block; margin-bottom:5px;">${title} (${count}/100)</b>`;
-            Object.keys(data).sort((a,b)=>a-b).forEach(key => {
-                const v = data[key];
-                el.innerHTML += `<div style="padding-left:5px;">No.${key.toString().padStart(3,'0')} ${v.i} ${v.n}</div>`;
+            el.innerHTML = `<b>${title} (${Object.keys(data).length}/100)</b><br>`;
+            Object.keys(data).sort((a,b)=>a-b).forEach(k => {
+                el.innerHTML += `No.${k.padStart(3,'0')} ${data[k].i}${data[k].n}<br>`;
             });
         };
-        render('w-coll', coll.weapons, "⚔️ WEAPONS");
-        render('m-coll', coll.monsters, "👾 MONSTERS");
-        render('i-coll', coll.items, "🎁 ITEMS");
+        render('w-coll', coll.weapons, "WEAPONS");
+        render('m-coll', coll.monsters, "MONSTERS");
+        render('i-coll', coll.items, "ITEMS");
         document.getElementById('coll-screen').style.display = "flex";
     }
 
