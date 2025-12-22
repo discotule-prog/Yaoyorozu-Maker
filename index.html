@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER MASTER</title>
+    <title>MYTH SCANNER NUMBERS</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
@@ -30,7 +30,7 @@
         button { flex: 1; min-width: 80px; height: 35px; font-family: 'DotGothic16'; border: 2px solid #fff; color: #fff; background: #444; font-size: 0.75rem; }
         
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 100; display: none; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; }
-        .coll-box { width: 100%; flex: 1; overflow-y: auto; background: #111; border: 1px solid #444; padding: 8px; font-size: 0.65rem; margin-bottom: 5px; }
+        .coll-box { width: 100%; flex: 1; overflow-y: auto; background: #111; border: 1px solid #444; padding: 8px; font-size: 0.65rem; margin-bottom: 5px; line-height: 1.5; }
         .shake { animation: s 0.2s; }
         @keyframes s { 0%,100%{transform:translateX(0)} 25%{transform:translateX(5px)} 75%{transform:translateX(-5px)} }
     </style>
@@ -45,7 +45,7 @@
 <div class="char-area" id="p-area">
     <div class="cam-part" id="p-cam-box"><div class="cam-frame"><video id="pv" autoplay playsinline muted></video></div></div>
     <div class="info-part">
-        <div id="p-card" class="visual-card"><div id="p-rare" class="rarity-tag">-</div><div id="p-sym" style="font-size:2rem">❓</div><div id="p-name" style="font-size:0.6rem">READY</div></div>
+        <div id="p-card" class="visual-card"><div id="p-rare" class="rarity-tag">-</div><div id="p-sym" style="font-size:2rem">❓</div><div id="p-name" style="font-size:0.6rem">SCAN READY</div></div>
         <div class="stat-text">HP: <span id="p-hp-cur">1000</span>/<span id="p-hp-max">1000</span><br>ATK: <span id="p-atk-val">0</span> DEF: <span id="p-def-val">0</span></div>
         <div class="hp-bar-bg"><div id="p-fill" class="hp-bar-fill" style="background:var(--p-color); width:100%"></div></div>
     </div>
@@ -73,7 +73,7 @@
 <div id="bonus-screen" class="overlay">
     <h2 style="color:gold">VICTORY! BONUS SCAN</h2>
     <div class="cam-frame" style="width:150px; height:150px;" id="b-cam-box"><video id="bv" autoplay playsinline muted></video></div>
-    <p style="text-align:center">勝利ボーナス！何かをスキャンして<br>アイテムを手に入れろ！</p>
+    <p style="text-align:center">ボーナス！何かをスキャンして<br>アイテム生成！</p>
     <button id="bonus-btn" onclick="getBonusItem()" style="background:#0044cc; width:150px;">GET ITEM</button>
 </div>
 
@@ -83,18 +83,18 @@
 </div>
 
 <div id="coll-screen" class="overlay">
-    <h2 id="lib-total" style="color:yellow; font-size:1rem;">LIBRARY</h2>
+    <h2 id="lib-total" style="color:yellow; font-size:1rem; margin:5px 0;">LIBRARY</h2>
     <div id="w-coll" class="coll-box"></div>
     <div id="m-coll" class="coll-box"></div>
     <div id="i-coll" class="coll-box"></div>
-    <button onclick="document.getElementById('coll-screen').style.display='none'">CLOSE</button>
+    <button onclick="document.getElementById('coll-screen').style.display='none'" style="margin-top:5px; height:30px; width:100px;">CLOSE</button>
 </div>
 
 <script>
     let net, mode = "W", lv = 1, exp = 0, nextExp = 100, php = 1000, pMax = 1000, ehp = 1000, eMax = 1000;
     let patk=0, pdef=0, eatk=0, edef=0, stream = null, inventory = null;
     let buffAtk = 0, buffDef = 0;
-    let coll = JSON.parse(localStorage.getItem('myth_v3_master')) || { weapons: {}, monsters: {}, items: {} };
+    let coll = JSON.parse(localStorage.getItem('myth_v_num')) || { weapons: {}, monsters: {}, items: {} };
 
     const db = {
         W: [{n:"剣",i:"🗡️",c:"#555"},{n:"斧",i:"🪓",c:"#743"},{n:"槍",i:"🔱",c:"#357"},{n:"杖",i:"🪄",c:"#737"}],
@@ -115,7 +115,7 @@
             stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
             document.getElementById(ids[target]).srcObject = stream;
             document.getElementById(boxes[target]).classList.add('cam-active');
-        } catch(e) { console.log("Cam Error"); }
+        } catch(e) { console.log("Camera Switch Error"); }
     }
 
     async function handleScan() {
@@ -126,24 +126,25 @@
         const base = db[mode][seed % db[mode].length];
         const rare = ["COMMON","RARE","SUPER","MYTHIC"][rareIdx];
         const boost = 1 + (lv - 1) * 0.03;
+        const no = (seed % 100) + 1;
 
         if (mode === "W") {
             patk = Math.floor(((rareIdx + 1) * 120 + (seed % 50)) * boost);
             pdef = Math.floor(((rareIdx + 1) * 60 + (seed % 30)) * boost);
             php = Math.min(pMax, php + Math.floor(pMax * 0.8));
-            updateCard('p', rare, base.i, `${rare} ${base.n}`, base.c);
-            coll.weapons[seed%100] = {n:`${rare} ${base.n}`, i:base.i};
+            updateCard('p', rare, base.i, `No.${no} ${rare} ${base.n}`, base.c);
+            coll.weapons[no] = {n:`${rare} ${base.n}`, i:base.i};
             mode = "M"; switchCamera('E');
-            document.getElementById('msg').innerText = "敵をスキャン！";
+            document.getElementById('msg').innerText = "敵をスキャンしてください";
         } else {
-            eMax = Math.floor((800 + (rareIdx * 600) + (lv * 150)) ); ehp = eMax;
+            eMax = Math.floor((800 + (rareIdx * 600) + (lv * 150))); ehp = eMax;
             eatk = Math.floor((rareIdx + 1) * 100 + (lv * 10)); edef = (rareIdx + 1) * 50;
-            updateCard('e', rare, base.i, `${rare} ${base.n}`, base.c);
-            coll.monsters[seed%100] = {n:`${rare} ${base.n}`, i:base.i};
+            updateCard('e', rare, base.i, `No.${no} ${rare} ${base.n}`, base.c);
+            coll.monsters[no] = {n:`${rare} ${base.n}`, i:base.i};
             document.getElementById('atk-btn').disabled = false;
             document.getElementById('item-btn').disabled = !inventory;
             document.getElementById('scan-btn').disabled = true;
-            document.getElementById('msg').innerText = "バトル開始！";
+            document.getElementById('msg').innerText = "戦闘開始！";
         }
         save(); updateUI();
     }
@@ -187,15 +188,16 @@
         const r = await net.classify(document.getElementById('bv'));
         const seed = Math.floor((Date.now() * r[0].probability) % 100);
         let item = { n: "ガラクタ", t: "TR", i: "📦", v: 0 };
-        
+        const no = seed + 1;
+
         if (seed < 25) item = { n: "ポーション", t: "HE", i: "🧪", v: 300 };
         else if (seed < 50) item = { n: "爆弾", t: "DM", i: "💣", v: 400 };
         else if (seed < 60) item = { n: "力の薬", t: "AT", i: "💊", v: 100 };
         else if (seed < 70) item = { n: "守りの薬", t: "DF", i: "🛡️", v: 100 };
-        else if (seed >= 98) item = { n: "王の秘宝", t: "TR", i: "👑", v: 0 };
+        else if (seed >= 98) item = { n: "伝説の秘宝", t: "TR", i: "👑", v: 0 };
 
         inventory = item;
-        coll.items[seed] = item;
+        coll.items[no] = item;
         save();
         document.getElementById('bonus-screen').style.display = "none";
         finish(true);
@@ -207,7 +209,7 @@
         if(inventory.t === "DM") ehp -= inventory.v;
         if(inventory.t === "AT") buffAtk += inventory.v;
         if(inventory.t === "DF") buffDef += inventory.v;
-        document.getElementById('msg').innerText = `${inventory.n}を使用した！`;
+        document.getElementById('msg').innerText = `${inventory.n}使用！`;
         inventory = null;
         document.getElementById('item-btn').disabled = true;
         updateUI();
@@ -219,12 +221,12 @@
         if(win) {
             document.getElementById('res-title').innerText = "WIN";
             exp += 50; if(exp >= nextExp) { lv++; exp=0; nextExp+=50; pMax=Math.floor(pMax*1.1); php=pMax; }
-            document.getElementById('res-msg').innerText = "経験値を獲得！アイテムを保管した。";
+            document.getElementById('res-msg').innerText = "経験値獲得。アイテムを入手した！";
         } else {
-            document.getElementById('res-title').innerText = "GAMEOVER";
+            document.getElementById('res-title').innerText = "LOSE";
             lv = Math.max(1, lv - 5); pMax = Math.floor(1000 * Math.pow(1.1, lv-1)); php = pMax;
             inventory = null;
-            document.getElementById('res-msg').innerText = "敗北... レベルと最大HPが低下。";
+            document.getElementById('res-msg').innerText = "敗北。レベルと最大HPが低下。";
         }
         updateUI();
     }
@@ -253,13 +255,18 @@
         document.getElementById('inventory-label').innerText = `ITEM: ${inventory ? inventory.i + inventory.n : "なし"}`;
     }
 
-    function save() { localStorage.setItem('myth_v3_master', JSON.stringify(coll)); }
+    function save() { localStorage.setItem('myth_v_num', JSON.stringify(coll)); }
 
     function showColl() {
         const render = (id, data, title) => {
             const el = document.getElementById(id);
-            el.innerHTML = `<b>${title}: ${Object.keys(data).length}/100</b><br>`;
-            Object.values(data).forEach(v => el.innerHTML += `${v.i}${v.n} `);
+            const count = Object.keys(data).length;
+            el.innerHTML = `<b>${title}: ${count}/100</b><br>`;
+            // 番号順にソートして表示
+            Object.keys(data).sort((a,b)=>a-b).forEach(key => {
+                const v = data[key];
+                el.innerHTML += `<span style="display:inline-block; width:100%;">No.${key} ${v.i}${v.n}</span>`;
+            });
         };
         render('w-coll', coll.weapons, "WEAPONS");
         render('m-coll', coll.monsters, "MONSTERS");
