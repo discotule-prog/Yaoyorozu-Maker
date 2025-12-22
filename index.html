@@ -3,53 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER AI</title>
+    <title>MYTH SCANNER AI -STABLE-</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
     <style>
         :root { --p-color: #00f2ff; --e-color: #ff3c00; }
         body { font-family: 'DotGothic16', sans-serif; background: #000; color: #fff; margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-        #header { height: 40px; background: #222; display: flex; justify-content: space-around; align-items: center; font-size: 0.75rem; border-bottom: 2px solid #444; }
-        .char-area { height: 32%; display: flex; border-bottom: 1px solid #333; padding: 5px; box-sizing: border-box; }
+        #header { height: 45px; background: #222; display: flex; justify-content: space-around; align-items: center; font-size: 0.8rem; border-bottom: 2px solid #444; }
+        .char-area { height: 32%; display: flex; border-bottom: 1px solid #333; padding: 10px; box-sizing: border-box; }
         .cam-part { width: 40%; display: flex; align-items: center; justify-content: center; }
-        .cam-frame { width: 100px; height: 100px; border: 2px solid #555; background: #111; overflow: hidden; position: relative; border-radius: 4px; }
+        .cam-frame { width: 100px; height: 100px; border: 2px solid #555; background: #111; overflow: hidden; position: relative; border-radius: 8px; }
         video { width: 100%; height: 100%; object-fit: cover; display: none; }
         .cam-active video { display: block; border-color: #0f0; }
-        .info-part { width: 60%; display: flex; flex-direction: column; padding-left: 10px; justify-content: center; }
-        .visual-card { width: 100%; height: 80px; border: 2px solid #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #111; position: relative; }
-        .stat-text { font-size: 0.7rem; color: #ccc; margin-top: 3px; line-height: 1.2; }
-        .hp-bar-bg { width: 100%; height: 8px; background: #333; border: 1px solid #fff; margin-top: 3px; }
+        .info-part { width: 60%; display: flex; flex-direction: column; padding-left: 15px; justify-content: center; }
+        .visual-card { width: 100%; height: 85px; border: 2px solid #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #111; position: relative; border-radius: 4px; }
+        .stat-text { font-size: 0.75rem; color: #ccc; margin-top: 5px; line-height: 1.3; }
+        .hp-bar-bg { width: 100%; height: 10px; background: #333; border: 1px solid #fff; margin-top: 5px; }
         .hp-bar-fill { height: 100%; transition: width 0.3s; }
-        #mid-ui { height: 140px; background: #111; border-top: 2px solid #444; display: flex; flex-direction: column; align-items: center; padding: 5px; }
-        #msg { font-size: 0.7rem; color: #0f0; height: 35px; text-align: center; display: flex; align-items: center; padding: 0 10px; }
-        .btn-row { display: flex; gap: 6px; width: 100%; flex-wrap: wrap; justify-content: center; }
-        button { flex: 1; max-width: 100px; height: 38px; font-family: 'DotGothic16'; border: 2px solid #fff; color: #fff; background: #444; font-size: 0.75rem; cursor: pointer; }
-        button:disabled { opacity: 0.3; cursor: default; }
-        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 100; flex-direction: column; align-items: center; padding: 10px; box-sizing: border-box; overflow-y: auto; }
-        #item-container { width: 100%; display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
-        .item-list-btn { width: 100%; background: #222; border: 1px solid #555; color: #fff; padding: 8px 12px; text-align: left; font-family: 'DotGothic16'; font-size: 0.75rem; min-height: 40px; }
-        .item-list-btn.selected { border-color: gold; background: #443300; }
-        .close-btn-small { width: 100px !important; height: 28px !important; min-height: 28px !important; background: #444 !important; margin: 5px auto !important; font-size: 0.7rem !important; flex: none !important; border: 1px solid #fff !important; }
+        #mid-ui { height: 150px; background: #111; border-top: 2px solid #444; display: flex; flex-direction: column; align-items: center; padding: 10px; }
+        #msg { font-size: 0.8rem; color: #0f0; height: 40px; text-align: center; display: flex; align-items: center; padding: 0 10px; }
+        .btn-row { display: flex; gap: 8px; width: 100%; justify-content: center; }
+        button { flex: 1; max-width: 100px; height: 42px; font-family: 'DotGothic16'; border: 2px solid #fff; color: #fff; background: #444; font-size: 0.8rem; cursor: pointer; }
+        button:disabled { opacity: 0.3; }
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 100; display: none; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; }
+        #item-container { width: 100%; display: flex; flex-direction: column; gap: 8px; }
+        .item-list-btn { width: 100%; background: #222; border: 1px solid #555; color: #fff; padding: 12px; text-align: left; font-family: 'DotGothic16'; font-size: 0.8rem; }
+        .item-list-btn.selected { border: 2px solid gold; background: #332200; }
+        .close-btn-small { height: 35px !important; margin-top: 15px !important; background: #666 !important; }
         .shake { animation: s 0.2s; }
         @keyframes s { 0%,100%{transform:translateX(0)} 25%{transform:translateX(5px)} 75%{transform:translateX(-5px)} }
-        .elem-badge { position: absolute; bottom: 2px; right: 2px; font-size: 1rem; }
+        .elem-badge { position: absolute; bottom: 4px; right: 4px; font-size: 1.2rem; }
     </style>
 </head>
 <body>
 
 <div id="header">
     <span>LV: <b id="p-lv">1</b> EXP: <b id="p-exp">0</b></span>
-    <button onclick="alert('STATS\nLV:'+lv+'\nHP:'+pMax+'\nATK:'+patk)" style="width:80px; height:25px; flex:none;">STATS</button>
+    <span id="inv-count">INV: 0 / 5</span>
 </div>
 
 <div class="char-area" id="p-area">
     <div class="cam-part" id="p-cam-box"><div class="cam-frame"><video id="pv" autoplay playsinline muted></video></div></div>
     <div class="info-part">
         <div id="p-card" class="visual-card">
-            <div id="p-rare" style="position:absolute; top:0; right:0; font-size:0.5rem; background:#fff; color:#000; padding:1px 4px;">-</div>
-            <div id="p-sym" style="font-size:2rem;">❓</div>
-            <div id="p-name" style="font-size:0.6rem; text-align:center;">READY</div>
+            <div id="p-rare" style="position:absolute; top:2px; right:4px; font-size:0.6rem; background:#fff; color:#000; padding:1px 4px;">-</div>
+            <div id="p-sym" style="font-size:2.5rem;">⚔️</div>
+            <div id="p-name" style="font-size:0.7rem; text-align:center; padding:0 5px;">READY</div>
             <div id="p-elem" class="elem-badge"></div>
         </div>
         <div class="stat-text">HP: <span id="p-hp-cur">1000</span>/<span id="p-hp-max">1000</span><br>ATK: <span id="p-atk-val">0</span> DEF: <span id="p-def-val">0</span></div>
@@ -60,20 +60,19 @@
 <div id="mid-ui">
     <div id="msg">武器をスキャンしてください</div>
     <div class="btn-row">
-        <button id="scan-btn" onclick="handleScan()" style="background:#0044cc">SCAN AI</button>
+        <button id="scan-btn" onclick="handleScan()" style="background:#0044cc">SCAN</button>
         <button id="atk-btn" onclick="handleAttack()" disabled style="background:#aa0000">ATTACK</button>
         <button id="item-open-btn" onclick="openItemMenu()" disabled style="background:#008844">ITEM</button>
     </div>
-    <div id="inv-count" style="font-size:0.65rem; color:yellow; margin-top:8px;">INV: 0 / 5</div>
 </div>
 
 <div class="char-area" id="e-area">
     <div class="cam-part" id="e-cam-box"><div class="cam-frame"><video id="ev" autoplay playsinline muted></video></div></div>
     <div class="info-part">
         <div id="e-card" class="visual-card">
-            <div id="e-rare" style="position:absolute; top:0; right:0; font-size:0.5rem; background:#fff; color:#000; padding:1px 4px;">-</div>
-            <div id="e-sym" style="font-size:2rem;">❓</div>
-            <div id="e-name" style="font-size:0.6rem; text-align:center;">???</div>
+            <div id="e-rare" style="position:absolute; top:2px; right:4px; font-size:0.6rem; background:#fff; color:#000; padding:1px 4px;">-</div>
+            <div id="e-sym" style="font-size:2.5rem;">👾</div>
+            <div id="e-name" style="font-size:0.7rem; text-align:center; padding:0 5px;">???</div>
             <div id="e-elem" class="elem-badge"></div>
         </div>
         <div class="stat-text">HP: <span id="e-hp-cur">0</span>/<span id="e-hp-max">0</span><br>ATK: <span id="e-atk-val">0</span> DEF: <span id="e-def-val">0</span></div>
@@ -82,207 +81,228 @@
 </div>
 
 <div id="item-menu" class="overlay">
-    <h2 id="item-menu-title" style="color:#0f0; margin-bottom:10px;">ITEMS</h2>
+    <h2 id="item-title">ITEMS</h2>
     <div id="item-container"></div>
-    <div style="display:flex; gap:10px;">
-        <button id="craft-mode-btn" class="close-btn-small" style="background:gold !important; color:#000 !important; width:120px !important;" onclick="toggleCraftMode()">CRAFT MODE</button>
-        <button class="close-btn-small" onclick="closeItemMenu()">CLOSE</button>
+    <div style="display:flex; gap:10px; width:100%; margin-top:10px;">
+        <button id="craft-btn" onclick="toggleCraftMode()" style="background:gold; color:000;">CRAFT</button>
+        <button onclick="closeItemMenu()">CLOSE</button>
     </div>
 </div>
-<div id="bonus-screen" class="overlay"><h2 style="color:gold;">BONUS SCAN</h2><div class="cam-frame" style="width:160px; height:160px;" id="b-cam-box"><video id="bv" autoplay playsinline muted></video></div><button id="bonus-btn" onclick="getBonusItem()" style="background:#0044cc; width:180px; margin-top:20px;">AI GET ITEM</button></div>
-<div id="res-screen" class="overlay" style="justify-content:center;"><h1 id="res-title"></h1><p id="res-msg" style="text-align:center; white-space: pre-wrap; margin:20px 0;"></p><button onclick="closeResult()" style="width:200px; height:50px; background:#0044cc;">NEXT</button></div>
+
+<div id="bonus-screen" class="overlay"><h2 style="color:gold;">BONUS SCAN</h2><div class="cam-frame" style="width:160px; height:160px;" id="b-cam-box"><video id="bv" autoplay playsinline muted></video></div><button onclick="getBonusItem()" style="background:#0044cc; width:100%; margin-top:20px;">GET ITEM</button></div>
+<div id="res-screen" class="overlay" style="justify-content:center;"><h1 id="res-title"></h1><p id="res-msg"></p><button onclick="closeResult()" style="width:100%; height:50px; background:#0044cc;">NEXT</button></div>
 
 <script>
-    let net, mode = "W", lv = 1, exp = 0, nextExp = 100, php = 1000, pMax = 1000, ehp = 0, eMax = 0;
-    let patk=0, pdef=0, eatk=0, edef=0, stream = null, pElem = "⚪", eElem = "⚪"; 
-    let buffAtk = 0, buffDef = 0, buffEAtkMul = 1.0, buffEDefMul = 1.0;
-    let shieldActive = false, doubleAtkActive = false, isCraftMode = false, craftSelection = [];
+    let net, mode="W", lv=1, exp=0, nextExp=100, php=1000, pMax=1000, ehp=0, eMax=0;
+    let patk=0, pdef=0, eatk=0, edef=0, stream=null, pElem="⚪", eElem="⚪";
+    let buffAtk=0, buffDef=0, buffEAtkMul=1, buffEDefMul=1, shieldActive=false, doubleAtkActive=false;
+    let inventory = [], isCraftMode=false, craftSelection=[];
 
-    let inventory = JSON.parse(localStorage.getItem('myth_inv_v13')) || [];
+    function getMaxInv() { return 5 + Math.floor(lv / 5); }
 
-    // AIのキーワードから属性を推測するロジック
-    function analyzeElement(className) {
-        const text = className.toLowerCase();
-        if (text.match(/fire|candle|lighter|lamp|red|orange|electric|power/)) return "🔥";
-        if (text.match(/water|bottle|blue|cup|ice|sea|liquid/)) return "💧";
-        if (text.match(/plant|leaf|tree|grass|green|wood|food|fruit/)) return "🌿";
+    async function init() {
+        net = await mobilenet.load();
+        switchCamera('P');
+        updateUI();
+    }
+
+    async function switchCamera(target) {
+        if(stream) stream.getTracks().forEach(t => t.stop());
+        const vId = {P:'pv', E:'ev', B:'bv'}[target];
+        const bId = {P:'p-cam-box', E:'e-cam-box', B:'b-cam-box'}[target];
+        stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
+        document.getElementById(vId).srcObject = stream;
+        ['p-cam-box','e-cam-box','b-cam-box'].forEach(b=>document.getElementById(b).classList.remove('cam-active'));
+        document.getElementById(bId).classList.add('cam-active');
+    }
+
+    function analyzeElement(name) {
+        const n = name.toLowerCase();
+        if(n.match(/fire|red|light|lamp|match|sun|hot/)) return "🔥";
+        if(n.match(/water|blue|bottle|cup|sea|ice/)) return "💧";
+        if(n.match(/plant|green|leaf|tree|grass|fruit|food/)) return "🌿";
         return "⚪";
     }
 
-    async function init() { net = await mobilenet.load(); switchCamera('P'); updateUI(); }
-    async function stopCamera() { if(stream) { stream.getTracks().forEach(t => t.stop()); stream = null; } ['p-cam-box','e-cam-box','b-cam-box'].forEach(b=>document.getElementById(b).classList.remove('cam-active')); }
-    async function switchCamera(target) { await stopCamera(); try { stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}}); const vId = {P:'pv', E:'ev', B:'bv'}[target]; const bId = {P:'p-cam-box', E:'e-cam-box', B:'b-cam-box'}[target]; document.getElementById(vId).srcObject = stream; document.getElementById(bId).classList.add('cam-active'); } catch(e) {} }
-
     async function handleScan() {
-        const vid = mode === "W" ? document.getElementById('pv') : document.getElementById('ev');
-        const results = await net.classify(vid);
-        const topResult = results[0];
-        const aiName = topResult.className.split(',')[0].toUpperCase();
-        const prob = topResult.probability;
-        const seed = Math.floor(prob * 1000);
-        
-        const rareIdx = prob > 0.6 ? 3 : prob > 0.4 ? 2 : prob > 0.15 ? 1 : 0;
+        const vid = mode==="W" ? document.getElementById('pv') : document.getElementById('ev');
+        const r = await net.classify(vid);
+        const name = r[0].className.split(',')[0].toUpperCase();
+        const prob = r[0].probability;
+        const rareIdx = prob > 0.5 ? 3 : prob > 0.3 ? 2 : prob > 0.1 ? 1 : 0;
         const rarity = ["COMMON","RARE","SUPER","MYTHIC"][rareIdx];
-        const pLevelBoost = 1 + (lv - 1) * 0.05;
+        const boost = 1 + (lv-1)*0.05;
 
-        if (mode === "W") {
-            patk = Math.floor(((rareIdx + 1) * 120 + (seed % 50)) * pLevelBoost);
-            pdef = Math.floor(((rareIdx + 1) * 60 + (seed % 30)) * pLevelBoost);
-            pElem = analyzeElement(aiName);
-            php = Math.min(pMax, php + Math.floor(pMax * 0.5));
-            updateCard('p', rarity, "⚔️", `${rarity}\n${aiName}`, "#444");
-            document.getElementById('p-elem').innerText = pElem;
-            mode = "M"; switchCamera('E');
-            document.getElementById('msg').innerText = aiName + " を装備！次、敵をスキャン！";
+        if(mode==="W") {
+            patk = Math.floor((120 + rareIdx*80) * boost);
+            pdef = Math.floor((60 + rareIdx*40) * boost);
+            pElem = analyzeElement(name);
+            php = Math.min(pMax, php + pMax*0.4);
+            updateCard('p', rarity, "⚔️", name, pElem);
+            mode="M"; switchCamera('E');
+            document.getElementById('msg').innerText = "モンスターをスキャン！";
         } else {
-            eMax = Math.floor((800 + (rareIdx * 600)) * pLevelBoost); ehp = eMax;
-            eatk = Math.floor((120 + (rareIdx * 100)) * pLevelBoost); edef = Math.floor((60 + (rareIdx * 50)) * pLevelBoost);
-            eElem = analyzeElement(aiName);
-            updateCard('e', rarity, "👾", `${rarity}\n${aiName}`, "#a11");
-            document.getElementById('e-elem').innerText = eElem;
-            await stopCamera();
+            eMax = Math.floor((800 + rareIdx*500) * boost); ehp = eMax;
+            eatk = Math.floor((110 + rareIdx*70) * boost);
+            edef = Math.floor((50 + rareIdx*40) * boost);
+            eElem = analyzeElement(name);
+            updateCard('e', rarity, "👾", name, eElem);
             document.getElementById('atk-btn').disabled = false;
             document.getElementById('item-open-btn').disabled = false;
             document.getElementById('scan-btn').disabled = true;
-            document.getElementById('msg').innerText = aiName + " が現れた！";
+            document.getElementById('msg').innerText = "BATTLE START!";
         }
         updateUI();
     }
 
+    function updateCard(side, rare, sym, name, elem) {
+        document.getElementById(`${side}-rare`).innerText = rare;
+        document.getElementById(`${side}-sym`).innerText = sym;
+        document.getElementById(`${side}-name`).innerText = name;
+        document.getElementById(`${side}-elem`).innerText = elem;
+        const color = side==='p' ? "#224466" : "#662222";
+        document.getElementById(`${side}-card`).style.background = `radial-gradient(circle, ${color}, #000)`;
+    }
+
+    function handleAttack() {
+        const hit = () => {
+            let d = Math.max(20, (patk+buffAtk) - (edef*buffEDefMul/2));
+            const bonus = getElemBonus(pElem, eElem); d *= bonus;
+            if(Math.random()<0.1) d *= 2;
+            ehp -= Math.floor(d);
+            document.getElementById('e-area').classList.add('shake');
+            setTimeout(()=>document.getElementById('e-area').classList.remove('shake'), 200);
+        };
+        hit(); 
+        if(doubleAtkActive && ehp > 0) setTimeout(hit, 300);
+        setTimeout(() => { if(ehp <= 0) showBonus(); else enemyTurn(); }, 500);
+    }
+
+    function enemyTurn() {
+        if(shieldActive) {
+            document.getElementById('msg').innerText = "攻撃を防いだ！";
+            if(shieldActive==="mirror") ehp -= eMax*0.1;
+            shieldActive = false;
+        } else {
+            let d = Math.max(15, (eatk*buffEAtkMul) - (pdef+buffDef)/2);
+            php -= Math.floor(d * getElemBonus(eElem, pElem));
+        }
+        document.getElementById('p-area').classList.add('shake');
+        setTimeout(()=>document.getElementById('p-area').classList.remove('shake'), 200);
+        updateUI();
+        if(php <= 0) finish(false);
+    }
+
+    function getElemBonus(a, d) {
+        if(a==="⚪"||d==="⚪") return 1;
+        if((a==="🔥"&&d==="🌿")||(a==="💧"&&d==="🔥")||(a==="🌿"&&d==="💧")) return 1.5;
+        if((a==="🔥"&&d==="💧")||(a==="💧"&&d==="🌿")||(a==="🌿"&&d==="🔥")) return 0.7;
+        return 1;
+    }
+
     async function getBonusItem() {
-        const results = await net.classify(document.getElementById('bv'));
-        const top = results[0];
-        const aiName = top.className.toLowerCase();
-        
-        // AI判断に基づくアイテム生成
-        let type = "ORB"; 
-        if (aiName.includes("bottle") || aiName.includes("cup")) type = "HE";
-        else if (aiName.includes("phone") || aiName.includes("remote")) type = "DOUBLE";
-        else if (aiName.includes("sharp") || aiName.includes("pen") || aiName.includes("knife")) type = "KILL";
+        const r = await net.classify(document.getElementById('bv'));
+        const n = r[0].className.toLowerCase();
+        let type = "ORB";
+        if(n.match(/bottle|cup|liquid/)) type="HE";
+        else if(n.match(/sharp|pen|knife|tool/)) type="KILL";
+        else if(n.match(/phone|remote|hand/)) type="DOUBLE";
         else {
-            // キーワードがない場合はランダム
             const types = ["HE","DM","AT","DF","SHIELD","DOUBLE","WEAK","BREAK","KILL","ORB"];
             type = types[Math.floor(Math.random()*types.length)];
         }
-
-        const itmNames = {HE:"ポーション", DM:"爆弾", AT:"力の薬", DF:"守りの薬", SHIELD:"聖なる盾", DOUBLE:"疾風の靴", WEAK:"弱体化の呪文", BREAK:"破甲の矢", KILL:"デッドリーショット", ORB:"オーブ"};
-        const itm = { n: itmNames[type], t: type, i: "📦", e: "⚪" };
-        const icons = {HE:"🧪", DM:"💥", SHIELD:"🛡️", DOUBLE:"👟", KILL:"💀", ORB:"🔮"};
-        itm.i = icons[type] || "🔮";
-
-        if (inventory.length < getMaxInv()) {
+        const names = {HE:"ポーション", DM:"爆弾", AT:"力の薬", DF:"守りの薬", SHIELD:"聖なる盾", DOUBLE:"疾風の靴", WEAK:"弱体化の呪文", BREAK:"破甲の矢", KILL:"デッドリーショット", ORB:"オーブ"};
+        const itm = { n: names[type], t: type, i: {HE:"🧪",DM:"💥",SHIELD:"🛡️",DOUBLE:"👟",KILL:"💀",ORB:"🔮"}[type]||"📦" };
+        
+        if(inventory.length < getMaxInv()) {
             inventory.push(itm);
+            document.getElementById('bonus-screen').style.display='none';
+            finish(true);
         } else {
-            pendingItem = itm; showSwapMenu(); return;
+            alert("バッグが一杯です。どれかと入れ替えてください。");
+            openItemMenu(); // スワップ処理（簡易版）
         }
-        completeBonus();
     }
 
-    // --- 以降のバトル・合成・レベル管理ロジックは以前の高性能版を継承 ---
-
-    function getMaxInv() { return 5 + Math.floor(lv / 5); }
-
-    function handleAttack() {
-        const attack = () => {
-            document.getElementById('e-area').classList.add('shake');
-            let d = Math.max(30, (patk + buffAtk) - Math.floor((edef * buffEDefMul)/2)) * getElementBonus(pElem, eElem);
-            if(Math.random() < 0.10) d *= 2;
-            ehp -= Math.floor(d); updateUI();
-            setTimeout(() => document.getElementById('e-area').classList.remove('shake'), 200);
-        };
-        attack(); document.getElementById('msg').innerText = "攻撃！";
-        if (doubleAtkActive) { setTimeout(() => { if (ehp > 0) { attack(); document.getElementById('msg').innerText = "2回連続攻撃！"; checkPostAtk(); } else checkPostAtk(); }, 400); }
-        else setTimeout(checkPostAtk, 400);
-    }
-    function checkPostAtk() { if(ehp <= 0) showBonus(); else enemyTurn(); }
-    function getElementBonus(a, d) { if (a === "⚪" || d === "⚪") return 1.0; if ((a === "🔥" && d === "🌿") || (a === "💧" && d === "🔥") || (a === "🌿" && d === "💧")) return 1.5; if ((a === "🔥" && d === "💧") || (a === "💧" && d === "🌿") || (a === "🌿" && d === "🔥")) return 0.7; return 1.0; }
-
-    function enemyTurn() {
-        document.getElementById('p-area').classList.add('shake');
-        if (shieldActive) { 
-            let mirr = shieldActive === "mirror";
-            document.getElementById('msg').innerText = "無効化！" + (mirr?"反射！":"");
-            if(mirr) ehp -= eMax * 0.1; shieldActive = false; 
-        } else { php -= Math.floor(Math.max(20, (eatk * buffEAtkMul) - Math.floor((pdef + buffDef)/2)) * getElementBonus(eElem, pElem)); }
-        updateUI(); setTimeout(() => { document.getElementById('p-area').classList.remove('shake'); if(php <= 0) finish(false); }, 200);
+    function openItemMenu() {
+        isCraftMode = false; craftSelection = [];
+        renderItems();
+        document.getElementById('item-menu').style.display='flex';
     }
 
-    function showBonus() { document.getElementById('bonus-screen').style.display = "flex"; switchCamera('B'); }
-    function showSwapMenu() {
-        const c = document.getElementById('item-container'); c.innerHTML = "<p>バッグ満杯。どれと替える？</p>";
-        inventory.forEach((itm, i) => { const b = document.createElement('button'); b.className = "item-list-btn"; b.innerHTML = `替: ${itm.i} ${itm.n}`; b.onclick = () => { inventory[i] = pendingItem; completeBonus(); }; c.appendChild(b); });
-        document.getElementById('item-menu').style.display = "flex";
+    function toggleCraftMode() {
+        isCraftMode = !isCraftMode; craftSelection = [];
+        document.getElementById('item-title').innerText = isCraftMode ? "SELECT 2 ITEMS" : "ITEMS";
+        renderItems();
     }
-    async function completeBonus() { pendingItem = null; await stopCamera(); document.getElementById('item-menu').style.display = "none"; document.getElementById('bonus-screen').style.display = "none"; finish(true); }
 
-    function openItemMenu() { isCraftMode = false; craftSelection = []; renderItemList(); document.getElementById('item-menu').style.display = "flex"; }
-    function toggleCraftMode() { isCraftMode = !isCraftMode; craftSelection = []; document.getElementById('craft-mode-btn').innerText = isCraftMode ? "CANCEL" : "CRAFT MODE"; renderItemList(); }
-    function renderItemList() {
-        const c = document.getElementById('item-container'); c.innerHTML = isCraftMode ? "<p style='color:gold;'>2つ選んで合成！</p>" : "";
+    function renderItems() {
+        const c = document.getElementById('item-container'); c.innerHTML = "";
         inventory.forEach((itm, i) => {
-            const b = document.createElement('button'); b.className = "item-list-btn" + (craftSelection.includes(i) ? " selected" : "");
-            b.innerHTML = `${itm.i} ${itm.n}`; b.onclick = () => isCraftMode ? selectForCraft(i) : useItem(i); c.appendChild(b);
+            const b = document.createElement('button');
+            b.className = "item-list-btn" + (craftSelection.includes(i) ? " selected" : "");
+            b.innerHTML = `${itm.i} ${itm.n}`;
+            b.onclick = () => isCraftMode ? selectCraft(i) : useItem(i);
+            c.appendChild(b);
         });
     }
 
-    function selectForCraft(i) {
-        if (craftSelection.includes(i)) craftSelection = craftSelection.filter(idx => idx !== i);
-        else if (craftSelection.length < 2) craftSelection.push(i);
-        if (craftSelection.length === 2) {
-            const types = [inventory[craftSelection[0]].t, inventory[craftSelection[1]].t];
-            let res = { n:"失敗の粉", t:"DM", i:"🌫️" };
-            if (types.includes("HE") && types.includes("ORB")) res = { n:"エリクサー", t:"ELIXIR", i:"💎" };
-            else if (types.includes("DM") && types.includes("ORB")) res = { n:"属性崩壊弾", t:"NUKE", i:"☢️" };
-            else if (types.includes("SHIELD") && types.includes("ORB")) res = { n:"ミラーシールド", t:"MIRROR", i:"🪞" };
-            else if (types.includes("AT") && types.includes("DF")) res = { n:"英雄の薬", t:"HERO", i:"👑" };
-            const h = Math.max(...craftSelection), l = Math.min(...craftSelection);
-            inventory.splice(h, 1); inventory.splice(l, 1); inventory.push(res);
-            isCraftMode = false; craftSelection = []; document.getElementById('msg').innerText = "合成成功！"; renderItemList();
-        } else renderItemList();
+    function selectCraft(i) {
+        if(craftSelection.includes(i)) craftSelection = craftSelection.filter(x=>x!==i);
+        else if(craftSelection.length<2) craftSelection.push(i);
+        if(craftSelection.length===2) {
+            const t = [inventory[craftSelection[0]].t, inventory[craftSelection[1]].t];
+            let res = {n:"エリクサー", t:"ELIXIR", i:"💎"}; // 合成例
+            const h=Math.max(...craftSelection), l=Math.min(...craftSelection);
+            inventory.splice(h,1); inventory.splice(l,1); inventory.push(res);
+            toggleCraftMode();
+        } else renderItems();
     }
 
     function useItem(i) {
         const itm = inventory[i];
-        if(itm.t === "ORB") { showOrbMenu(i); return; }
-        if(itm.t === "HE") php = Math.min(pMax, php + pMax*0.5);
-        else if(itm.t === "DM") ehp -= eMax*0.3;
-        else if(itm.t === "SHIELD") shieldActive = true;
-        else if(itm.t === "MIRROR") shieldActive = "mirror";
-        else if(itm.t === "DOUBLE") doubleAtkActive = true;
-        else if(itm.t === "WEAK") buffEAtkMul = 0.5;
-        else if(itm.t === "BREAK") buffEDefMul = 0;
-        else if(itm.t === "KILL") ehp = 0;
-        else if(itm.t === "ELIXIR") { php = pMax; buffAtk += 100; }
-        else if(itm.t === "NUKE") { ehp -= eMax*0.4; buffEDefMul = 0.5; }
-        else if(itm.t === "HERO") { buffAtk += 150; buffDef += 150; }
-        document.getElementById('msg').innerText = itm.n + "使用！";
-        inventory.splice(i, 1); closeItemMenu(); updateUI(); if(ehp <= 0) setTimeout(showBonus, 600);
+        if(itm.t==="ORB") { showOrbMenu(i); return; }
+        if(itm.t==="HE") php = Math.min(pMax, php + pMax*0.5);
+        if(itm.t==="KILL") ehp = 0;
+        if(itm.t==="SHIELD") shieldActive = true;
+        inventory.splice(i, 1);
+        closeItemMenu(); updateUI();
+        if(ehp<=0) showBonus();
     }
 
     function showOrbMenu(idx) {
-        const c = document.getElementById('item-container'); document.getElementById('item-menu-title').innerText = "SELECT ELEMENT"; c.innerHTML = "";
-        [{s:"🔥",n:"火"},{s:"💧",n:"水"},{s:"🌿",n:"草"},{s:"⚪",n:"無"}].forEach(el => {
-            const b = document.createElement('button'); b.className = "item-list-btn"; b.innerHTML = el.s+"属性";
-            b.onclick = () => { pElem = el.s; document.getElementById('p-elem').innerText = pElem; inventory.splice(idx, 1); closeItemMenu(); updateUI(); }; c.appendChild(b);
+        const c = document.getElementById('item-container'); c.innerHTML = "<p>属性を選択</p>";
+        [{s:"🔥",n:"火"},{s:"💧",n:"水"},{s:"🌿",n:"草"}].forEach(el => {
+            const b = document.createElement('button'); b.className = "item-list-btn"; b.innerText = el.n;
+            b.onclick = () => { pElem=el.s; inventory.splice(idx,1); closeItemMenu(); updateUI(); };
+            c.appendChild(b);
         });
     }
 
-    function closeItemMenu() { document.getElementById('item-menu').style.display = 'none'; }
+    function showBonus() { document.getElementById('bonus-screen').style.display='flex'; switchCamera('B'); }
+    function closeItemMenu() { document.getElementById('item-menu').style.display='none'; }
     function finish(win) {
-        document.getElementById('res-screen').style.display = "flex";
-        if(win) { exp += 50; if(exp >= nextExp) { lv++; exp=0; nextExp+=50; pMax=Math.floor(1000*(1+(lv-1)*0.1)); } document.getElementById('res-title').innerText = "VICTORY"; }
-        else { lv = Math.max(1, lv-1); inventory = []; pMax=Math.floor(1000*(1+(lv-1)*0.1)); php=pMax; document.getElementById('res-title').innerText = "DEFEAT"; }
-        localStorage.setItem('myth_inv_v13', JSON.stringify(inventory));
+        document.getElementById('res-screen').style.display='flex';
+        if(win) { exp+=50; if(exp>=nextExp){ lv++; exp=0; nextExp+=50; pMax=Math.floor(1000*(1+(lv-1)*0.1)); } document.getElementById('res-title').innerText="VICTORY"; }
+        else { lv=Math.max(1,lv-1); inventory=[]; php=pMax; document.getElementById('res-title').innerText="DEFEAT"; }
+        updateUI();
     }
-    function closeResult() { document.getElementById('res-screen').style.display = "none"; mode = "W"; buffAtk = 0; buffDef = 0; buffEAtkMul = 1.0; buffEDefMul = 1.0; shieldActive = false; doubleAtkActive = false; updateCard('p', "-", "❓", "READY", "reset"); updateCard('e', "-", "❓", "???", "reset"); document.getElementById('atk-btn').disabled = true; document.getElementById('item-open-btn').disabled = true; document.getElementById('scan-btn').disabled = false; switchCamera('P'); updateUI(); }
-    
+    function closeResult() { document.getElementById('res-screen').style.display='none'; mode="W"; buffAtk=0; buffDef=0; buffEAtkMul=1; buffEDefMul=1; shieldActive=false; doubleAtkActive=false; document.getElementById('atk-btn').disabled=true; document.getElementById('scan-btn').disabled=false; switchCamera('P'); }
+
     function updateUI() {
-        document.getElementById('p-fill').style.width = (php / pMax * 100) + "%"; document.getElementById('p-hp-cur').innerText = Math.max(0, Math.floor(php)); document.getElementById('p-hp-max').innerText = pMax;
-        document.getElementById('p-atk-val').innerText = patk + buffAtk; document.getElementById('p-def-val').innerText = pdef + buffDef; document.getElementById('p-lv').innerText = lv; document.getElementById('p-exp').innerText = exp;
-        document.getElementById('e-fill').style.width = (eMax > 0 ? (ehp / eMax * 100) : 0) + "%"; document.getElementById('e-hp-cur').innerText = Math.max(0, Math.floor(ehp)); document.getElementById('e-hp-max').innerText = eMax;
-        document.getElementById('e-atk-val').innerText = Math.floor(eatk * buffEAtkMul); document.getElementById('e-def-val').innerText = Math.floor(edef * buffEDefMul);
+        document.getElementById('p-lv').innerText = lv;
+        document.getElementById('p-exp').innerText = exp;
         document.getElementById('inv-count').innerText = `INV: ${inventory.length} / ${getMaxInv()}`;
+        document.getElementById('p-hp-cur').innerText = Math.floor(php);
+        document.getElementById('p-hp-max').innerText = pMax;
+        document.getElementById('p-fill').style.width = (php/pMax*100)+"%";
+        document.getElementById('e-hp-cur').innerText = Math.floor(ehp);
+        document.getElementById('e-hp-max').innerText = eMax;
+        document.getElementById('e-fill').style.width = (eMax>0 ? (ehp/eMax*100) : 0)+"%";
+        document.getElementById('p-atk-val').innerText = patk + buffAtk;
+        document.getElementById('e-atk-val').innerText = Math.floor(eatk * buffEAtkMul);
     }
+
     init();
 </script>
 </body>
