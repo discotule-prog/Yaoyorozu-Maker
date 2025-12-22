@@ -31,6 +31,7 @@
         .item-list-btn { width: 100%; background: #222; border: 1px solid #555; color: #fff; padding: 12px; text-align: left; font-family: 'DotGothic16'; font-size: 0.85rem; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .shake { animation: s 0.2s; }
         @keyframes s { 0%,100%{transform:translateX(0)} 25%{transform:translateX(5px)} 75%{transform:translateX(-5px)} }
+        .elem-badge { position: absolute; bottom: 2px; right: 2px; font-size: 1rem; }
     </style>
 </head>
 <body>
@@ -47,6 +48,7 @@
             <div id="p-rare" style="position:absolute; top:0; right:0; font-size:0.5rem; background:#fff; color:#000; padding:1px 4px;">-</div>
             <div id="p-sym" style="font-size:2rem;">❓</div>
             <div id="p-name" style="font-size:0.6rem; text-align:center;">READY</div>
+            <div id="p-elem" class="elem-badge"></div>
         </div>
         <div class="stat-text">HP: <span id="p-hp-cur">1000</span>/<span id="p-hp-max">1000</span><br>ATK: <span id="p-atk-val">0</span> DEF: <span id="p-def-val">0</span></div>
         <div class="hp-bar-bg"><div id="p-fill" class="hp-bar-fill" style="background:var(--p-color); width:100%"></div></div>
@@ -70,6 +72,7 @@
             <div id="e-rare" style="position:absolute; top:0; right:0; font-size:0.5rem; background:#fff; color:#000; padding:1px 4px;">-</div>
             <div id="e-sym" style="font-size:2rem;">❓</div>
             <div id="e-name" style="font-size:0.6rem; text-align:center;">???</div>
+            <div id="e-elem" class="elem-badge"></div>
         </div>
         <div class="stat-text">HP: <span id="e-hp-cur">0</span>/<span id="e-hp-max">0</span><br>ATK: <span id="e-atk-val">0</span> DEF: <span id="e-def-val">0</span></div>
         <div class="hp-bar-bg"><div id="e-fill" class="hp-bar-fill" style="background:var(--e-color); width:0%"></div></div>
@@ -79,7 +82,7 @@
 <div id="item-menu" class="overlay">
     <h2 id="item-menu-title" style="color:#0f0; margin-bottom:15px;">ITEMS</h2>
     <div id="item-container"></div>
-    <button onclick="document.getElementById('item-menu').style.display='none'" style="width:100%; min-height:50px; background:#444; margin-top:auto; color:#fff; border:2px solid #fff;">CLOSE</button>
+    <button onclick="document.getElementById('item-menu').style.display='none'" style="width:100%; min-height:50px; background:#444; color:#fff; border:2px solid #fff;">CLOSE</button>
 </div>
 
 <div id="bonus-screen" class="overlay">
@@ -105,9 +108,11 @@
 <script>
     let net, mode = "W", lv = 1, exp = 0, nextExp = 100, php = 1000, pMax = 1000, ehp = 0, eMax = 0;
     let patk=0, pdef=0, eatk=0, edef=0, stream = null, currentMData = null, pendingItem = null;
-    let inventory = JSON.parse(localStorage.getItem('myth_inv_v4')) || [];
+    let pElem = "⚪", eElem = "⚪"; 
+
+    let inventory = JSON.parse(localStorage.getItem('myth_inv_v7')) || [];
     let buffAtk = 0, buffDef = 0;
-    let coll = JSON.parse(localStorage.getItem('myth_coll_v4')) || { weapons: {}, monsters: {}, items: {} };
+    let coll = JSON.parse(localStorage.getItem('myth_coll_v7')) || { weapons: {}, monsters: {}, items: {} };
 
     const naming = {
         W1: ["鉄","鋼","輝","魔","龍","氷","炎","雷","聖","神"],
@@ -116,6 +121,14 @@
         M2: ["スライム","ウルフ","ドラゴン","ゾンビ","ゴーレム","バード","デーモン","騎士","王","神"],
         I: ["ポーション","爆弾","力の薬","守りの薬","不思議な粉","古びた瓶","聖水","魔力石","幸運のコイン","お守り"]
     };
+
+    // 名前から属性を判定する関数
+    function judgeElement(name) {
+        if (name.includes("炎") || name.includes("火") || name.includes("雷") || name.includes("輝")) return "🔥";
+        if (name.includes("氷") || name.includes("水")) return "💧";
+        if (name.includes("森") || name.includes("毒")) return "🌿";
+        return "⚪"; // non属性
+    }
 
     async function init() {
         net = await mobilenet.load();
@@ -149,20 +162,31 @@
         const boost = 1 + (lv - 1) * 0.03;
 
         if (mode === "W") {
-            const name = naming.W1[Math.floor((no-1)/10)] + naming.W2[(no-1)%10];
+            const prefix = naming.W1[Math.floor((no-1)/10)];
+            const name = prefix + naming.W2[(no-1)%10];
             patk = Math.floor(((rareIdx + 1) * 120 + (seed % 50)) * boost);
             pdef = Math.floor(((rareIdx + 1) * 60 + (seed % 30)) * boost);
+            pElem = judgeElement(prefix); // 属性判定
+            
+            php = Math.min(pMax, php + Math.floor(pMax * 0.5));
             updateCard('p', rarity, "⚔️", `No.${no} ${rarity} ${name}`, "#444");
+            document.getElementById('p-elem').innerText = pElem;
+            
             coll.weapons[no] = {n:`${rarity} ${name}`, i:"⚔️"};
             mode = "M"; switchCamera('E');
             document.getElementById('msg').innerText = "モンスターをスキャンしてください";
         } else {
-            const name = naming.M1[Math.floor((no-1)/10)] + naming.M2[(no-1)%10];
+            const prefix = naming.M1[Math.floor((no-1)/10)];
+            const name = prefix + naming.M2[(no-1)%10];
             eMax = Math.floor((800 + (rareIdx * 600) + (lv * 150))); 
             ehp = eMax;
             eatk = Math.floor((rareIdx + 1) * 100 + (lv * 10)); 
             edef = (rareIdx + 1) * 50;
+            eElem = judgeElement(prefix); // 属性判定
+            
             updateCard('e', rarity, "👾", `No.${no} ${rarity} ${name}`, "#a11");
+            document.getElementById('e-elem').innerText = eElem;
+            
             currentMData = {no, n:`${rarity} ${name}`, i:"👾"};
             await stopCamera();
             document.getElementById('atk-btn').disabled = false;
@@ -179,11 +203,34 @@
         document.getElementById(`${side}-rare`).innerText = rare;
         document.getElementById(`${side}-sym`).innerText = sym;
         document.getElementById(`${side}-name`).innerText = name;
+        if(color === "reset") document.getElementById(`${side}-elem`).innerText = "";
+    }
+
+    function getElementBonus(atkElem, defElem) {
+        if (atkElem === "⚪" || defElem === "⚪") return 1.0; 
+        if ((atkElem === "🔥" && defElem === "🌿") || 
+            (atkElem === "💧" && defElem === "🔥") || 
+            (atkElem === "🌿" && defElem === "💧")) return 1.5;
+        if ((atkElem === "🔥" && defElem === "💧") || 
+            (atkElem === "💧" && defElem === "🌿") || 
+            (atkElem === "🌿" && defElem === "🔥")) return 0.7;
+        return 1.0;
     }
 
     function handleAttack() {
         document.getElementById('e-area').classList.add('shake');
-        ehp -= Math.max(30, (patk + buffAtk) - Math.floor(edef/2));
+        let baseDmg = Math.max(30, (patk + buffAtk) - Math.floor(edef/2));
+        const eBonus = getElementBonus(pElem, eElem);
+        baseDmg *= eBonus;
+        let isCrit = Math.random() < 0.10;
+        if (isCrit) baseDmg *= 2;
+        ehp -= Math.floor(baseDmg);
+        
+        let log = isCrit ? "CRITICAL!! " : "";
+        if(eBonus > 1.1) log += "弱点を突いた！";
+        else if(eBonus < 0.9) log += "耐性がある...";
+        document.getElementById('msg').innerText = log || "攻撃！";
+
         setTimeout(() => {
             document.getElementById('e-area').classList.remove('shake');
             if(ehp <= 0) return showBonus();
@@ -194,7 +241,10 @@
 
     function enemyTurn() {
         document.getElementById('p-area').classList.add('shake');
-        php -= Math.max(20, eatk - Math.floor((pdef + buffDef)/2));
+        let baseDmg = Math.max(20, eatk - Math.floor((pdef + buffDef)/2));
+        const eBonus = getElementBonus(eElem, pElem);
+        baseDmg *= eBonus;
+        php -= Math.floor(baseDmg);
         updateUI();
         setTimeout(() => {
             document.getElementById('p-area').classList.remove('shake');
@@ -203,19 +253,20 @@
     }
 
     function showBonus() { document.getElementById('bonus-screen').style.display = "flex"; switchCamera('B'); }
-
     async function getBonusItem() {
         const r = await net.classify(document.getElementById('bv'));
         const seed = Math.floor((Date.now() * r[0].probability) % 100);
         const no = seed + 1;
-        const baseName = naming.I[Math.floor((no-1)/10)];
-        let itm = { n: baseName, t: "TR", i: "📦", v: 0, no: no };
-        if (no <= 25) { itm = {...itm, n:`${baseName}(回復${Math.floor(Math.random()*71)+30}%)`, t:"HE", i:"🧪", v:Math.floor(Math.random()*71)+30}; }
-        else if (no <= 50) { itm = {...itm, n:`${baseName}(${Math.floor(Math.random()*31)+10}% DMG)`, t:"DM", i:"💥", v:Math.floor(Math.random()*31)+10}; }
-        else if (no <= 60) { itm = {...itm, n:`${baseName}(+${Math.floor(Math.random()*41)+20}% ATK)`, t:"AT", i:"💊", v:Math.floor(Math.random()*41)+20}; }
-        else if (no <= 70) { itm = {...itm, n:`${baseName}(+${Math.floor(Math.random()*41)+20}% DEF)`, t:"DF", i:"🛡️", v:Math.floor(Math.random()*41)+20}; }
-        coll.items[no] = itm;
-        save();
+        const prefix = naming.I[Math.floor((no-1)/10)];
+        const elem = judgeElement(prefix); // アイテムにも属性
+        let itm = { n: prefix, t: "TR", i: "📦", v: 0, no: no, e: elem };
+        
+        if (no <= 25) { itm = {...itm, n:`${prefix}(回復)`, t:"HE", i:"🧪", v:Math.floor(Math.random()*71)+30}; }
+        else if (no <= 50) { itm = {...itm, n:`${prefix}(属性ダメージ)`, t:"DM", i:"💥", v:Math.floor(Math.random()*31)+15}; }
+        else if (no <= 60) { itm = {...itm, n:`${prefix}(強化)`, t:"AT", i:"💊", v:Math.floor(Math.random()*41)+20}; }
+        else if (no <= 70) { itm = {...itm, n:`${prefix}(防壁)`, t:"DF", i:"🛡️", v:Math.floor(Math.random()*41)+20}; }
+        
+        coll.items[no] = itm; save();
         if (inventory.length < 5) { inventory.push(itm); completeBonus(); }
         else { pendingItem = itm; showSwapMenu(); }
     }
@@ -223,16 +274,15 @@
     function showSwapMenu() {
         const container = document.getElementById('item-container');
         document.getElementById('item-menu-title').innerText = "ITEM SWAP";
-        container.innerHTML = `<p style="color:orange; font-size:0.75rem; margin-bottom:15px; line-height:1.4;">荷物一杯！拾うためにどれを捨てますか？</p>`;
+        container.innerHTML = `<p style="color:orange; font-size:0.75rem; margin-bottom:15px;">どれと入れ替えますか？</p>`;
         inventory.forEach((itm, index) => {
-            const btn = document.createElement('button');
-            btn.className = "item-list-btn"; btn.style.borderColor = "#ff3c00";
-            btn.innerHTML = `入れ替える: ${itm.i} ${itm.n}`;
+            const btn = document.createElement('button'); btn.className = "item-list-btn";
+            btn.innerHTML = `${itm.i} ${itm.n}${itm.e !== "⚪" ? itm.e : ""}`;
             btn.onclick = () => { inventory[index] = pendingItem; completeBonus(); };
             container.appendChild(btn);
         });
         const skip = document.createElement('button');
-        skip.className = "item-list-btn"; skip.style.background = "#444"; skip.innerHTML = `❌ アイテムを諦める`;
+        skip.className = "item-list-btn"; skip.style.background = "#444"; skip.innerHTML = `❌ 諦める`;
         skip.onclick = completeBonus; container.appendChild(skip);
         document.getElementById('item-menu').style.display = "flex";
     }
@@ -247,10 +297,10 @@
     function openItemMenu() {
         const container = document.getElementById('item-container');
         document.getElementById('item-menu-title').innerText = "MY ITEMS";
-        container.innerHTML = inventory.length === 0 ? "<p style='text-align:center;'>アイテムなし</p>" : "";
+        container.innerHTML = inventory.length === 0 ? "<p>アイテムなし</p>" : "";
         inventory.forEach((itm, index) => {
             const btn = document.createElement('button'); btn.className = "item-list-btn";
-            btn.innerHTML = `${itm.i} ${itm.n}`;
+            btn.innerHTML = `${itm.i} ${itm.n} ${itm.e !== "⚪" ? itm.e : ""}`;
             btn.onclick = () => useItem(index); container.appendChild(btn);
         });
         document.getElementById('item-menu').style.display = "flex";
@@ -258,12 +308,18 @@
 
     function useItem(index) {
         const itm = inventory[index];
-        let res = "";
-        if(itm.t === "HE") { const h = Math.floor(pMax * (itm.v/100)); php = Math.min(pMax, php+h); res = `${h}回復`; }
-        else if(itm.t === "DM") { const d = Math.floor(eMax * (itm.v/100)); ehp -= d; res = `${d}ダメ`; }
-        else if(itm.t === "AT") { const u = Math.floor(patk * (itm.v/100)); buffAtk += u; res = `ATK+${u}`; }
-        else if(itm.t === "DF") { const u = Math.floor(pdef * (itm.v/100)); buffDef += u; res = `DEF+${u}`; }
-        document.getElementById('msg').innerText = `${itm.n}使用！：${res}`;
+        let resText = "";
+        if(itm.t === "HE") { const h = Math.floor(pMax * (itm.v/100)); php = Math.min(pMax, php+h); resText = `${h}回復`; }
+        else if(itm.t === "DM") { 
+            let d = Math.floor(eMax * (itm.v/100));
+            const bonus = getElementBonus(itm.e, eElem); // アイテムの属性相性
+            d = Math.floor(d * bonus);
+            ehp -= d; resText = `${d}ダメ${bonus > 1 ? "(弱点!)" : ""}`;
+        }
+        else if(itm.t === "AT") { const u = Math.floor(patk * (itm.v/100)); buffAtk += u; resText = `ATK+${u}`; }
+        else if(itm.t === "DF") { const u = Math.floor(pdef * (itm.v/100)); buffDef += u; resText = `DEF+${u}`; }
+        
+        document.getElementById('msg').innerText = `${itm.n}使用！${resText}`;
         inventory.splice(index, 1); document.getElementById('item-menu').style.display = "none";
         updateUI();
         if(ehp <= 0) setTimeout(showBonus, 600); else setTimeout(enemyTurn, 800);
@@ -278,41 +334,36 @@
             let lvLog = "経験値獲得！";
             if(exp >= nextExp) {
                 lv++; exp = 0; nextExp += 50;
-                pMax = Math.floor(1000 * (1 + (lv-1)*0.1)); php = pMax;
-                lvLog = `LEVEL UP! [LV:${lv}]\n補正: +${(lv-1)*3}%\n最大HP: ${pMax}`;
+                pMax = Math.floor(1000 * (1 + (lv-1)*0.1));
+                lvLog = `LEVEL UP! [LV:${lv}]\n最大HP: ${pMax}`;
             }
-            document.getElementById('res-msg').innerText = `討伐成功！モンスターを記録しました。\n${lvLog}`;
+            document.getElementById('res-msg').innerText = `討伐成功！\n${lvLog}`;
         } else {
             document.getElementById('res-title').innerText = "DEFEAT";
             lv = Math.max(1, lv - 5); inventory = [];
             pMax = Math.floor(1000 * (1 + (lv-1)*0.1)); php = pMax;
-            document.getElementById('res-msg').innerText = `敗北... アイテムをすべて失った。\nLV:${lv}に低下。`;
+            document.getElementById('res-msg').innerText = `敗北... LV:${lv}に低下。`;
         }
-        localStorage.setItem('myth_inv_v4', JSON.stringify(inventory));
+        localStorage.setItem('myth_inv_v7', JSON.stringify(inventory));
         save();
     }
 
     function closeResult() {
         document.getElementById('res-screen').style.display = "none";
-        // データの完全リセット
         mode = "W"; buffAtk = 0; buffDef = 0; 
         currentMData = null; eatk = 0; edef = 0; ehp = 0; eMax = 0;
-        
-        // 表示の完全初期化
+        pElem = "⚪"; eElem = "⚪";
         updateCard('p', "-", "❓", "READY", "reset");
         updateCard('e', "-", "❓", "???", "reset");
-        
         document.getElementById('atk-btn').disabled = true;
         document.getElementById('item-open-btn').disabled = true;
         document.getElementById('scan-btn').disabled = false;
         document.getElementById('msg').innerText = "武器をスキャンしてください";
-        
         switchCamera('P');
         updateUI();
     }
 
     function updateUI() {
-        // Player UI
         document.getElementById('p-fill').style.width = (php / pMax * 100) + "%";
         document.getElementById('p-hp-cur').innerText = Math.max(0, Math.floor(php));
         document.getElementById('p-hp-max').innerText = pMax;
@@ -321,22 +372,24 @@
         document.getElementById('p-lv').innerText = lv;
         document.getElementById('stat-boost').innerText = ((lv-1)*3);
         
-        // Enemy UI
         document.getElementById('e-fill').style.width = (eMax > 0 ? (ehp / eMax * 100) : 0) + "%";
         document.getElementById('e-hp-cur').innerText = Math.max(0, Math.floor(ehp));
         document.getElementById('e-hp-max').innerText = eMax;
         document.getElementById('e-atk-val').innerText = eatk;
         document.getElementById('e-def-val').innerText = edef;
-        
         document.getElementById('inv-count').innerText = `INVENTORY: ${inventory.length} / 5`;
     }
 
-    function save() { localStorage.setItem('myth_coll_v4', JSON.stringify(coll)); }
+    function save() { localStorage.setItem('myth_coll_v7', JSON.stringify(coll)); }
     function showColl() {
         const render = (id, data, title) => {
             const el = document.getElementById(id);
             el.innerHTML = `<b>${title} (${Object.keys(data).length}/100)</b><br>`;
-            Object.keys(data).sort((a,b)=>a-b).forEach(k => { el.innerHTML += `No.${k.toString().padStart(3,'0')} ${data[k].i}${data[k].n}<br>`; });
+            Object.keys(data).sort((a,b)=>a-b).forEach(k => { 
+                const item = data[k];
+                const elem = item.e && item.e !== "⚪" ? item.e : "";
+                el.innerHTML += `No.${k.toString().padStart(3,'0')} ${item.i}${item.n}${elem}<br>`; 
+            });
         };
         render('w-coll', coll.weapons, "WEAPONS");
         render('m-coll', coll.monsters, "MONSTERS");
