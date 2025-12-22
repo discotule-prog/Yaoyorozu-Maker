@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER INVENTORY</title>
+    <title>MYTH SCANNER</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
@@ -22,15 +22,18 @@
         .hp-bar-bg { width: 100%; height: 8px; background: #333; border: 1px solid #fff; margin-top: 3px; }
         .hp-bar-fill { height: 100%; transition: width 0.3s; }
         #mid-ui { height: 140px; background: #111; border-top: 2px solid #444; display: flex; flex-direction: column; align-items: center; padding: 5px; }
-        #msg { font-size: 0.75rem; color: #0f0; height: 35px; text-align: center; display: flex; align-items: center; padding: 0 10px; }
+        #msg { font-size: 0.7rem; color: #0f0; height: 35px; text-align: center; display: flex; align-items: center; padding: 0 10px; }
         .btn-row { display: flex; gap: 6px; width: 100%; flex-wrap: wrap; justify-content: center; }
         button { flex: 1; max-width: 100px; height: 38px; font-family: 'DotGothic16'; border: 2px solid #fff; color: #fff; background: #444; font-size: 0.75rem; }
-        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 100; display: none; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; }
+        button:disabled { opacity: 0.3; }
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 100; display: none; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; overflow-y: auto; }
+        
+        /* アイテムリストを縦並びに修正 */
+        #item-container { width: 100%; display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+        .item-list-btn { width: 100%; background: #222; border: 1px solid #555; color: #fff; padding: 12px; text-align: left; font-family: 'DotGothic16'; font-size: 0.85rem; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
         .shake { animation: s 0.2s; }
         @keyframes s { 0%,100%{transform:translateX(0)} 25%{transform:translateX(5px)} 75%{transform:translateX(-5px)} }
-        
-        /* アイテムリスト用 */
-        .item-list-btn { width: 100%; background: #222; border: 1px solid #555; color: #fff; padding: 10px; margin-bottom: 8px; text-align: left; font-family: 'DotGothic16'; font-size: 0.8rem; }
     </style>
 </head>
 <body>
@@ -77,9 +80,9 @@
 </div>
 
 <div id="item-menu" class="overlay">
-    <h2 style="color:#0f0;">ITEMS</h2>
-    <div id="item-container" style="width:100%; flex:1;"></div>
-    <button onclick="document.getElementById('item-menu').style.display='none'" style="width:100%; height:50px;">CLOSE</button>
+    <h2 id="item-menu-title" style="color:#0f0; margin-bottom:15px;">ITEMS</h2>
+    <div id="item-container"></div>
+    <button onclick="document.getElementById('item-menu').style.display='none'" style="width:100%; min-height:50px; background:#444; margin-top:auto;">CLOSE</button>
 </div>
 
 <div id="bonus-screen" class="overlay">
@@ -95,18 +98,19 @@
 </div>
 
 <div id="coll-screen" class="overlay">
-    <div id="w-coll" style="font-size:0.6rem;"></div>
-    <div id="m-coll" style="font-size:0.6rem;"></div>
-    <div id="i-coll" style="font-size:0.6rem;"></div>
+    <h2 style="color:yellow; font-size:1rem;">LIBRARY</h2>
+    <div id="w-coll" style="width:100%; background:#111; margin-bottom:10px; font-size:0.6rem; padding:5px; border:1px solid #444;"></div>
+    <div id="m-coll" style="width:100%; background:#111; margin-bottom:10px; font-size:0.6rem; padding:5px; border:1px solid #444;"></div>
+    <div id="i-coll" style="width:100%; background:#111; margin-bottom:10px; font-size:0.6rem; padding:5px; border:1px solid #444;"></div>
     <button onclick="document.getElementById('coll-screen').style.display='none'">CLOSE</button>
 </div>
 
 <script>
     let net, mode = "W", lv = 1, exp = 0, nextExp = 100, php = 1000, pMax = 1000, ehp = 1000, eMax = 1000;
-    let patk=0, pdef=0, eatk=0, edef=0, stream = null, currentMData = null;
-    let inventory = JSON.parse(localStorage.getItem('myth_inv')) || [];
+    let patk=0, pdef=0, eatk=0, edef=0, stream = null, currentMData = null, pendingItem = null;
+    let inventory = JSON.parse(localStorage.getItem('myth_inv_v3')) || [];
     let buffAtk = 0, buffDef = 0;
-    let coll = JSON.parse(localStorage.getItem('myth_v_final_logic')) || { weapons: {}, monsters: {}, items: {} };
+    let coll = JSON.parse(localStorage.getItem('myth_coll_v3')) || { weapons: {}, monsters: {}, items: {} };
 
     const naming = {
         W1: ["鉄","鋼","輝","魔","龍","氷","炎","雷","聖","神"],
@@ -135,7 +139,7 @@
             const bId = {P:'p-cam-box', E:'e-cam-box', B:'b-cam-box'}[target];
             document.getElementById(vId).srcObject = stream;
             document.getElementById(bId).classList.add('cam-active');
-        } catch(e) {}
+        } catch(e) { console.error("Camera Error"); }
     }
 
     async function handleScan() {
@@ -158,8 +162,10 @@
             document.getElementById('msg').innerText = "モンスターをスキャンしてください";
         } else {
             const name = naming.M1[Math.floor((no-1)/10)] + naming.M2[(no-1)%10];
-            eMax = Math.floor((800 + (rareIdx * 600) + (lv * 150))); ehp = eMax;
-            eatk = Math.floor((rareIdx + 1) * 100 + (lv * 10)); edef = (rareIdx + 1) * 50;
+            eMax = Math.floor((800 + (rareIdx * 600) + (lv * 150))); 
+            ehp = eMax;
+            eatk = Math.floor((rareIdx + 1) * 100 + (lv * 10)); 
+            edef = (rareIdx + 1) * 50;
             updateCard('e', rarity, "👾", `No.${no} ${rarity} ${name}`, "#a11");
             currentMData = {no, n:`${rarity} ${name}`, i:"👾"};
             await stopCamera();
@@ -168,7 +174,7 @@
             document.getElementById('scan-btn').disabled = true;
             document.getElementById('msg').innerText = "BATTLE START!";
         }
-        updateUI();
+        updateUI(); // 数値を画面に反映
     }
 
     function updateCard(side, rare, sym, name, color) {
@@ -203,40 +209,72 @@
     function showBonus() { document.getElementById('bonus-screen').style.display = "flex"; switchCamera('B'); }
 
     async function getBonusItem() {
-        if(inventory.length >= 5) {
-            alert("インベントリがいっぱいです！");
-        } else {
-            const r = await net.classify(document.getElementById('bv'));
-            const seed = Math.floor((Date.now() * r[0].probability) % 100);
-            const no = seed + 1;
-            const baseName = naming.I[Math.floor((no-1)/10)];
-            let itm = { n: baseName, t: "TR", i: "📦", v: 0, no: no };
-            
-            if (no <= 25) {
-                const val = Math.floor(Math.random() * 71) + 30;
-                itm = {...itm, n:`${baseName}(回復${val}%)`, t:"HE", i:"🧪", v:val};
-            } else if (no <= 50) {
-                const val = Math.floor(Math.random() * 31) + 10;
-                itm = {...itm, n:`${baseName}(${val}% DMG)`, t:"DM", i:"💥", v:val};
-            } else if (no <= 60) {
-                const val = Math.floor(Math.random() * 41) + 20;
-                itm = {...itm, n:`${baseName}(+${val}% ATK)`, t:"AT", i:"💊", v:val};
-            } else if (no <= 70) {
-                const val = Math.floor(Math.random() * 41) + 20;
-                itm = {...itm, n:`${baseName}(+${val}% DEF)`, t:"DF", i:"🛡️", v:val};
-            }
-            inventory.push(itm);
-            coll.items[no] = itm;
+        const r = await net.classify(document.getElementById('bv'));
+        const seed = Math.floor((Date.now() * r[0].probability) % 100);
+        const no = seed + 1;
+        const baseName = naming.I[Math.floor((no-1)/10)];
+        let itm = { n: baseName, t: "TR", i: "📦", v: 0, no: no };
+        
+        if (no <= 25) {
+            const val = Math.floor(Math.random() * 71) + 30;
+            itm = {...itm, n:`${baseName}(回復${val}%)`, t:"HE", i:"🧪", v:val};
+        } else if (no <= 50) {
+            const val = Math.floor(Math.random() * 31) + 10;
+            itm = {...itm, n:`${baseName}(${val}% DMG)`, t:"DM", i:"💥", v:val};
+        } else if (no <= 60) {
+            const val = Math.floor(Math.random() * 41) + 20;
+            itm = {...itm, n:`${baseName}(+${val}% ATK)`, t:"AT", i:"💊", v:val};
+        } else if (no <= 70) {
+            const val = Math.floor(Math.random() * 41) + 20;
+            itm = {...itm, n:`${baseName}(+${val}% DEF)`, t:"DF", i:"🛡️", v:val};
         }
+        coll.items[no] = itm;
+        save();
+
+        if (inventory.length < 5) {
+            inventory.push(itm);
+            completeBonus();
+        } else {
+            pendingItem = itm;
+            showSwapMenu();
+        }
+    }
+
+    function showSwapMenu() {
+        const container = document.getElementById('item-container');
+        document.getElementById('item-menu-title').innerText = "ITEM SWAP";
+        container.innerHTML = `<p style="color:orange; font-size:0.75rem; margin-bottom:15px; line-height:1.4;">
+            荷物が一杯です！<br>新しく見つけた [${pendingItem.i}${pendingItem.n}] を拾うために、どれを捨てますか？
+        </p>`;
+        inventory.forEach((itm, index) => {
+            const btn = document.createElement('button');
+            btn.className = "item-list-btn";
+            btn.style.borderColor = "#ff3c00";
+            btn.innerHTML = `入れ替える: ${itm.i} ${itm.n}`;
+            btn.onclick = () => { inventory[index] = pendingItem; completeBonus(); };
+            container.appendChild(btn);
+        });
+        const skip = document.createElement('button');
+        skip.className = "item-list-btn";
+        skip.style.background = "#444";
+        skip.innerHTML = `❌ このアイテムを諦める`;
+        skip.onclick = completeBonus;
+        container.appendChild(skip);
+        document.getElementById('item-menu').style.display = "flex";
+    }
+
+    async function completeBonus() {
+        pendingItem = null;
         await stopCamera();
+        document.getElementById('item-menu').style.display = "none";
         document.getElementById('bonus-screen').style.display = "none";
         finish(true);
     }
 
     function openItemMenu() {
         const container = document.getElementById('item-container');
-        container.innerHTML = "";
-        if(inventory.length === 0) { container.innerHTML = "<p>アイテムがありません</p>"; }
+        document.getElementById('item-menu-title').innerText = "MY ITEMS";
+        container.innerHTML = inventory.length === 0 ? "<p style='text-align:center;'>アイテムがありません</p>" : "";
         inventory.forEach((itm, index) => {
             const btn = document.createElement('button');
             btn.className = "item-list-btn";
@@ -255,7 +293,7 @@
         else if(itm.t === "AT") { const u = Math.floor(patk * (itm.v/100)); buffAtk += u; res = `ATK+${u}`; }
         else if(itm.t === "DF") { const u = Math.floor(pdef * (itm.v/100)); buffDef += u; res = `DEF+${u}`; }
         
-        document.getElementById('msg').innerText = `${itm.n}使用：${res}`;
+        document.getElementById('msg').innerText = `${itm.n}使用！：${res}`;
         inventory.splice(index, 1);
         document.getElementById('item-menu').style.display = "none";
         updateUI();
@@ -271,24 +309,23 @@
             let lvLog = "経験値獲得！";
             if(exp >= nextExp) {
                 lv++; exp = 0; nextExp += 50;
-                pMax = Math.floor(1000 * (1 + (lv-1)*0.1)); php = pMax;
-                lvLog = `LEVEL UP! [LV:${lv}]\n補正: +${(lv-1)*3}%\n最大HP: ${pMax}`;
+                const b = (lv-1)*3; pMax = Math.floor(1000 * (1 + (lv-1)*0.1)); php = pMax;
+                lvLog = `LEVEL UP! [LV:${lv}]\n全ステ補正: +${b}%\n最大HP: ${pMax}`;
             }
             document.getElementById('res-msg').innerText = `モンスター記録完了。\n${lvLog}`;
         } else {
             document.getElementById('res-title').innerText = "DEFEAT";
-            lv = Math.max(1, lv - 5);
-            inventory = []; // アイテム全ロスト
+            lv = Math.max(1, lv - 5); inventory = [];
             pMax = Math.floor(1000 * (1 + (lv-1)*0.1)); php = pMax;
             document.getElementById('res-msg').innerText = `敗北... アイテムをすべて失った。\nLV:${lv}に低下。`;
         }
-        localStorage.setItem('myth_inv', JSON.stringify(inventory));
+        localStorage.setItem('myth_inv_v3', JSON.stringify(inventory));
         save(); updateUI();
     }
 
     function closeResult() {
         document.getElementById('res-screen').style.display = "none";
-        mode = "W"; buffAtk = 0; buffDef = 0; currentMData = null;
+        mode = "W"; buffAtk = 0; buffDef = 0; currentMData = null; eatk = 0; edef = 0; ehp = 0; eMax = 1000;
         document.getElementById('atk-btn').disabled = true;
         document.getElementById('item-open-btn').disabled = true;
         document.getElementById('scan-btn').disabled = false;
@@ -299,11 +336,13 @@
 
     function updateUI() {
         document.getElementById('p-fill').style.width = (php / pMax * 100) + "%";
-        document.getElementById('e-fill').style.width = (ehp / eMax * 100) + "%";
+        document.getElementById('e-fill').style.width = (eMax > 0 ? (ehp / eMax * 100) : 0) + "%";
         document.getElementById('p-hp-cur').innerText = Math.max(0, Math.floor(php));
         document.getElementById('p-hp-max').innerText = pMax;
         document.getElementById('e-hp-cur').innerText = Math.max(0, Math.floor(ehp));
         document.getElementById('e-hp-max').innerText = eMax;
+        document.getElementById('e-atk-val').innerText = eatk;
+        document.getElementById('e-def-val').innerText = edef;
         document.getElementById('p-lv').innerText = lv;
         document.getElementById('p-atk-val').innerText = patk + buffAtk;
         document.getElementById('p-def-val').innerText = pdef + buffDef;
@@ -311,8 +350,22 @@
         document.getElementById('inv-count').innerText = `INVENTORY: ${inventory.length} / 5`;
     }
 
-    function save() { localStorage.setItem('myth_v_final_logic', JSON.stringify(coll)); }
-    function showColl() { /* 以前のロジックと同じ */ }
+    function save() { localStorage.setItem('myth_coll_v3', JSON.stringify(coll)); }
+
+    function showColl() {
+        const render = (id, data, title) => {
+            const el = document.getElementById(id);
+            el.innerHTML = `<b>${title} (${Object.keys(data).length}/100)</b><br>`;
+            Object.keys(data).sort((a,b)=>a-b).forEach(k => {
+                el.innerHTML += `No.${k.toString().padStart(3,'0')} ${data[k].i}${data[k].n}<br>`;
+            });
+        };
+        render('w-coll', coll.weapons, "WEAPONS");
+        render('m-coll', coll.monsters, "MONSTERS");
+        render('i-coll', coll.items, "ITEMS");
+        document.getElementById('coll-screen').style.display = "flex";
+    }
+
     init();
 </script>
 </body>
