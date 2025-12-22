@@ -3,34 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER NUMBERS</title>
+    <title>MYTH SCANNER COMPLETE</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
     <style>
         :root { --p-color: #00f2ff; --e-color: #ff3c00; }
         body { font-family: 'DotGothic16', sans-serif; background: #000; color: #fff; margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        
+        /* ヘッダー */
         #header { height: 40px; background: #222; display: flex; justify-content: space-around; align-items: center; font-size: 0.75rem; border-bottom: 2px solid #444; }
+        
+        /* キャラクターエリア（カメラとカード） */
         .char-area { height: 32%; display: flex; border-bottom: 1px solid #333; padding: 5px; box-sizing: border-box; }
         .cam-part { width: 40%; display: flex; align-items: center; justify-content: center; }
-        .cam-frame { width: 100px; height: 100px; border: 2px solid #555; background: #111; overflow: hidden; position: relative; }
+        .cam-frame { width: 100px; height: 100px; border: 2px solid #555; background: #111; overflow: hidden; position: relative; border-radius: 4px; }
         video { width: 100%; height: 100%; object-fit: cover; display: none; }
         .cam-active video { display: block; border-color: #0f0; }
 
         .info-part { width: 60%; display: flex; flex-direction: column; padding-left: 10px; justify-content: center; }
-        .visual-card { width: 100%; height: 75px; border: 2px solid #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #111; position: relative; }
-        .rarity-tag { position: absolute; top: 0; right: 0; font-size: 0.5rem; background: #fff; color: #000; padding: 1px 4px; }
+        .visual-card { 
+            width: 100%; height: 80px; border: 2px solid #fff; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; 
+            background: #111; position: relative; overflow: hidden;
+            box-shadow: inset 0 0 10px rgba(255,255,255,0.1);
+        }
+        .rarity-tag { position: absolute; top: 0; right: 0; font-size: 0.5rem; background: #fff; color: #000; padding: 1px 4px; z-index: 3; }
         .stat-text { font-size: 0.7rem; color: #ccc; margin-top: 3px; line-height: 1.2; }
-        .hp-bar-bg { width: 100%; height: 8px; background: #333; border: 1px solid #fff; margin-top: 3px; }
+        .hp-bar-bg { width: 100%; height: 8px; background: #333; border: 1px solid #fff; margin-top: 3px; position: relative; }
         .hp-bar-fill { height: 100%; transition: width 0.3s; }
 
+        /* 中央コマンドエリア */
         #mid-ui { height: 140px; background: #111; border-top: 2px solid #444; display: flex; flex-direction: column; align-items: center; padding: 5px; }
-        #msg { font-size: 0.75rem; color: #0f0; height: 30px; text-align: center; }
-        .btn-row { display: flex; gap: 4px; width: 100%; flex-wrap: wrap; }
-        button { flex: 1; min-width: 80px; height: 35px; font-family: 'DotGothic16'; border: 2px solid #fff; color: #fff; background: #444; font-size: 0.75rem; }
+        #msg { font-size: 0.75rem; color: #0f0; height: 30px; text-align: center; display: flex; align-items: center; }
+        .btn-row { display: flex; gap: 6px; width: 100%; flex-wrap: wrap; justify-content: center; }
+        button { flex: 1; max-width: 100px; height: 38px; font-family: 'DotGothic16'; border: 2px solid #fff; color: #fff; background: #444; font-size: 0.75rem; cursor: pointer; }
+        button:disabled { opacity: 0.3; cursor: not-allowed; }
         
+        /* オーバーレイ */
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 100; display: none; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; }
-        .coll-box { width: 100%; flex: 1; overflow-y: auto; background: #111; border: 1px solid #444; padding: 8px; font-size: 0.65rem; margin-bottom: 5px; line-height: 1.5; }
+        .coll-box { width: 100%; flex: 1; overflow-y: auto; background: #111; border: 1px solid #444; padding: 8px; font-size: 0.65rem; margin-bottom: 5px; line-height: 1.6; }
         .shake { animation: s 0.2s; }
         @keyframes s { 0%,100%{transform:translateX(0)} 25%{transform:translateX(5px)} 75%{transform:translateX(-5px)} }
     </style>
@@ -38,14 +50,18 @@
 <body>
 
 <div id="header">
-    <span>LV: <b id="p-lv">1</b> (ATK/DEF +<b id="stat-boost">0</b>%)</span>
-    <button onclick="showColl()">LIBRARY</button>
+    <span>LV: <b id="p-lv">1</b> (+<b id="stat-boost">0</b>%)</span>
+    <button onclick="showColl()" style="width:70px; height:25px; border-width:1px;">LIBRARY</button>
 </div>
 
 <div class="char-area" id="p-area">
     <div class="cam-part" id="p-cam-box"><div class="cam-frame"><video id="pv" autoplay playsinline muted></video></div></div>
     <div class="info-part">
-        <div id="p-card" class="visual-card"><div id="p-rare" class="rarity-tag">-</div><div id="p-sym" style="font-size:2rem">❓</div><div id="p-name" style="font-size:0.6rem">SCAN READY</div></div>
+        <div id="p-card" class="visual-card">
+            <div id="p-rare" class="rarity-tag">-</div>
+            <div id="p-sym" style="font-size:2rem; z-index:2;">❓</div>
+            <div id="p-name" style="font-size:0.65rem; z-index:2; text-align:center;">READY</div>
+        </div>
         <div class="stat-text">HP: <span id="p-hp-cur">1000</span>/<span id="p-hp-max">1000</span><br>ATK: <span id="p-atk-val">0</span> DEF: <span id="p-def-val">0</span></div>
         <div class="hp-bar-bg"><div id="p-fill" class="hp-bar-fill" style="background:var(--p-color); width:100%"></div></div>
     </div>
@@ -58,47 +74,52 @@
         <button id="atk-btn" onclick="handleAttack()" disabled style="background:#aa0000">ATTACK</button>
         <button id="item-btn" onclick="useItem()" disabled style="background:#008844">ITEM</button>
     </div>
-    <div id="inventory-label" style="font-size:0.6rem; color:yellow; margin-top:5px;">ITEM: なし</div>
+    <div id="inventory-label" style="font-size:0.65rem; color:yellow; margin-top:8px; letter-spacing: 1px;">ITEM: なし</div>
 </div>
 
 <div class="char-area" id="e-area">
     <div class="cam-part" id="e-cam-box"><div class="cam-frame"><video id="ev" autoplay playsinline muted></video></div></div>
     <div class="info-part">
-        <div id="e-card" class="visual-card"><div id="e-rare" class="rarity-tag">-</div><div id="e-sym" style="font-size:2rem">❓</div><div id="e-name" style="font-size:0.6rem">???</div></div>
+        <div id="e-card" class="visual-card">
+            <div id="e-rare" class="rarity-tag">-</div>
+            <div id="e-sym" style="font-size:2rem; z-index:2;">❓</div>
+            <div id="e-name" style="font-size:0.65rem; z-index:2; text-align:center;">???</div>
+        </div>
         <div class="stat-text">HP: <span id="e-hp-cur">1000</span>/<span id="e-hp-max">1000</span><br>ATK: <span id="e-atk-val">0</span> DEF: <span id="e-def-val">0</span></div>
         <div class="hp-bar-bg"><div id="e-fill" class="hp-bar-fill" style="background:var(--e-color); width:100%"></div></div>
     </div>
 </div>
 
 <div id="bonus-screen" class="overlay">
-    <h2 style="color:gold">VICTORY! BONUS SCAN</h2>
-    <div class="cam-frame" style="width:150px; height:150px;" id="b-cam-box"><video id="bv" autoplay playsinline muted></video></div>
-    <p style="text-align:center">ボーナス！何かをスキャンして<br>アイテム生成！</p>
-    <button id="bonus-btn" onclick="getBonusItem()" style="background:#0044cc; width:150px;">GET ITEM</button>
+    <h2 style="color:gold; margin:10px 0;">VICTORY! BONUS SCAN</h2>
+    <div class="cam-frame" style="width:160px; height:160px;" id="b-cam-box"><video id="bv" autoplay playsinline muted></video></div>
+    <p style="text-align:center; font-size:0.8rem; margin:15px 0;">勝利ボーナス！何かをスキャンして<br>アイテムを入手せよ</p>
+    <button id="bonus-btn" onclick="getBonusItem()" style="background:#0044cc; width:180px; height:45px;">GET ITEM</button>
 </div>
 
 <div id="res-screen" class="overlay" style="justify-content:center;">
-    <h1 id="res-title"></h1><p id="res-msg"></p>
-    <button onclick="closeResult()" style="width:200px; height:50px; background:#0044cc">NEXT</button>
+    <h1 id="res-title" style="margin:0;"></h1>
+    <p id="res-msg" style="text-align:center; margin:20px 0;"></p>
+    <button onclick="closeResult()" style="width:200px; height:50px; background:#0044cc">CONTINUE</button>
 </div>
 
 <div id="coll-screen" class="overlay">
-    <h2 id="lib-total" style="color:yellow; font-size:1rem; margin:5px 0;">LIBRARY</h2>
+    <h2 id="lib-total" style="color:yellow; font-size:1rem; margin:5px 0;">COLLECTION LIBRARY</h2>
     <div id="w-coll" class="coll-box"></div>
     <div id="m-coll" class="coll-box"></div>
     <div id="i-coll" class="coll-box"></div>
-    <button onclick="document.getElementById('coll-screen').style.display='none'" style="margin-top:5px; height:30px; width:100px;">CLOSE</button>
+    <button onclick="document.getElementById('coll-screen').style.display='none'" style="margin-top:5px; height:35px; width:120px;">CLOSE</button>
 </div>
 
 <script>
     let net, mode = "W", lv = 1, exp = 0, nextExp = 100, php = 1000, pMax = 1000, ehp = 1000, eMax = 1000;
     let patk=0, pdef=0, eatk=0, edef=0, stream = null, inventory = null;
     let buffAtk = 0, buffDef = 0;
-    let coll = JSON.parse(localStorage.getItem('myth_v_num')) || { weapons: {}, monsters: {}, items: {} };
+    let coll = JSON.parse(localStorage.getItem('myth_v_final_set')) || { weapons: {}, monsters: {}, items: {} };
 
     const db = {
-        W: [{n:"剣",i:"🗡️",c:"#555"},{n:"斧",i:"🪓",c:"#743"},{n:"槍",i:"🔱",c:"#357"},{n:"杖",i:"🪄",c:"#737"}],
-        M: [{n:"獣",i:"🐾",c:"#840"},{n:"竜",i:"🐉",c:"#f00"},{n:"霊",i:"💀",c:"#eee"},{n:"土",i:"🧱",c:"#654"}]
+        W: [{n:"ブレード",i:"🗡️",c:"#444"},{n:"アックス",i:"🪓",c:"#532"},{n:"スピア",i:"🔱",c:"#235"},{n:"ワンド",i:"🪄",c:"#525"}],
+        M: [{n:"スライム",i:"💧",c:"#04a"},{n:"ビースト",i:"🐾",c:"#642"},{n:"ドラゴン",i:"🐉",c:"#a11"},{n:"ファントム",i:"👻",c:"#777"},{n:"ゴーレム",i:"🧱",c:"#443"}]
     };
 
     async function init() {
@@ -106,16 +127,23 @@
         switchCamera('P');
     }
 
+    async function stopCamera() {
+        if(stream) {
+            stream.getTracks().forEach(t => t.stop());
+            stream = null;
+        }
+        ['p-cam-box','e-cam-box','b-cam-box'].forEach(b=>document.getElementById(b).classList.remove('cam-active'));
+    }
+
     async function switchCamera(target) {
-        if(stream) stream.getTracks().forEach(t => t.stop());
+        await stopCamera();
         const ids = {P:'pv', E:'ev', B:'bv'};
         const boxes = {P:'p-cam-box', E:'e-cam-box', B:'b-cam-box'};
-        ['p-cam-box','e-cam-box','b-cam-box'].forEach(b=>document.getElementById(b).classList.remove('cam-active'));
         try {
             stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
             document.getElementById(ids[target]).srcObject = stream;
             document.getElementById(boxes[target]).classList.add('cam-active');
-        } catch(e) { console.log("Camera Switch Error"); }
+        } catch(e) { console.error("Camera Error"); }
     }
 
     async function handleScan() {
@@ -123,38 +151,41 @@
         const r = await net.classify(vid);
         const seed = Math.floor((r[0].className.length * Date.now() * r[0].probability) % 1000);
         const rareIdx = seed % 100 < 70 ? 0 : seed % 100 < 90 ? 1 : seed % 100 < 98 ? 2 : 3;
-        const base = db[mode][seed % db[mode].length];
-        const rare = ["COMMON","RARE","SUPER","MYTHIC"][rareIdx];
+        const rarity = ["COMMON","RARE","SUPER","MYTHIC"][rareIdx];
         const boost = 1 + (lv - 1) * 0.03;
         const no = (seed % 100) + 1;
 
         if (mode === "W") {
+            const base = db.W[seed % db.W.length];
             patk = Math.floor(((rareIdx + 1) * 120 + (seed % 50)) * boost);
             pdef = Math.floor(((rareIdx + 1) * 60 + (seed % 30)) * boost);
-            php = Math.min(pMax, php + Math.floor(pMax * 0.8));
-            updateCard('p', rare, base.i, `No.${no} ${rare} ${base.n}`, base.c);
-            coll.weapons[no] = {n:`${rare} ${base.n}`, i:base.i};
+            php = Math.min(pMax, php + Math.floor(pMax * 0.5));
+            updateCard('p', rarity, base.i, `No.${no} ${rarity} ${base.n}`, base.c);
+            coll.weapons[no] = {n:`${rarity} ${base.n}`, i:base.i};
             mode = "M"; switchCamera('E');
-            document.getElementById('msg').innerText = "敵をスキャンしてください";
+            document.getElementById('msg').innerText = "敵（モンスター）をスキャンしてください";
         } else {
+            const base = db.M[seed % db.M.length];
             eMax = Math.floor((800 + (rareIdx * 600) + (lv * 150))); ehp = eMax;
             eatk = Math.floor((rareIdx + 1) * 100 + (lv * 10)); edef = (rareIdx + 1) * 50;
-            updateCard('e', rare, base.i, `No.${no} ${rare} ${base.n}`, base.c);
-            coll.monsters[no] = {n:`${rare} ${base.n}`, i:base.i};
+            updateCard('e', rarity, base.i, `No.${no} ${rarity} ${base.n}`, base.c);
+            coll.monsters[no] = {n:`${rarity} ${base.n}`, i:base.i};
+            await stopCamera();
             document.getElementById('atk-btn').disabled = false;
             document.getElementById('item-btn').disabled = !inventory;
             document.getElementById('scan-btn').disabled = true;
-            document.getElementById('msg').innerText = "戦闘開始！";
+            document.getElementById('msg').innerText = "BATTLE START!";
         }
         save(); updateUI();
     }
 
-    function updateCard(s, r, sym, n, c) {
-        const card = document.getElementById(`${s}-card`);
-        card.style.background = `radial-gradient(circle, ${c}cc, #000)`;
-        document.getElementById(`${s}-rare`).innerText = r;
-        document.getElementById(`${s}-sym`).innerText = sym;
-        document.getElementById(`${s}-name`).innerText = n;
+    function updateCard(side, rare, sym, name, color) {
+        const card = document.getElementById(`${side}-card`);
+        card.style.background = `radial-gradient(circle at center, ${color}ee, #000)`;
+        card.style.borderColor = rare === "MYTHIC" ? "gold" : rare === "SUPER" ? "silver" : "#fff";
+        document.getElementById(`${side}-rare`).innerText = rare;
+        document.getElementById(`${side}-sym`).innerText = sym;
+        document.getElementById(`${side}-name`).innerText = name;
     }
 
     function handleAttack() {
@@ -187,18 +218,19 @@
     async function getBonusItem() {
         const r = await net.classify(document.getElementById('bv'));
         const seed = Math.floor((Date.now() * r[0].probability) % 100);
-        let item = { n: "ガラクタ", t: "TR", i: "📦", v: 0 };
         const no = seed + 1;
-
-        if (seed < 25) item = { n: "ポーション", t: "HE", i: "🧪", v: 300 };
-        else if (seed < 50) item = { n: "爆弾", t: "DM", i: "💣", v: 400 };
-        else if (seed < 60) item = { n: "力の薬", t: "AT", i: "💊", v: 100 };
-        else if (seed < 70) item = { n: "守りの薬", t: "DF", i: "🛡️", v: 100 };
-        else if (seed >= 98) item = { n: "伝説の秘宝", t: "TR", i: "👑", v: 0 };
+        let item = { n: "古いコイン", t: "TR", i: "🪙", v: 0 };
+        
+        if (seed < 25) item = { n: "癒しの薬", t: "HE", i: "🧪", v: 400 };
+        else if (seed < 50) item = { n: "炎の魔石", t: "DM", i: "💥", v: 500 };
+        else if (seed < 60) item = { n: "剛力の丸薬", t: "AT", i: "💊", v: 120 };
+        else if (seed < 70) item = { n: "鉄壁の丸薬", t: "DF", i: "🛡️", v: 100 };
+        else if (seed >= 98) item = { n: "神の遺物", t: "TR", i: "💎", v: 0 };
 
         inventory = item;
         coll.items[no] = item;
         save();
+        await stopCamera();
         document.getElementById('bonus-screen').style.display = "none";
         finish(true);
     }
@@ -209,7 +241,7 @@
         if(inventory.t === "DM") ehp -= inventory.v;
         if(inventory.t === "AT") buffAtk += inventory.v;
         if(inventory.t === "DF") buffDef += inventory.v;
-        document.getElementById('msg').innerText = `${inventory.n}使用！`;
+        document.getElementById('msg').innerText = `${inventory.n}を使用！`;
         inventory = null;
         document.getElementById('item-btn').disabled = true;
         updateUI();
@@ -219,21 +251,25 @@
     function finish(win) {
         document.getElementById('res-screen').style.display = "flex";
         if(win) {
-            document.getElementById('res-title').innerText = "WIN";
-            exp += 50; if(exp >= nextExp) { lv++; exp=0; nextExp+=50; pMax=Math.floor(pMax*1.1); php=pMax; }
-            document.getElementById('res-msg').innerText = "経験値獲得。アイテムを入手した！";
+            document.getElementById('res-title').innerText = "VICTORY";
+            exp += 50; if(exp >= nextExp) { 
+                lv++; exp=0; nextExp+=50; 
+                pMax = Math.floor(pMax * 1.1); php = pMax;
+            }
+            document.getElementById('res-msg').innerText = "経験値とアイテムを獲得しました！";
         } else {
-            document.getElementById('res-title').innerText = "LOSE";
-            lv = Math.max(1, lv - 5); pMax = Math.floor(1000 * Math.pow(1.1, lv-1)); php = pMax;
+            document.getElementById('res-title').innerText = "DEFEAT";
+            lv = Math.max(1, lv - 5);
+            pMax = Math.floor(1000 * Math.pow(1.1, lv-1)); php = pMax;
             inventory = null;
-            document.getElementById('res-msg').innerText = "敗北。レベルと最大HPが低下。";
+            document.getElementById('res-msg').innerText = "レベルが低下し、装備が失われました。";
         }
         updateUI();
     }
 
     function closeResult() {
         document.getElementById('res-screen').style.display = "none";
-        mode = "W"; buffAtk=0; buffDef=0;
+        mode = "W"; buffAtk = 0; buffDef = 0;
         document.getElementById('atk-btn').disabled = true;
         document.getElementById('item-btn').disabled = true;
         document.getElementById('scan-btn').disabled = false;
@@ -244,9 +280,9 @@
     function updateUI() {
         document.getElementById('p-fill').style.width = (php / pMax * 100) + "%";
         document.getElementById('e-fill').style.width = (ehp / eMax * 100) + "%";
-        document.getElementById('p-hp-cur').innerText = Math.max(0, php);
+        document.getElementById('p-hp-cur').innerText = Math.max(0, Math.floor(php));
         document.getElementById('p-hp-max').innerText = pMax;
-        document.getElementById('e-hp-cur').innerText = Math.max(0, ehp);
+        document.getElementById('e-hp-cur').innerText = Math.max(0, Math.floor(ehp));
         document.getElementById('e-hp-max').innerText = eMax;
         document.getElementById('p-lv').innerText = lv;
         document.getElementById('p-atk-val').innerText = patk + buffAtk;
@@ -255,22 +291,21 @@
         document.getElementById('inventory-label').innerText = `ITEM: ${inventory ? inventory.i + inventory.n : "なし"}`;
     }
 
-    function save() { localStorage.setItem('myth_v_num', JSON.stringify(coll)); }
+    function save() { localStorage.setItem('myth_v_final_set', JSON.stringify(coll)); }
 
     function showColl() {
         const render = (id, data, title) => {
             const el = document.getElementById(id);
             const count = Object.keys(data).length;
-            el.innerHTML = `<b>${title}: ${count}/100</b><br>`;
-            // 番号順にソートして表示
+            el.innerHTML = `<b style="color:white; border-bottom:1px solid #555; display:block; margin-bottom:5px;">${title} (${count}/100)</b>`;
             Object.keys(data).sort((a,b)=>a-b).forEach(key => {
                 const v = data[key];
-                el.innerHTML += `<span style="display:inline-block; width:100%;">No.${key} ${v.i}${v.n}</span>`;
+                el.innerHTML += `<div style="padding-left:5px;">No.${key.toString().padStart(3,'0')} ${v.i} ${v.n}</div>`;
             });
         };
-        render('w-coll', coll.weapons, "WEAPONS");
-        render('m-coll', coll.monsters, "MONSTERS");
-        render('i-coll', coll.items, "ITEMS");
+        render('w-coll', coll.weapons, "⚔️ WEAPONS");
+        render('m-coll', coll.monsters, "👾 MONSTERS");
+        render('i-coll', coll.items, "🎁 ITEMS");
         document.getElementById('coll-screen').style.display = "flex";
     }
 
