@@ -3,24 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER 2.6</title>
+    <title>MYTH SCANNER 3.0</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
     <style>
         :root { --p-color: #00f2ff; --e-color: #ff3c00; --gold: #ffd700; }
         body { font-family: 'DotGothic16', sans-serif; background: #000; color: #fff; margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-        
-        #header { height: 40px; background: #222; display: flex; justify-content: space-between; align-items: center; padding: 0 15px; font-size: 0.8rem; border-bottom: 2px solid #444; }
-        /* コレクションボタンを小さく調整 */
-        .lib-btn { font-size: 0.55rem; padding: 1px 6px; height: 20px; background: #555; border: 1px solid #fff; color: #fff; cursor: pointer; }
-
+        #header { height: 40px; background: #222; display: flex; justify-content: center; align-items: center; border-bottom: 2px solid #444; }
+        .lib-btn { width: 50%; font-size: 0.6rem; height: 24px; background: #555; border: 1px solid #fff; color: #fff; cursor: pointer; }
         .char-area { height: 32%; display: flex; border-bottom: 1px solid #333; padding: 10px; box-sizing: border-box; }
         .cam-part { width: 35%; display: flex; align-items: center; justify-content: center; }
         .cam-frame { width: 90px; height: 90px; border: 2px solid #555; background: #111; overflow: hidden; position: relative; border-radius: 8px; }
         video { width: 100%; height: 100%; object-fit: cover; display: none; }
         .cam-active video { display: block; border-color: #0f0; }
-        
         .info-part { width: 65%; display: flex; flex-direction: column; padding-left: 10px; justify-content: center; }
         .visual-card { width: 100%; height: 80px; border: 2px solid #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #111; position: relative; border-radius: 4px; overflow: hidden; }
         .stat-text { font-size: 0.7rem; color: #ccc; margin-top: 4px; }
@@ -28,29 +24,23 @@
         .hp-bar-fill { height: 100%; transition: width 0.3s; }
         .rarity-tag { position: absolute; top: 2px; right: 2px; font-size: 0.5rem; padding: 1px 3px; background: #fff; color: #000; }
         .elem-tag { position: absolute; top: 2px; left: 2px; font-size: 0.7rem; }
-
         #mid-ui { height: 140px; background: #111; border-top: 2px solid #444; display: flex; flex-direction: column; align-items: center; padding: 5px; }
         #msg { font-size: 0.8rem; color: #0f0; height: 35px; text-align: center; display: flex; align-items: center; padding: 0 5px; }
-        .btn-row { display: flex; gap: 5px; width: 95%; justify-content: center; }
+        .btn-row { display: flex; gap: 5px; width: 95%; justify-content: center; margin-bottom: 5px; }
         button { flex: 1; height: 40px; font-family: 'DotGothic16'; border: 2px solid #fff; color: #fff; background: #444; font-size: 0.75rem; cursor: pointer; }
-
+        #bag-status { font-size: 0.65rem; color: #aaa; width: 100%; text-align: center; }
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 100; display: none; flex-direction: column; align-items: center; padding: 15px; box-sizing: border-box; }
         .lib-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; width: 100%; max-height: 60vh; overflow-y: auto; padding: 5px; background: #111; border: 1px solid #444; }
         .lib-slot { aspect-ratio: 1/1; background: #222; border: 1px solid #444; font-size: 0.5rem; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #444; text-align: center; position: relative; }
         .lib-slot.found { color: #fff; border-color: #aaa; }
         .detail-pop { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #222; border: 3px solid var(--gold); padding: 20px; z-index: 200; width: 80%; text-align: center; display: none; border-radius: 10px; }
-
         .shake { animation: s 0.2s; }
         @keyframes s { 0%,100%{transform:translateX(0)} 25%{transform:translateX(5px)} 75%{transform:translateX(-5px)} }
     </style>
 </head>
 <body>
 
-<div id="header">
-    <span id="bag-status">BAG: 0/5</span>
-    <button onclick="openLibrary()" class="lib-btn">COLLECTION</button>
-</div>
-
+<div id="header"><button onclick="openLibrary()" class="lib-btn">COLLECTION</button></div>
 <div class="char-area" id="p-area">
     <div class="cam-part" id="p-cam-box"><div class="cam-frame"><video id="pv" autoplay playsinline muted></video></div></div>
     <div class="info-part">
@@ -64,7 +54,6 @@
         <div class="hp-bar-bg"><div id="p-fill" class="hp-bar-fill" style="background:var(--p-color); width:100%"></div></div>
     </div>
 </div>
-
 <div id="mid-ui">
     <div id="msg">武器をスキャンしてください</div>
     <div class="btn-row">
@@ -72,8 +61,8 @@
         <button id="atk-btn" onclick="handleAttack()" disabled style="background:#aa0000">ATTACK</button>
         <button id="item-open-btn" onclick="openItemMenu()" disabled style="background:#008844">ITEM</button>
     </div>
+    <div id="bag-status">BAG: 0/5</div>
 </div>
-
 <div class="char-area" id="e-area">
     <div class="cam-part" id="e-cam-box"><div class="cam-frame"><video id="ev" autoplay playsinline muted></video></div></div>
     <div class="info-part">
@@ -98,66 +87,65 @@
     <div id="lib-grid" class="lib-grid"></div>
     <button onclick="closeOverlay('lib-overlay')" style="margin-top:10px; width:100px;">CLOSE</button>
 </div>
-
 <div id="item-overlay" class="overlay">
     <h2>BAG</h2>
     <div id="item-list" style="width:100%;"></div>
     <button onclick="closeOverlay('item-overlay')" style="margin-top:10px; width:100px;">CLOSE</button>
 </div>
-
 <div id="bonus-overlay" class="overlay">
     <h2 style="color:var(--gold);">ITEM SCAN</h2>
     <div class="cam-frame" style="width:150px; height:150px;" id="b-cam-box"><video id="bv" autoplay playsinline muted></video></div>
     <button onclick="getBonusItem()" style="background:#0044cc; width:100%; margin-top:20px;">SCAN ITEM</button>
 </div>
-
-<div id="res-screen" class="overlay" style="justify-content:center;">
-    <h1 id="res-title"></h1>
-    <p id="res-desc" style="text-align:center;"></p>
-    <button onclick="closeResult()" style="width:200px; height:50px; background:#0044cc;">NEXT BATTLE</button>
-</div>
-
-<div id="detail-pop" class="detail-pop">
-    <h3 id="det-name"></h3>
-    <p id="det-desc"></p>
-    <button onclick="closeDetail()" style="width:100px;">CLOSE</button>
-</div>
+<div id="res-screen" class="overlay" style="justify-content:center;"><h1 id="res-title"></h1><p id="res-desc" style="text-align:center;"></p><button onclick="closeResult()" style="width:200px; height:50px; background:#0044cc;">NEXT BATTLE</button></div>
+<div id="detail-pop" class="detail-pop"><h3 id="det-name"></h3><p id="det-desc"></p><button onclick="closeDetail()" style="width:100px;">CLOSE</button></div>
 
 <script>
-    const WEAPON_TYPES = ["鉄の剣", "騎士の槍", "竜の牙", "賢者の杖", "魔導書", "破城槌", "隠し刀", "聖なる盾", "死神の鎌", "神剣"];
-    const MONSTER_RACES = ["スライム", "ゴブリン", "オーク", "スケルトン", "吸血鬼", "死神", "ケルベロス", "ドラゴン", "魔王", "バハムート"];
-    const ITEM_NAMES = ["薬草", "ポーション", "エリクサー", "力の種", "爆弾", "時の砂時計", "属性オーブ", "賢者の石"];
+    // --- 膨大なデータベース群 ---
+    const DB_WEAPON = {
+        0: ["錆びたナイフ", "なまくら刀", "折れた木槍", "尖った鉄杭", "枯れ木の杖", "破れた魔導書", "石の斧", "鉄の重り"],
+        1: ["鋼鉄剣", "兵士のレイピア", "騎士の長槍", "儀式用の三叉槍", "琥珀の杖", "学者の魔導書", "戦斧", "鍛冶屋のハンマー"],
+        2: ["屠龍の大剣", "氷結のシミター", "蛇骨のハルバード", "迅雷の矛", "賢者の錫杖", "禁忌のグリモワール", "大岩砕き", "巨人のメイス"],
+        3: ["魔剣グラム", "聖剣エクスカリバー", "竜槍ゲイボルグ", "聖槍ロンギヌス", "精霊王の杖", "叡智の写本", "雷神の槌", "断罪の首断ち斧"],
+        "MAX": ["究極神剣ゼノス", "時空貫通神槍", "真理の魔導核", "天地崩壊の終槌"]
+    };
+
+    const DB_MONSTER = {
+        0: ["ゴブリン", "スケルトン", "野良犬", "巨大クモ", "スライム", "ウィスプ", "ワイバーン", "下級竜"],
+        1: ["オーク戦士", "デスナイト", "ケルベロス", "キマイラ", "リビングアーマー", "ミミック", "レッドドラゴン", "守護石像"],
+        2: ["吸血鬼貴族", "デーモンロード", "ベヒーモス", "双頭の巨獣", "悪霊の群れ", "ラプラスの魔", "古龍", "災厄の化身"],
+        3: ["堕天使", "七つの大罪", "フェンリル", "古代のマンモス", "死神", "異次元の凝視者", "神竜", "創世の巨神"],
+        "MAX": ["奈落の支配者", "終焉を喰らう者", "虚無の特異点", "黙示録の黒竜"]
+    };
+
+    const DB_ITEM = {
+        HE: ["泥水","雑草","かじり跡のある実","湿った苔","苦い樹液","露玉","葉っぱ","湧き水","飴玉","軟膏","野菜クズ","謎の調味料","薬湯","薬草","ポーション","蒸留水","お守り","粉薬","紅茶","栄養剤","ビスケット","秘薬","魔力液","香油","黄金の蜜","エリクサー","賢者の雫","霊草","癒しの香炉","天使の涙","生命の種","鳳凰の羽"],
+        AT: ["砥石","鋭い爪","獣の牙","粗末な火薬","重い石","錆びた釘","刺のある枝","鉄のインゴット","戦士の紋章","狼の血","磨かれた鏡","勇気の証","硝石","狩人の矢尻","巨人の指輪","ドラゴンの鱗","激昂の角","隕石の破片","雷の魔石","獅子のたてがみ","英雄の魂","魔王の右腕","神殺しの毒","終末の予言","覇者の王冠"],
+        PO: ["腐った液体","毒キノコ","汚れた針","刺激臭のする粉","痺れ草","蜂の針","毒蛇の抜け殻","凝縮された毒液","腐食剤","怨念の霧","蜘蛛の糸","劇物入りの瓶","瘴気の塊","闇の雫","禁忌の劇薬","死神の吐息","暗黒の奔流","冥界の呼び声","滅びの刻印","呪いの呪符","煉獄の炎"],
+        WE: ["錆びたヤスリ","泥団子","虫食いの革","曇った水晶","弱体化の呪文","重力の砂","粘着液","溶解液","破甲の槌","脆化の粉","亀裂の魔石","束縛の鎖","精神を蝕む音","脱力の霧","防壁崩しの槍","虚無の眼差し","腐敗の王水","次元を裂く爪","黄金の浸食","魂の檻","崩壊の旋律"],
+        ORB: ["火炎玉","焔の心臓","溶岩の滴","水晶玉","氷河の涙","深海の真珠","雷電の球","稲妻の尾羽","帯電した角","大地の種","樹木の記憶","森林のオーブ"]
+    };
+
     const ELEMENTS = { "🔥": "🌿", "🌿": "⚡", "⚡": "💧", "💧": "🔥" };
-    const ITEM_EFFECTS = { "HE": "【回復】使用すると最大HPの50%を回復する。", "SPEC": "【守護】使用すると次の敵の攻撃を完全に無効化する。" };
-
+    
     let net, mode="W", lv=1, exp=0, php=1000, pMax=1000, ehp=0, eMax=0;
-    let patk=0, pdef=50, eatk=0, edef=0, pelem="", eelem="", stream=null, shieldActive=false;
-    let inventory = [], library = JSON.parse(localStorage.getItem('myth_grand_final_v2')) || { W: {}, M: {}, I: {} };
+    let patk=0, pdef=50, eatk=0, edef=0, pelem="", eelem="", stream=null;
+    let shieldActive=false, atkBoostMult=1, prismaMode=false;
+    let inventory = [], library = JSON.parse(localStorage.getItem('myth_v3_final')) || { W: {}, M: {}, I: {} };
 
-    async function init() {
-        net = await mobilenet.load();
-        switchCamera('P');
-        updateUI();
-    }
-
-    function getBagCapacity() {
-        return 5 + Math.floor(lv / 5);
-    }
+    async function init() { net = await mobilenet.load(); switchCamera('P'); updateUI(); }
+    function getBagCapacity() { return 5 + Math.floor(lv / 5); }
 
     async function switchCamera(target) {
         if(stream) stream.getTracks().forEach(t => t.stop());
-        if(target === 'OFF') {
-            ['p-cam-box','e-cam-box','b-cam-box'].forEach(b=>document.getElementById(b).classList.remove('cam-active'));
-            return;
-        }
+        if(target === 'OFF') { document.querySelectorAll('.cam-box').forEach(b=>b.classList.remove('cam-active')); return; }
         const vId = {P:'pv', E:'ev', B:'bv'}[target];
-        const bId = {P:'p-cam-box', E:'e-cam-box', B:'b-cam-box'}[target];
         try {
             stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
             document.getElementById(vId).srcObject = stream;
-            ['p-cam-box','e-cam-box','b-cam-box'].forEach(b=>document.getElementById(b).classList.remove('cam-active'));
-            document.getElementById(bId).classList.add('cam-active');
-        } catch(e) { console.error("Camera error"); }
+            document.querySelectorAll('.cam-frame').forEach(f=>f.classList.remove('cam-active'));
+            document.getElementById(vId).parentElement.classList.add('cam-active');
+        } catch(e) { console.error(e); }
     }
 
     async function handleScan() {
@@ -165,30 +153,30 @@
         const r = await net.classify(vid);
         const aiName = r[0].className.split(',')[0].toUpperCase();
         const prob = r[0].probability;
-        const boost = 1 + (lv-1)*0.1;
+        const id = Math.floor(prob * 100);
 
         if(mode==="W") {
-            const id = Math.floor(prob * 100);
-            const rare = id > 95 ? "M" : id > 80 ? "SR" : id > 50 ? "R" : "C";
-            pelem = ["🔥", "💧", "⚡", "🌿"][aiName.length % 4];
-            patk = Math.floor((100 + id) * (rare==="M"?3:rare==="SR"?2:rare==="R"?1.5:1) * boost);
-            pdef = Math.floor((30 + id/2) * boost);
-            updateCardUI('p', rare, "⚔️", `${aiName}の${WEAPON_TYPES[Math.floor(id/10)]}`, pelem);
-            library.W[id] = {t: WEAPON_TYPES[Math.floor(id/10)], r: rare, e: pelem};
+            let rare = id === 99 ? "MAX" : id > 94 ? "3" : id > 79 ? "2" : id > 49 ? "1" : "0";
+            let list = DB_WEAPON[rare];
+            let base = list[aiName.length % list.length];
+            pelem = ["🔥", "💧", "⚡", "🌿"][id % 4];
+            let mult = rare==="MAX"?5.5 : rare==="3"?4.2 : rare==="2"?2.8 : rare==="1"?1.8 : 1.2;
+            patk = Math.floor(100 * mult * (1 + (lv-1)*0.1));
+            updateCardUI('p', rare==="MAX"?"神話":rare==="3"?"伝説":"通常", "⚔️", `${aiName}の${base}`, pelem);
+            library.W[id] = {t: base, r: rare, e: pelem, ai: aiName};
             mode="M"; switchCamera('E');
             document.getElementById('msg').innerText = "次はモンスターをスキャン！";
         } else {
-            const id = 100 + Math.floor(prob * 100);
-            const rare = id > 195 ? "M" : id > 180 ? "SR" : id > 150 ? "R" : "C";
-            eelem = ["🔥", "💧", "⚡", "🌿"][aiName.length % 4];
-            eMax = Math.floor((800 + (id-100)*10) * (rare==="M"?4:rare==="SR"?2.5:rare==="R"?1.5:1) * boost);
-            ehp = eMax; eatk = Math.floor((80 + (id-100)) * boost); edef = Math.floor((20 + (id-100)/2) * boost);
-            updateCardUI('e', rare, "👾", `${aiName}の${MONSTER_RACES[Math.floor((id-100)/10)]}`, eelem);
-            library.M[id] = {t: MONSTER_RACES[Math.floor((id-100)/10)], r: rare, e: eelem};
-            
-            // Enemyスキャン後カメラをオフにする
+            let rare = id === 99 ? "MAX" : id > 94 ? "3" : id > 79 ? "2" : id > 49 ? "1" : "0";
+            let list = DB_MONSTER[rare];
+            let base = list[aiName.length % list.length];
+            eelem = ["🔥", "💧", "⚡", "🌿"][id % 4];
+            let mult = rare==="MAX"?6.0 : rare==="3"?4.5 : rare==="2"?3.0 : rare==="1"?1.8 : 1.2;
+            eMax = Math.floor(800 * mult * (1 + (lv-1)*0.1));
+            ehp = eMax; eatk = Math.floor(80 * mult); edef = Math.floor(30 * mult);
+            updateCardUI('e', rare==="MAX"?"極限":rare==="3"?"ボス":"通常", "👾", `${aiName}の${base}`, eelem);
+            library.M[id+100] = {t: base, r: rare, e: eelem, ai: aiName};
             switchCamera('OFF');
-            
             document.getElementById('atk-btn').disabled = false;
             document.getElementById('item-open-btn').disabled = false;
             document.getElementById('scan-btn').disabled = true;
@@ -197,11 +185,54 @@
         save(); updateUI();
     }
 
+    async function getBonusItem() {
+        const r = await net.classify(document.getElementById('bv'));
+        const aiName = r[0].className.split(',')[0].toUpperCase();
+        const prob = r[0].probability;
+        const id = Math.floor(prob * 100);
+        let itm = { n: "", t: "", v: 0 };
+
+        if(id === 99) { // MAX枠
+            const type = ["HE","AT","PO","WE","ORB"][aiName.length % 5];
+            const maxNames = {HE:"聖杯", AT:"狂乱のベルセルク", PO:"終焉の宣告", WE:"因果の断絶", ORB:"創世のプリズム"};
+            itm = { n: maxNames[type], t: type, v: 1.0, r: "MAX" };
+        } else {
+            const types = ["HE", "AT", "PO", "WE", "ORB"];
+            const type = types[aiName.length % 5];
+            const list = DB_ITEM[type];
+            const base = list[id % list.length];
+            const val = 0.1 + (id/100)*0.8;
+            itm = { n: `${aiName}の${base}`, t: type, v: val, r: "C" };
+        }
+
+        if(inventory.length < getBagCapacity()) {
+            inventory.push(itm);
+            library.I[id+200] = {t: itm.n, r: itm.r, et: itm.t};
+        } else { alert("BAGがいっぱいです！"); }
+        save(); document.getElementById('bonus-overlay').style.display='none'; finish(true);
+    }
+
+    function useItem(itm, idx) {
+        if(itm.r === "MAX" && itm.t === "ORB") prismaMode = true; 
+        else if(itm.t === "ORB") {
+            const orbE = itm.n.includes("火")?"🔥":itm.n.includes("水")?"💧":itm.n.includes("雷")?"⚡":"🌿";
+            pelem = orbE; document.getElementById('p-elem').innerText = pelem;
+        } else {
+            switch(itm.t) {
+                case "HE": php = Math.min(pMax, php + pMax * itm.v); break;
+                case "AT": atkBoostMult = 1.5 + itm.v * 1.5; break;
+                case "PO": ehp -= Math.floor(ehp * itm.v); break;
+                case "WE": edef = Math.floor(edef * (1 - itm.v)); break;
+            }
+        }
+        inventory.splice(idx, 1); closeOverlay('item-overlay'); updateUI();
+    }
+
     function handleAttack() {
-        let mult = (ELEMENTS[pelem] === eelem) ? 1.5 : (ELEMENTS[eelem] === pelem) ? 0.5 : 1.0;
-        ehp -= Math.floor(Math.max(30, (patk * mult) - edef/2));
+        let mult = (prismaMode || ELEMENTS[pelem] === eelem) ? 1.5 : (ELEMENTS[eelem] === pelem) ? 0.5 : 1.0;
+        let dmg = Math.floor(Math.max(30, (patk * mult * atkBoostMult) - edef/2));
+        ehp -= dmg; atkBoostMult = 1;
         document.getElementById('e-area').classList.add('shake');
-        document.getElementById('msg').innerText = mult > 1 ? "効果は抜群だ！" : mult < 1 ? "効果はいまひとつ..." : "プレイヤーの攻撃！";
         updateUI();
         setTimeout(() => {
             document.getElementById('e-area').classList.remove('shake');
@@ -211,11 +242,10 @@
 
     function enemyTurn() {
         setTimeout(() => {
-            let mult = (ELEMENTS[eelem] === pelem) ? 1.5 : (ELEMENTS[pelem] === eelem) ? 0.5 : 1.0;
+            let mult = (prismaMode) ? 0.5 : (ELEMENTS[eelem] === pelem) ? 1.5 : (ELEMENTS[pelem] === eelem) ? 0.5 : 1.0;
             php -= (shieldActive ? 0 : Math.floor(Math.max(20, (eatk * mult) - pdef/2)));
             shieldActive = false;
             document.getElementById('p-area').classList.add('shake');
-            document.getElementById('msg').innerText = "敵の攻撃！";
             updateUI();
             setTimeout(() => {
                 document.getElementById('p-area').classList.remove('shake');
@@ -224,91 +254,24 @@
         }, 500);
     }
 
-    async function getBonusItem() {
-        const r = await net.classify(document.getElementById('bv'));
-        const id = 200 + Math.floor(r[0].probability * 100);
-        const rare = id > 290 ? "M" : id > 270 ? "SR" : id > 240 ? "R" : "C";
-        const type = id > 280 ? "SPEC" : "HE";
-        
-        if(inventory.length < getBagCapacity()) {
-            inventory.push({ n: `${r[0].className.split(',')[0].toUpperCase()}の${ITEM_NAMES[Math.floor((id-200)/12.5)]}`, r: rare, t: type });
-            library.I[id] = {t: ITEM_NAMES[Math.floor((id-200)/12.5)], r: rare, et: type};
-            save();
-            document.getElementById('bonus-overlay').style.display='none';
-            finish(true);
-        } else {
-            alert("バッグがいっぱいでアイテムを失った！");
-            document.getElementById('bonus-overlay').style.display='none';
-            finish(true);
-        }
-    }
-
     function finish(win) {
         document.getElementById('res-screen').style.display='flex';
-        const title = document.getElementById('res-title');
-        const desc = document.getElementById('res-desc');
         if(win) {
-            title.innerText = "VICTORY"; title.style.color = "var(--p-color)";
+            document.getElementById('res-title').innerText = "VICTORY";
             exp += 50; if(exp >= 100){ lv++; exp=0; pMax += 200; php = pMax; }
-            desc.innerText = "アイテムを獲得しました！";
         } else {
-            title.innerText = "DEFEAT"; title.style.color = "var(--e-color)";
+            document.getElementById('res-title').innerText = "DEFEAT";
             lv = Math.max(1, lv - 3); pMax = 1000 + (lv-1)*200;
-            for(let i=0; i<3; i++) deleteRandomCollection();
-            desc.innerText = "LVが3低下し、コレクションを3つ失った...";
         }
         save(); updateUI();
     }
 
-    function deleteRandomCollection() {
-        const valid = [];
-        ['W', 'M', 'I'].forEach(t => Object.keys(library[t]).forEach(k => valid.push({t, k})));
-        if(valid.length > 0) { const target = valid[Math.floor(Math.random()*valid.length)]; delete library[target.t][target.k]; }
-    }
-
     function closeResult() {
-        php = (document.getElementById('res-title').innerText === "DEFEAT") ? pMax : Math.min(pMax, php + Math.floor(pMax * 0.5));
-        mode="W"; ehp = 0; eMax = 0; updateCardUI('e', '-', '👾', '???', '');
-        document.getElementById('msg').innerText = "武器をスキャンしてください";
+        php = Math.min(pMax, php + pMax * 0.5);
+        mode="W"; ehp = 0; eMax = 0; prismaMode = false;
         document.getElementById('atk-btn').disabled = true; document.getElementById('scan-btn').disabled = false;
         document.getElementById('res-screen').style.display='none';
         switchCamera('P'); updateUI();
-    }
-
-    function openLibrary() { renderLib('W'); document.getElementById('lib-overlay').style.display='flex'; }
-    function renderLib(type) {
-        const grid = document.getElementById('lib-grid'); grid.innerHTML = "";
-        const offset = {W:0, M:100, I:200}[type];
-        for(let i=0; i<100; i++) {
-            const id = offset + i; const data = library[type][id];
-            const slot = document.createElement('div');
-            slot.className = "lib-slot" + (data ? " found" : "") + (data && data.r==='M' ? " rare" : "");
-            if(data) slot.onclick = () => showDetail(data, type);
-            slot.innerHTML = data ? `<span class="elem-tag">${data.e||""}</span><span style="color:gold;">${data.r}</span><br>${data.t}` : `No.${id}`;
-            grid.appendChild(slot);
-        }
-    }
-
-    function showDetail(data, type) {
-        document.getElementById('det-name').innerText = `[${data.r}] ${data.t}`;
-        // ポップアップ内の不要なメッセージを削除
-        document.getElementById('det-desc').innerText = type === 'I' ? (ITEM_EFFECTS[data.et] || ITEM_EFFECTS["HE"]) : `属性: ${data.e || "なし"}`;
-        document.getElementById('detail-pop').style.display = 'block';
-    }
-
-    function openItemMenu() {
-        const list = document.getElementById('item-list'); list.innerHTML = "";
-        inventory.forEach((itm, i) => {
-            const b = document.createElement('button'); b.style.width = "100%"; b.style.marginBottom = "5px";
-            b.innerHTML = `[${itm.r}] ${itm.n}`;
-            b.onclick = () => {
-                if(itm.t === "HE") php = Math.min(pMax, php + pMax*0.5);
-                if(itm.t === "SPEC") shieldActive = true;
-                inventory.splice(i, 1); closeOverlay('item-overlay'); updateUI();
-            };
-            list.appendChild(b);
-        });
-        document.getElementById('item-overlay').style.display='flex';
     }
 
     function updateUI() {
@@ -329,14 +292,41 @@
         document.getElementById(`${side}-sym`).innerText = sym;
         document.getElementById(`${side}-name`).innerText = name;
         document.getElementById(`${side}-elem`).innerText = elem;
-        const colors = {M:'gold', SR:'magenta', R:'cyan', C:'white'};
-        document.getElementById(`${side}-card`).style.borderColor = colors[rare] || 'white';
     }
 
-    function showBonus() { document.getElementById('bonus-overlay').style.display='flex'; switchCamera('B'); }
+    function openLibrary() { renderLib('W'); document.getElementById('lib-overlay').style.display='flex'; }
+    function renderLib(type) {
+        const grid = document.getElementById('lib-grid'); grid.innerHTML = "";
+        const offset = {W:0, M:100, I:200}[type];
+        for(let i=0; i<100; i++) {
+            const id = offset + i; const data = library[type][id];
+            const slot = document.createElement('div');
+            slot.className = "lib-slot" + (data ? " found" : "");
+            if(data) slot.onclick = () => {
+                document.getElementById('det-name').innerText = data.t;
+                document.getElementById('det-desc').innerText = `属性: ${data.e||"なし"} / スキャン元: ${data.ai||"不明"}`;
+                document.getElementById('detail-pop').style.display = 'block';
+            };
+            slot.innerHTML = data ? `${data.t}` : `No.${id}`;
+            grid.appendChild(slot);
+        }
+    }
+
+    function openItemMenu() {
+        const list = document.getElementById('item-list'); list.innerHTML = "";
+        inventory.forEach((itm, i) => {
+            const b = document.createElement('button'); b.style.width = "100%"; b.style.marginBottom = "5px";
+            b.innerHTML = `${itm.n}<br><small>Effect: ${itm.t} Rank: ${itm.r}</small>`;
+            b.onclick = () => useItem(itm, i);
+            list.appendChild(b);
+        });
+        document.getElementById('item-overlay').style.display='flex';
+    }
+
     function closeOverlay(id) { document.getElementById(id).style.display='none'; }
     function closeDetail() { document.getElementById('detail-pop').style.display = 'none'; }
-    function save() { localStorage.setItem('myth_grand_final_v2', JSON.stringify(library)); }
+    function showBonus() { document.getElementById('bonus-overlay').style.display='flex'; switchCamera('B'); }
+    function save() { localStorage.setItem('myth_v3_final', JSON.stringify(library)); }
 
     init();
 </script>
