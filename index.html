@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER ULTIMATE</title>
+    <title>MYTH SCANNER COMPLETE</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
@@ -17,18 +17,17 @@
         video { width: 100%; height: 100%; object-fit: cover; display: none; }
         .cam-active video { display: block; border-color: #0f0; }
         .info-part { width: 60%; display: flex; flex-direction: column; padding-left: 10px; justify-content: center; }
-        .visual-card { width: 100%; height: 80px; border: 2px solid #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #111; position: relative; box-shadow: inset 0 0 15px rgba(255,255,255,0.1); }
-        .rarity-tag { position: absolute; top: 0; right: 0; font-size: 0.5rem; background: #fff; color: #000; padding: 1px 4px; z-index: 3; }
+        .visual-card { width: 100%; height: 80px; border: 2px solid #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #111; position: relative; }
         .stat-text { font-size: 0.7rem; color: #ccc; margin-top: 3px; line-height: 1.2; }
         .hp-bar-bg { width: 100%; height: 8px; background: #333; border: 1px solid #fff; margin-top: 3px; }
         .hp-bar-fill { height: 100%; transition: width 0.3s; }
         #mid-ui { height: 140px; background: #111; border-top: 2px solid #444; display: flex; flex-direction: column; align-items: center; padding: 5px; }
-        #msg { font-size: 0.75rem; color: #0f0; height: 35px; text-align: center; display: flex; align-items: center; padding: 0 10px; line-height: 1.3; }
+        #msg { font-size: 0.7rem; color: #0f0; height: 35px; text-align: center; display: flex; align-items: center; padding: 0 10px; }
         .btn-row { display: flex; gap: 6px; width: 100%; flex-wrap: wrap; justify-content: center; }
         button { flex: 1; max-width: 100px; height: 38px; font-family: 'DotGothic16'; border: 2px solid #fff; color: #fff; background: #444; font-size: 0.75rem; cursor: pointer; }
-        button:disabled { opacity: 0.3; cursor: not-allowed; }
-        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 100; display: none; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; }
-        .coll-box { width: 100%; flex: 1; overflow-y: auto; background: #111; border: 1px solid #444; padding: 8px; font-size: 0.65rem; margin-bottom: 5px; line-height: 1.6; }
+        button:disabled { opacity: 0.3; }
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 100; display: none; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; overflow-y: auto; }
+        .item-list-btn { width: 100%; background: #222; border: 1px solid #555; color: #fff; padding: 10px; margin-bottom: 8px; text-align: left; font-family: 'DotGothic16'; font-size: 0.8rem; }
         .shake { animation: s 0.2s; }
         @keyframes s { 0%,100%{transform:translateX(0)} 25%{transform:translateX(5px)} 75%{transform:translateX(-5px)} }
     </style>
@@ -44,7 +43,7 @@
     <div class="cam-part" id="p-cam-box"><div class="cam-frame"><video id="pv" autoplay playsinline muted></video></div></div>
     <div class="info-part">
         <div id="p-card" class="visual-card">
-            <div id="p-rare" class="rarity-tag">-</div>
+            <div id="p-rare" style="position:absolute; top:0; right:0; font-size:0.5rem; background:#fff; color:#000; padding:1px 4px;">-</div>
             <div id="p-sym" style="font-size:2rem;">❓</div>
             <div id="p-name" style="font-size:0.6rem; text-align:center;">READY</div>
         </div>
@@ -58,16 +57,16 @@
     <div class="btn-row">
         <button id="scan-btn" onclick="handleScan()" style="background:#0044cc">SCAN</button>
         <button id="atk-btn" onclick="handleAttack()" disabled style="background:#aa0000">ATTACK</button>
-        <button id="item-btn" onclick="useItem()" disabled style="background:#008844">ITEM</button>
+        <button id="item-open-btn" onclick="openItemMenu()" disabled style="background:#008844">ITEM</button>
     </div>
-    <div id="inventory-label" style="font-size:0.65rem; color:yellow; margin-top:8px;">ITEM: なし</div>
+    <div id="inv-count" style="font-size:0.65rem; color:yellow; margin-top:8px;">INVENTORY: 0 / 5</div>
 </div>
 
 <div class="char-area" id="e-area">
     <div class="cam-part" id="e-cam-box"><div class="cam-frame"><video id="ev" autoplay playsinline muted></video></div></div>
     <div class="info-part">
         <div id="e-card" class="visual-card">
-            <div id="e-rare" class="rarity-tag">-</div>
+            <div id="e-rare" style="position:absolute; top:0; right:0; font-size:0.5rem; background:#fff; color:#000; padding:1px 4px;">-</div>
             <div id="e-sym" style="font-size:2rem;">❓</div>
             <div id="e-name" style="font-size:0.6rem; text-align:center;">???</div>
         </div>
@@ -76,32 +75,38 @@
     </div>
 </div>
 
+<div id="item-menu" class="overlay">
+    <h2 id="item-menu-title" style="color:#0f0;">ITEMS</h2>
+    <div id="item-container" style="width:100%; flex:1;"></div>
+    <button onclick="document.getElementById('item-menu').style.display='none'" style="width:100%; height:50px; background:#444;">CLOSE</button>
+</div>
+
 <div id="bonus-screen" class="overlay">
-    <h2 style="color:gold;">VICTORY! BONUS SCAN</h2>
+    <h2 style="color:gold;">BONUS SCAN</h2>
     <div class="cam-frame" style="width:160px; height:160px;" id="b-cam-box"><video id="bv" autoplay playsinline muted></video></div>
-    <p style="text-align:center; font-size:0.8rem; margin:10px;">何かをスキャンしてアイテム獲得！</p>
-    <button id="bonus-btn" onclick="getBonusItem()" style="background:#0044cc; width:180px;">GET ITEM</button>
+    <button id="bonus-btn" onclick="getBonusItem()" style="background:#0044cc; width:180px; margin-top:20px;">GET ITEM</button>
 </div>
 
 <div id="res-screen" class="overlay" style="justify-content:center;">
-    <h1 id="res-title" style="margin:0;"></h1>
-    <p id="res-msg" style="text-align:center; white-space: pre-wrap; margin:20px 0;"></p>
+    <h1 id="res-title"></h1>
+    <p id="res-msg" style="text-align:center; white-space: pre-wrap;"></p>
     <button onclick="closeResult()" style="width:200px; height:50px; background:#0044cc">NEXT</button>
 </div>
 
 <div id="coll-screen" class="overlay">
-    <h2 style="color:yellow; font-size:1rem; margin:5px 0;">LIBRARY (No.001-100)</h2>
-    <div id="w-coll" class="coll-box"></div>
-    <div id="m-coll" class="coll-box"></div>
-    <div id="i-coll" class="coll-box"></div>
+    <h2 style="color:yellow; font-size:1rem;">LIBRARY</h2>
+    <div id="w-coll" style="width:100%; background:#111; margin-bottom:10px; font-size:0.6rem; padding:5px; border:1px solid #444;"></div>
+    <div id="m-coll" style="width:100%; background:#111; margin-bottom:10px; font-size:0.6rem; padding:5px; border:1px solid #444;"></div>
+    <div id="i-coll" style="width:100%; background:#111; margin-bottom:10px; font-size:0.6rem; padding:5px; border:1px solid #444;"></div>
     <button onclick="document.getElementById('coll-screen').style.display='none'">CLOSE</button>
 </div>
 
 <script>
     let net, mode = "W", lv = 1, exp = 0, nextExp = 100, php = 1000, pMax = 1000, ehp = 1000, eMax = 1000;
-    let patk=0, pdef=0, eatk=0, edef=0, stream = null, inventory = null, currentMData = null;
+    let patk=0, pdef=0, eatk=0, edef=0, stream = null, currentMData = null, pendingItem = null;
+    let inventory = JSON.parse(localStorage.getItem('myth_inv_v2')) || [];
     let buffAtk = 0, buffDef = 0;
-    let coll = JSON.parse(localStorage.getItem('myth_v_final_logic')) || { weapons: {}, monsters: {}, items: {} };
+    let coll = JSON.parse(localStorage.getItem('myth_coll_v2')) || { weapons: {}, monsters: {}, items: {} };
 
     const naming = {
         W1: ["鉄","鋼","輝","魔","龍","氷","炎","雷","聖","神"],
@@ -114,6 +119,7 @@
     async function init() {
         net = await mobilenet.load();
         switchCamera('P');
+        updateUI();
     }
 
     async function stopCamera() {
@@ -125,11 +131,11 @@
         await stopCamera();
         try {
             stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
-            const vidId = {P:'pv', E:'ev', B:'bv'}[target];
-            const boxId = {P:'p-cam-box', E:'e-cam-box', B:'b-cam-box'}[target];
-            document.getElementById(vidId).srcObject = stream;
-            document.getElementById(boxId).classList.add('cam-active');
-        } catch(e) { console.error(e); }
+            const vId = {P:'pv', E:'ev', B:'bv'}[target];
+            const bId = {P:'p-cam-box', E:'e-cam-box', B:'b-cam-box'}[target];
+            document.getElementById(vId).srcObject = stream;
+            document.getElementById(bId).classList.add('cam-active');
+        } catch(e) { console.error("Camera Error"); }
     }
 
     async function handleScan() {
@@ -158,11 +164,11 @@
             currentMData = {no, n:`${rarity} ${name}`, i:"👾"};
             await stopCamera();
             document.getElementById('atk-btn').disabled = false;
-            document.getElementById('item-btn').disabled = !inventory;
+            document.getElementById('item-open-btn').disabled = false;
             document.getElementById('scan-btn').disabled = true;
             document.getElementById('msg').innerText = "BATTLE START!";
         }
-        save(); updateUI();
+        updateUI();
     }
 
     function updateCard(side, rare, sym, name, color) {
@@ -175,8 +181,7 @@
 
     function handleAttack() {
         document.getElementById('e-area').classList.add('shake');
-        const d = Math.max(30, (patk + buffAtk) - Math.floor(edef/2));
-        ehp -= d;
+        ehp -= Math.max(30, (patk + buffAtk) - Math.floor(edef/2));
         setTimeout(() => {
             document.getElementById('e-area').classList.remove('shake');
             if(ehp <= 0) return showBonus();
@@ -187,8 +192,8 @@
 
     function enemyTurn() {
         document.getElementById('p-area').classList.add('shake');
-        const ed = Math.max(20, eatk - Math.floor((pdef + buffDef)/2));
-        php -= ed; updateUI();
+        php -= Math.max(20, eatk - Math.floor((pdef + buffDef)/2));
+        updateUI();
         setTimeout(() => {
             document.getElementById('p-area').classList.remove('shake');
             if(php <= 0) finish(false);
@@ -202,52 +207,95 @@
         const seed = Math.floor((Date.now() * r[0].probability) % 100);
         const no = seed + 1;
         const baseName = naming.I[Math.floor((no-1)/10)];
-        let item = { n: baseName, t: "TR", i: "📦", v: 0 };
+        let itm = { n: baseName, t: "TR", i: "📦", v: 0, no: no };
         
-        if (no <= 25) { // 回復 (30-100%)
+        if (no <= 25) {
             const val = Math.floor(Math.random() * 71) + 30;
-            item = { n: `${baseName}(回復${val}%)`, t: "HE", i: "🧪", v: val };
-        } else if (no <= 50) { // ダメージ (10-40%)
+            itm = {...itm, n:`${baseName}(回復${val}%)`, t:"HE", i:"🧪", v:val};
+        } else if (no <= 50) {
             const val = Math.floor(Math.random() * 31) + 10;
-            item = { n: `${baseName}(${val}% DMG)`, t: "DM", i: "💥", v: val };
-        } else if (no <= 60) { // ATKバフ (20-60%)
+            itm = {...itm, n:`${baseName}(${val}% DMG)`, t:"DM", i:"💥", v:val};
+        } else if (no <= 60) {
             const val = Math.floor(Math.random() * 41) + 20;
-            item = { n: `${baseName}(+${val}% ATK)`, t: "AT", i: "💊", v: val };
-        } else if (no <= 70) { // DEFバフ (20-60%)
+            itm = {...itm, n:`${baseName}(+${val}% ATK)`, t:"AT", i:"💊", v:val};
+        } else if (no <= 70) {
             const val = Math.floor(Math.random() * 41) + 20;
-            item = { n: `${baseName}(+${val}% DEF)`, t: "DF", i: "🛡️", v: val };
-        } else {
-            item = { n: baseName + (no >= 98 ? " (秘宝)":""), t: "TR", i: "💎", v: 0 };
+            itm = {...itm, n:`${baseName}(+${val}% DEF)`, t:"DF", i:"🛡️", v:val};
         }
+        coll.items[no] = itm;
+        save();
 
-        inventory = item;
-        coll.items[no] = item;
-        save(); await stopCamera();
+        if (inventory.length < 5) {
+            inventory.push(itm);
+            completeBonus();
+        } else {
+            pendingItem = itm;
+            showSwapMenu();
+        }
+    }
+
+    function showSwapMenu() {
+        const container = document.getElementById('item-container');
+        document.getElementById('item-menu-title').innerText = "ITEM SWAP";
+        container.innerHTML = `<p style="color:orange; font-size:0.7rem; margin-bottom:10px;">
+            持ち物がいっぱいです！[${pendingItem.i}${pendingItem.n}] を拾うためにどれを捨てますか？
+        </p>`;
+        inventory.forEach((itm, index) => {
+            const btn = document.createElement('button');
+            btn.className = "item-list-btn";
+            btn.style.borderColor = "#ff3c00";
+            btn.innerHTML = `入れ替える: ${itm.i} ${itm.n}`;
+            btn.onclick = () => { inventory[index] = pendingItem; completeBonus(); };
+            container.appendChild(btn);
+        });
+        const skip = document.createElement('button');
+        skip.className = "item-list-btn";
+        skip.style.background = "#444";
+        skip.innerHTML = `❌ このアイテムを諦める`;
+        skip.onclick = completeBonus;
+        container.appendChild(skip);
+        document.getElementById('item-menu').style.display = "flex";
+    }
+
+    async function completeBonus() {
+        pendingItem = null;
+        await stopCamera();
+        document.getElementById('item-menu').style.display = "none";
         document.getElementById('bonus-screen').style.display = "none";
         finish(true);
     }
 
-    function useItem() {
-        if(!inventory) return;
-        let log = "";
-        if(inventory.t === "HE") {
-            const h = Math.floor(pMax * (inventory.v / 100)); php = Math.min(pMax, php + h); log = `${h}回復！`;
-        } else if(inventory.t === "DM") {
-            const d = Math.floor(eMax * (inventory.v / 100)); ehp -= d; log = `${d}ダメ！`;
-        } else if(inventory.t === "AT") {
-            const u = Math.floor(patk * (inventory.v / 100)); buffAtk += u; log = `ATK+${u}！`;
-        } else if(inventory.t === "DF") {
-            const u = Math.floor(pdef * (inventory.v / 100)); buffDef += u; log = `DEF+${u}！`;
-        }
-        document.getElementById('msg').innerText = `${inventory.n}使用：${log}`;
-        inventory = null; updateUI();
-        document.getElementById('item-btn').disabled = true;
+    function openItemMenu() {
+        const container = document.getElementById('item-container');
+        document.getElementById('item-menu-title').innerText = "MY ITEMS";
+        container.innerHTML = inventory.length === 0 ? "<p>アイテムなし</p>" : "";
+        inventory.forEach((itm, index) => {
+            const btn = document.createElement('button');
+            btn.className = "item-list-btn";
+            btn.innerHTML = `${itm.i} ${itm.n}`;
+            btn.onclick = () => useItem(index);
+            container.appendChild(btn);
+        });
+        document.getElementById('item-menu').style.display = "flex";
+    }
+
+    function useItem(index) {
+        const itm = inventory[index];
+        let res = "";
+        if(itm.t === "HE") { const h = Math.floor(pMax * (itm.v/100)); php = Math.min(pMax, php+h); res = `${h}回復`; }
+        else if(itm.t === "DM") { const d = Math.floor(eMax * (itm.v/100)); ehp -= d; res = `${d}ダメ`; }
+        else if(itm.t === "AT") { const u = Math.floor(patk * (itm.v/100)); buffAtk += u; res = `ATK+${u}`; }
+        else if(itm.t === "DF") { const u = Math.floor(pdef * (itm.v/100)); buffDef += u; res = `DEF+${u}`; }
+        
+        document.getElementById('msg').innerText = `${itm.n}使用！：${res}`;
+        inventory.splice(index, 1);
+        document.getElementById('item-menu').style.display = "none";
+        updateUI();
         if(ehp <= 0) setTimeout(showBonus, 600); else setTimeout(enemyTurn, 800);
     }
 
     function finish(win) {
-        const screen = document.getElementById('res-screen');
-        screen.style.display = "flex";
+        document.getElementById('res-screen').style.display = "flex";
         if(win) {
             document.getElementById('res-title').innerText = "VICTORY";
             if(currentMData) coll.monsters[currentMData.no] = currentMData;
@@ -255,17 +303,17 @@
             let lvLog = "経験値獲得！";
             if(exp >= nextExp) {
                 lv++; exp = 0; nextExp += 50;
-                const boost = (lv - 1) * 3;
-                pMax = Math.floor(1000 * (1 + (lv - 1) * 0.1)); php = pMax;
-                lvLog = `LEVEL UP! [LV:${lv}]\n全ステ補正: +${boost}%\n最大HP: ${pMax}に上昇！`;
+                const b = (lv-1)*3; pMax = Math.floor(1000 * (1 + (lv-1)*0.1)); php = pMax;
+                lvLog = `LEVEL UP! [LV:${lv}]\n補正: +${b}%\n最大HP: ${pMax}`;
             }
-            document.getElementById('res-msg').innerText = `モンスターを記録しました。\n${lvLog}`;
+            document.getElementById('res-msg').innerText = `モンスター記録完了。\n${lvLog}`;
         } else {
             document.getElementById('res-title').innerText = "DEFEAT";
-            const old = lv; lv = Math.max(1, lv - 5);
-            pMax = Math.floor(1000 * (1 + (lv - 1) * 0.1)); php = pMax;
-            document.getElementById('res-msg').innerText = `敗北... LVが${old}から${lv}に低下。\n補正: +${(lv-1)*3}%`;
+            lv = Math.max(1, lv - 5); inventory = [];
+            pMax = Math.floor(1000 * (1 + (lv-1)*0.1)); php = pMax;
+            document.getElementById('res-msg').innerText = `敗北... アイテムをすべて失った。\nLV:${lv}に低下。`;
         }
+        localStorage.setItem('myth_inv_v2', JSON.stringify(inventory));
         save(); updateUI();
     }
 
@@ -273,7 +321,7 @@
         document.getElementById('res-screen').style.display = "none";
         mode = "W"; buffAtk = 0; buffDef = 0; currentMData = null;
         document.getElementById('atk-btn').disabled = true;
-        document.getElementById('item-btn').disabled = true;
+        document.getElementById('item-open-btn').disabled = true;
         document.getElementById('scan-btn').disabled = false;
         document.getElementById('msg').innerText = "武器をスキャンしてください";
         switchCamera('P');
@@ -291,17 +339,17 @@
         document.getElementById('p-atk-val').innerText = patk + buffAtk;
         document.getElementById('p-def-val').innerText = pdef + buffDef;
         document.getElementById('stat-boost').innerText = ((lv-1)*3);
-        document.getElementById('inventory-label').innerText = `ITEM: ${inventory ? inventory.i + inventory.n : "なし"}`;
+        document.getElementById('inv-count').innerText = `INVENTORY: ${inventory.length} / 5`;
     }
 
-    function save() { localStorage.setItem('myth_v_final_logic', JSON.stringify(coll)); }
+    function save() { localStorage.setItem('myth_coll_v2', JSON.stringify(coll)); }
 
     function showColl() {
         const render = (id, data, title) => {
             const el = document.getElementById(id);
             el.innerHTML = `<b>${title} (${Object.keys(data).length}/100)</b><br>`;
             Object.keys(data).sort((a,b)=>a-b).forEach(k => {
-                el.innerHTML += `No.${k.padStart(3,'0')} ${data[k].i}${data[k].n}<br>`;
+                el.innerHTML += `No.${k.toString().padStart(3,'0')} ${data[k].i}${data[k].n}<br>`;
             });
         };
         render('w-coll', coll.weapons, "WEAPONS");
