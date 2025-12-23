@@ -3,102 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER 4.6</title>
+    <title>MYTH SCANNER 4.7</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
     <style>
         :root { --p-color: #00f2ff; --e-color: #ff3c00; --exp-color: #32ff32; --gold: #ffd700; }
-        body { font-family: 'DotGothic16', sans-serif; background: #000; color: #fff; margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         
-        /* バトル画面等の共通UI */
-        #header { height: 40px; background: #222; display: flex; justify-content: center; align-items: center; border-bottom: 2px solid #444; }
-        .lib-btn { width: 50%; font-size: 0.6rem; height: 24px; background: #555; border: 1px solid #fff; color: #fff; cursor: pointer; }
-        .char-area { height: 32%; display: flex; border-bottom: 1px solid #333; padding: 10px; box-sizing: border-box; }
-        .cam-frame { width: 90px; height: 90px; border: 2px solid #555; background: #111; overflow: hidden; position: relative; border-radius: 8px; }
+        /* 全体レイアウト */
+        body { 
+            font-family: 'DotGothic16', sans-serif; 
+            background: #000; color: #fff; margin: 0; 
+            height: 100vh; display: flex; flex-direction: column; 
+            overflow: hidden; box-sizing: border-box;
+        }
+
+        #header { height: 40px; background: #222; display: flex; justify-content: center; align-items: center; border-bottom: 2px solid #444; flex-shrink: 0; }
+        .lib-btn { width: 80%; font-size: 0.7rem; height: 26px; background: #444; border: 1px solid #fff; color: #fff; cursor: pointer; }
+
+        /* バトルエリア：ここが崩れないように修正 */
+        .char-area { 
+            height: 30%; 
+            display: flex; 
+            align-items: center;
+            padding: 8px; 
+            border-bottom: 1px solid #333; 
+            box-sizing: border-box;
+            gap: 10px;
+        }
+        .cam-part { width: 90px; flex-shrink: 0; }
+        .cam-frame { 
+            width: 80px; height: 80px; 
+            border: 2px solid #555; background: #111; 
+            overflow: hidden; border-radius: 8px; 
+        }
         video { width: 100%; height: 100%; object-fit: cover; display: none; }
         .cam-active video { display: block; border-color: #0f0; }
-        .info-part { width: 65%; display: flex; flex-direction: column; padding-left: 10px; justify-content: center; }
-        .visual-card { width: 100%; height: 80px; border: 2px solid #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #111; position: relative; border-radius: 4px; overflow: hidden; }
-        .stat-text { font-size: 0.65rem; color: #ccc; margin-top: 2px; }
-        .bar-bg { width: 100%; height: 8px; background: #222; border: 1px solid #666; position: relative; overflow: hidden; }
-        .bar-fill { height: 100%; width: 0%; transition: width 0.4s ease-out; }
-        .rarity-tag { position: absolute; top: 2px; right: 2px; font-size: 0.5rem; padding: 1px 3px; background: #fff; color: #000; font-weight: bold; }
 
-        #mid-ui { height: 140px; background: #111; border-top: 2px solid #444; display: flex; flex-direction: column; align-items: center; padding: 5px; }
-        #msg { font-size: 0.8rem; color: #0f0; height: 45px; text-align: center; display: flex; align-items: center; white-space: pre-wrap; }
-        .btn-row { display: flex; gap: 5px; width: 95%; justify-content: center; }
-        button { flex: 1; height: 40px; font-family: 'DotGothic16'; border: 2px solid #fff; color: #fff; background: #444; font-size: 0.75rem; }
-
-        /* コレクション画面：オーバーレイ全体 */
-        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 100; display: none; flex-direction: column; align-items: center; padding: 10px; box-sizing: border-box; }
-        
-        /* グリッド修正：絶対に重ならない設定 */
-        .lib-grid { 
-            display: grid; 
-            grid-template-columns: repeat(3, 1fr); /* 3列にして余裕を持たせる */
-            gap: 10px; 
-            width: 100%; 
-            max-height: 65vh; 
-            overflow-y: scroll; 
-            padding: 10px;
-            box-sizing: border-box;
-            -webkit-overflow-scrolling: touch;
+        .info-part { 
+            flex-grow: 1; 
+            display: flex; flex-direction: column; 
+            justify-content: space-between;
+            height: 80px;
         }
-
-        /* マス目単体の設定 */
-        .lib-slot { 
-            min-height: 60px; /* 高さを最低限確保しつつ、中身が増えたら伸びるようにする */
-            background: #222; 
-            border: 1px solid #444; 
+        .visual-card { 
+            width: 100%; height: 45px; 
+            border: 1px solid #888; background: #111; 
+            position: relative; display: flex; align-items: center; justify-content: center;
             border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 5px;
-            text-align: center;
-            position: relative;
-            box-sizing: border-box;
         }
+        .rarity-tag { position: absolute; top: 1px; right: 2px; font-size: 0.5rem; color: var(--gold); }
+        .card-name { font-size: 0.65rem; text-align: center; width: 90%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 
-        /* 中身のテキスト：重なりの原因を排除 */
-        .slot-content {
-            font-size: 0.6rem; 
-            color: #666;
-            word-break: break-all; /* 長い単語を途中で折る */
-            line-height: 1.2;
-            pointer-events: none;
+        .stat-line { font-size: 0.65rem; display: flex; justify-content: space-between; margin-top: 2px; }
+        .bar-bg { width: 100%; height: 6px; background: #222; border: 1px solid #444; margin-top: 2px; overflow: hidden; }
+        .bar-fill { height: 100%; width: 0%; transition: width 0.3s; }
+
+        /* 中段UI */
+        #mid-ui { 
+            height: 120px; flex-shrink: 0;
+            background: #111; border-top: 2px solid #444; 
+            display: flex; flex-direction: column; align-items: center; padding: 5px; 
         }
+        #msg { font-size: 0.8rem; color: #0f0; height: 40px; text-align: center; display: flex; align-items: center; }
+        .btn-row { display: flex; gap: 5px; width: 95%; height: 45px; }
+        button { flex: 1; font-family: 'DotGothic16'; border: 2px solid #fff; color: #fff; background: #444; cursor: pointer; }
 
-        .lib-slot.found { background: #333; border-color: #00f2ff; }
-        .lib-slot.found .slot-content { color: #fff; }
-
-        .lib-rare-dot { 
-            position: absolute; 
-            top: 2px; 
-            right: 2px; 
-            font-size: 0.5rem; 
-            font-weight: bold;
-            color: var(--gold);
+        /* コレクション画面（修正済みのものを維持） */
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 100; display: none; flex-direction: column; align-items: center; padding: 15px; box-sizing: border-box; }
+        .lib-grid { 
+            display: grid; grid-template-columns: repeat(3, 1fr); 
+            gap: 8px; width: 100%; max-height: 60vh; overflow-y: auto; padding: 10px; 
         }
-
-        /* 詳細ポップアップ */
-        .detail-pop { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #111; border: 2px solid var(--gold); padding: 20px; z-index: 200; width: 85%; text-align: center; display: none; box-shadow: 0 0 20px rgba(255,215,0,0.3); }
+        .lib-slot { 
+            min-height: 60px; background: #222; border: 1px solid #444; 
+            display: flex; align-items: center; justify-content: center; 
+            padding: 5px; text-align: center; font-size: 0.6rem; color: #666;
+            border-radius: 4px;
+        }
+        .lib-slot.found { color: #fff; border-color: var(--p-color); background: #333; }
     </style>
 </head>
 <body>
 
 <div id="header"><button onclick="openLibrary()" class="lib-btn">COLLECTION</button></div>
 
-<div class="char-area" id="p-area">
-    <div class="cam-part"><div class="cam-frame"><video id="pv" autoplay playsinline muted></video></div></div>
+<div class="char-area">
+    <div class="cam-part"><div class="cam-frame" id="pf"><video id="pv" autoplay playsinline muted></video></div></div>
     <div class="info-part">
-        <div id="p-card" class="visual-card">
-            <div id="p-rare" class="rarity-tag">-</div>
-            <div id="p-sym" style="font-size:2rem;">?</div>
-            <div id="p-name" style="font-size:0.6rem;">READY</div>
+        <div class="visual-card">
+            <span class="rarity-tag" id="p-rare">-</span>
+            <div class="card-name" id="p-name">SCANNER READY</div>
         </div>
-        <div class="stat-text">LV:<span id="p-lv">1</span> HP:<span id="p-hp-cur">1000</span> ATK:<span id="p-atk-val">0</span> DEF:<span id="p-def-val">50</span></div>
+        <div class="stat-line">
+            <span>LV:<span id="p-lv">1</span></span>
+            <span>HP:<span id="p-hp-cur">1000</span></span>
+            <span>ATK:<span id="p-atk">0</span></span>
+        </div>
         <div class="bar-bg"><div id="p-fill" class="bar-fill" style="background:var(--p-color); width:100%"></div></div>
     </div>
 </div>
@@ -106,131 +107,119 @@
 <div id="mid-ui">
     <div id="msg">INITIALIZING...</div>
     <div class="btn-row">
-        <button id="scan-btn" onclick="handleScan()" disabled>LOADING</button>
+        <button id="scan-btn" onclick="handleScan()" disabled>SCAN</button>
         <button id="atk-btn" onclick="handleAttack()" disabled>ATTACK</button>
-        <button id="item-open-btn" onclick="openItemMenu()" disabled>ITEM</button>
+        <button onclick="openLibrary()">MENU</button>
     </div>
 </div>
 
-<div class="char-area" id="e-area">
-    <div class="cam-part"><div class="cam-frame"><video id="ev" autoplay playsinline muted></video></div></div>
+<div class="char-area">
+    <div class="cam-part"><div class="cam-frame" id="ef"><video id="ev" autoplay playsinline muted></video></div></div>
     <div class="info-part">
-        <div id="e-card" class="visual-card">
-            <div id="e-rare" class="rarity-tag">-</div>
-            <div id="e-sym" style="font-size:2rem;">?</div>
-            <div id="e-name" style="font-size:0.6rem;">???</div>
+        <div class="visual-card">
+            <span class="rarity-tag" id="e-rare">-</span>
+            <div class="card-name" id="e-name">???</div>
         </div>
-        <div class="stat-text">HP:<span id="e-hp-cur">0</span> ATK:<span id="e-atk-val">0</span> DEF:<span id="e-def-val">0</span></div>
+        <div class="stat-line">
+            <span>HP:<span id="e-hp-cur">0</span></span>
+            <span>ATK:<span id="e-atk">0</span></span>
+        </div>
         <div class="bar-bg"><div id="e-fill" class="bar-fill" style="background:var(--e-color);"></div></div>
     </div>
 </div>
 
 <div id="lib-overlay" class="overlay">
-    <h2 style="margin:5px 0;">COLLECTION</h2>
-    <div style="display:flex; gap:10px; margin-bottom:10px;">
+    <h2>COLLECTION</h2>
+    <div style="display:flex; gap:5px; margin-bottom:10px;">
         <button onclick="renderLib('W')">WEAPON</button>
         <button onclick="renderLib('M')">MONSTER</button>
-        <button onclick="renderLib('I')">ITEM</button>
     </div>
     <div id="lib-grid" class="lib-grid"></div>
-    <button onclick="closeOverlay('lib-overlay')" style="margin-top:10px; width:150px; height:40px;">CLOSE</button>
+    <button onclick="closeOverlay('lib-overlay')" style="margin-top:20px; width:100px; height:40px;">CLOSE</button>
 </div>
 
-<div id="detail-pop" class="detail-pop"><h3 id="det-name"></h3><p id="det-desc" style="font-size:0.8rem;"></p><button onclick="closeDetail()" style="width:100px;">CLOSE</button></div>
-
-<div id="item-overlay" class="overlay"><h2>BAG</h2><div id="item-list" style="width:100%;"></div><button onclick="closeOverlay('item-overlay')" style="margin-top:10px;">CLOSE</button></div>
-
 <script>
-    // データベース等 (4.3〜4.5と同様)
-    const DB_WEAPON = ["錆びた短剣","棒切れ","鉄のヤスリ","練習用の剣","皮のムチ","石の礫","粗末な弓","鉄の棒","薪割り斧","穴の空いた盾","ブロンズナイフ","鉄の爪","ランス","警棒","木刀","石のメイス","投げナイフ","鉄の針","兵士の剣","古いハルバード","鋼鉄の長剣","処刑人の斧","銀のレイピア","剛弓","漆黒の短刀","熟練の戦槌","猛獣の牙","抜刀斎の刀","暗殺者の針","閃光のダガー","守護者の大盾","スナイパーライフル","騎士のランス","十字槍","三節棍","フランベルジュ","魔法の杖","三叉矛","黄金の槌","カトラス","バスターソード","ミスリルの小太刀","凍結の魔弓","爆炎の斧","稲妻の刺剣","竜殺しの太刀","幻影の双剣","岩断ちの巨斧","精霊の杖","破邪の弓","守護神の槍","毒蛇の尾","吸血の牙","星屑のメイス","震動のハンマー","蒼天の剣","烈風の鎌","断罪の鎖","賢者の辞典","深海のマント","フレイムタン","ミョルニル","トライデント","ガイアハンマー","円月刀","クレイモア","巨人の鉄球","フレイル","細剣","魔槍","聖騎士の盾","黒金の棍棒","呪いの呪符","煉獄の鎌","極光の矢","神速のダガー","不壊の籠手","飛龍の魔笛","混沌の杖","虚空の鏡","魔剣グラム","聖剣エクスカリバー","竜槍ゲイボルグ","聖槍ロンギヌス","天羽々斬","村正","神弓アルテミス","モーニングスター","アロンダイト","デュランダル","妖刀正宗","霊刀七支刀","魔導書アルマデル","破滅の爪","絶影","究極神剣ゼノス","時空貫通神槍","真理の魔導核","天地崩壊の終槌","黙示録の神盾"];
-    const DB_MONSTER = ["スライム","ゴブリン","スケルトン","野良犬","巨大クモ","ウィスプ","コバルト","大ネズミ","ゾンビ","バット","泥人形","凶暴な鶏","迷い魂","寄生虫","影","浮遊する目玉","毒蜂","腐った樹木","石のトカゲ","はぐれメタル","オーク","デスナイト","ケルベロス","キマイラ","ミミック","ガーゴイル","リビングアーマー","ウェアウルフ","バンシー","グール","サキュバス","インプ","ハーピー","ラミア","ケンタウロス","ミノタウロス","マンティコア","コカトリス","サラマンダー","ウンディーネ","レッドドラゴン","ヴァンパイア","首なし騎士","デーモン","ゴーレム","グリフォン","バジリスク","ヒュドラ","クラーケン","フェニックス","巨大な百足","呪いの遺影","砂漠の魔人","雪女","雷獣","闇の司祭","死霊使い","沼の怪物","迷宮の番人","岩石巨人","古龍","災厄の化身","アークデーモン","堕天使","リッチ","デーモンロード","双頭の巨獣","ヤマタノオロチ","イフリート","シヴァ","ラムウ","タイタン","ガルーダ","リヴァイアサン","カオス","メドゥーサ","キュクロプス","ベヒーモス","スフィンクス","守護像","神竜","創世の巨神","熾天使","冥王ハデス","破壊神シヴァ","大天使ミカエル","妖狐玉藻前","八咫烏","麒麟","鳳凰","白虎","玄武","朱雀","青龍","魔王サタン","奈落の支配者","終焉を喰らう者","虚無の特異点","黙示録の黒竜","創世の父"];
-    const DB_ITEM = ["泥水","雑草","苔","樹液","露玉","葉っぱ","湧き水","飴玉","軟膏","薬湯","薬草","ポーション","蒸留水","お守り","粉薬","紅茶","栄養剤","ビスケット","秘薬","聖杯","砥石","爪","牙","火薬","重い石","釘","枝","インゴット","紋章","狼の血","勇気の証","硝石","矢尻","指輪","鱗","激昂の角","隕石","雷の魔石","たてがみ","狂乱のベルセルク","腐敗液","毒キノコ","針","粉末","痺れ草","蜂の針","抜け殻","毒液","腐食剤","怨念の霧","蜘蛛の糸","劇薬","瘴気","闇の雫","死神の吐息","冥界の酒","滅びの刻印","呪い符","煉獄の炎","終焉の宣告","ヤスリ","泥団子","虫食い皮","水晶","呪文","重力砂","粘着液","溶解液","破甲槌","脆化粉","亀裂石","拘束鎖","脱力霧","防壁崩し槍","虚無眼","王水","裂く爪","浸食金","魂の檻","因果の断絶","火炎玉","焔心","溶岩滴","水晶玉","氷河涙","真珠","雷電球","尾羽","帯電角","大地種","樹木記憶","森林珠","灼熱石","清流石","鳴神石","風琥珀","明星石","宵闇石","混沌珠","創世のプリズム"];
+    // データベース等
+    const DB_WEAPON = ["錆びた短剣","練習用の剣","鋼鉄の長剣","銀のレイピア","剛弓","抜刀斎の刀","魔法の杖","バスターソード","竜殺しの太刀","聖剣エクスカリバー"];
+    const DB_MONSTER = ["スライム","ゴブリン","スケルトン","ケルベロス","キマイラ","ミミック","デーモン","フェニックス","古龍","終焉を喰らう者"];
 
-    let net, mode="W", lv=1, exp=0, php=1000, pMax=1000, patk=0, pdefBase=50, pdef=50, eatk=0, edef=0, ehp=0, eMax=0, stream=null;
-    let library = JSON.parse(localStorage.getItem('myth_v4_final')) || { W: {}, M: {}, I: {}, stats: {lv:1, exp:0, pMax:1000, pAtkBonus:1.0, pDefBonus:1.0} };
+    let net, mode="W", lv=1, php=1000, pMax=1000, ehp=0, eMax=0, patk=0, eatk=0, stream=null;
+    let library = JSON.parse(localStorage.getItem('myth_v4_final')) || { W: {}, M: {}, stats: {lv:1} };
 
     async function init() {
-        try { net = await mobilenet.load(); document.getElementById('scan-btn').disabled = false; document.getElementById('scan-btn').innerText = "SCAN"; document.getElementById('msg').innerText = "武器をスキャン..."; switchCamera('P'); }
+        try { net = await mobilenet.load(); document.getElementById('scan-btn').disabled = false; document.getElementById('msg').innerText = "武器をスキャンしてください"; switchCamera('P'); }
         catch (e) { document.getElementById('msg').innerText = "AI ERROR"; }
-        updateUI();
     }
 
     async function switchCamera(target) {
         if(stream) stream.getTracks().forEach(t => t.stop());
-        const vId = {P:'pv', E:'ev', B:'bv'}[target];
-        if(!vId) return;
+        const vId = target === 'P' ? 'pv' : 'ev';
         try {
             stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
-            document.getElementById(vId).srcObject = stream;
-            document.querySelectorAll('.cam-frame').forEach(f=>f.classList.remove('cam-active'));
-            document.getElementById(vId).parentElement.classList.add('cam-active');
+            const vid = document.getElementById(vId);
+            vid.srcObject = stream;
+            document.getElementById('pf').classList.toggle('cam-active', target==='P');
+            document.getElementById('ef').classList.toggle('cam-active', target==='E');
         } catch(e) { console.error(e); }
     }
 
-    // コレクションレンダリング：重なりを絶対に許さないロジック
+    async function handleScan() {
+        let id = Math.floor(Math.random() * 10);
+        if(mode==="W") {
+            patk = (id + 1) * 50;
+            document.getElementById('p-name').innerText = DB_WEAPON[id];
+            document.getElementById('p-atk').innerText = patk;
+            library.W[id] = {t: DB_WEAPON[id]};
+            mode="M"; switchCamera('E');
+            document.getElementById('msg').innerText = "モンスターをスキャン！";
+        } else {
+            eMax = (id + 1) * 150; ehp = eMax; eatk = (id + 1) * 30;
+            document.getElementById('e-name').innerText = DB_MONSTER[id];
+            document.getElementById('e-hp-cur').innerText = ehp;
+            document.getElementById('e-atk').innerText = eatk;
+            library.M[id+100] = {t: DB_MONSTER[id]};
+            document.getElementById('atk-btn').disabled = false;
+            document.getElementById('scan-btn').disabled = true;
+            document.getElementById('msg').innerText = "BATTLE START!";
+            updateUI();
+        }
+        localStorage.setItem('myth_v4_final', JSON.stringify(library));
+    }
+
+    function handleAttack() {
+        ehp -= patk;
+        document.getElementById('msg').innerText = `${patk}のダメージ！`;
+        if(ehp <= 0) {
+            ehp = 0; document.getElementById('msg').innerText = "勝利！次のバトルへ";
+            document.getElementById('atk-btn').disabled = true;
+            document.getElementById('scan-btn').disabled = false;
+            mode = "W"; switchCamera('P');
+        }
+        updateUI();
+    }
+
+    function updateUI() {
+        document.getElementById('p-fill').style.width = (php/pMax*100) + "%";
+        document.getElementById('e-fill').style.width = (eMax>0 ? (ehp/eMax*100) : 0) + "%";
+        document.getElementById('e-hp-cur').innerText = Math.max(0, ehp);
+    }
+
     function renderLib(type) {
         const grid = document.getElementById('lib-grid');
         grid.innerHTML = "";
-        const offset = {W:0, M:100, I:200}[type];
-        const dataSrc = {W:DB_WEAPON, M:DB_MONSTER, I:DB_ITEM}[type];
-        
-        for(let i=0; i<dataSrc.length; i++) {
-            const id = offset + i;
-            const data = library[type][id];
-            
+        const dataSrc = type === 'W' ? DB_WEAPON : DB_MONSTER;
+        const offset = type === 'W' ? 0 : 100;
+        dataSrc.forEach((name, i) => {
             const slot = document.createElement('div');
-            slot.className = "lib-slot" + (data ? " found" : "");
-            
-            const content = document.createElement('div');
-            content.className = "slot-content";
-            content.innerText = data ? data.t : `No.${id}`;
-            
-            if(data) {
-                slot.onclick = () => {
-                    document.getElementById('det-name').innerText = data.t;
-                    document.getElementById('det-desc').innerText = `Rarity: ${data.r || 'NORMAL'}`;
-                    document.getElementById('detail-pop').style.display = 'block';
-                };
-                if(data.r && data.r !== "NORMAL") {
-                    const rare = document.createElement('div');
-                    rare.className = "lib-rare-dot";
-                    rare.innerText = data.r.charAt(0);
-                    slot.appendChild(rare);
-                }
-            }
-            slot.appendChild(content);
+            const found = library[type][i + offset];
+            slot.className = "lib-slot" + (found ? " found" : "");
+            slot.innerText = found ? name : "???";
             grid.appendChild(slot);
-        }
+        });
     }
 
     function openLibrary() { document.getElementById('lib-overlay').style.display='flex'; renderLib('W'); }
     function closeOverlay(id) { document.getElementById(id).style.display='none'; }
-    function closeDetail() { document.getElementById('detail-pop').style.display = 'none'; }
-
-    // 以下、スキャン・バトル等の基本ロジック（前バージョンと同じため省略可だが動作のために維持）
-    async function handleScan() {
-        // ... (省略: 前回のバージョンと同じスキャンロジック)
-        // デモ用に簡易化
-        let id = Math.floor(Math.random() * 100);
-        if(mode==="W") {
-            library.W[id] = {t: DB_WEAPON[id], r: "NORMAL"};
-            mode="M"; switchCamera('E');
-            document.getElementById('msg').innerText = "モンスターをスキャン！";
-        } else {
-            library.M[id+100] = {t: DB_MONSTER[id], r: "NORMAL"};
-            document.getElementById('atk-btn').disabled = false;
-            document.getElementById('scan-btn').disabled = true;
-            document.getElementById('msg').innerText = "BATTLE!";
-        }
-        localStorage.setItem('myth_v4_final', JSON.stringify(library));
-        updateUI();
-    }
-    
-    function updateUI() {
-        document.getElementById('p-lv').innerText = lv;
-        document.getElementById('p-atk-val').innerText = patk;
-        document.getElementById('p-def-val').innerText = pdef;
-    }
 
     window.onload = init;
 </script>
