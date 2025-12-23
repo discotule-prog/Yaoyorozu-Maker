@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER 4.20</title>
+    <title>MYTH SCANNER 4.21</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
@@ -164,9 +164,8 @@
             let base = DB_WEAPON[id] || DB_WEAPON[0]; pelem = ["🔥", "💧", "⚡", "🌿"][id % 4];
             let rarityMult = (id >= 95) ? 6.0 : (id >= 80) ? 4.0 : (id >= 40) ? 2.2 : 1.2;
             
-            // 武器の個性ロジック
-            let individualMult = 0.85 + Math.random() * 0.3; // ±15%の個体差
-            let type = id % 3; // 0:攻撃型, 1:防御型, 2:バランス型
+            let individualMult = 0.85 + Math.random() * 0.3;
+            let type = id % 3;
             let bAtk = type === 0 ? 130 : type === 1 ? 70 : 100;
             let bDef = type === 0 ? 10 : type === 1 ? 80 : 40;
             
@@ -180,11 +179,18 @@
             document.getElementById('msg').innerText = `ATK:${patk} DEF:${pdef} を装備！\n次はモンスターをスキャン！`;
         } else {
             let base = DB_MONSTER[id] || DB_MONSTER[0]; eelem = ["🔥", "💧", "⚡", "🌿"][id % 4];
-            let rarityMult = (id >= 95) ? 7.0 : (id >= 80) ? 4.5 : (id >= 40) ? 2.5 : 1.1;
+            
+            // NORMALランクの基礎倍率を 1.1 -> 1.6 に強化
+            let rarityMult = (id >= 95) ? 7.0 : (id >= 80) ? 4.5 : (id >= 40) ? 2.5 : 1.6;
+            
             currentEnemyRank = rarityMult * (0.8 + Math.random() * 0.4); 
-            eMax = Math.floor(800 * currentEnemyRank * (1 + (lv-1)*0.05)); ehp = eMax; 
-            eatk = Math.floor(70 * currentEnemyRank * (1 + (lv-1)*0.05));
-            edef = Math.floor(30 * currentEnemyRank * (1 + (lv-1)*0.05));
+            
+            // レベルによる強化率を 0.05 -> 0.1 に倍増
+            let lvFactor = (1 + (lv-1)*0.1); 
+            eMax = Math.floor(800 * currentEnemyRank * lvFactor); ehp = eMax; 
+            eatk = Math.floor(75 * currentEnemyRank * lvFactor);
+            edef = Math.floor(35 * currentEnemyRank * lvFactor);
+            
             updateCardUI('e', rareLabel === "NORMAL" ? "NORMAL" : "BOSS", "👾", `${aiName}の${base}`, eelem);
             library.M[id+100] = {t: base, e: eelem, r: rareLabel};
             switchCamera('OFF'); 
