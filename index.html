@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER 4.12</title>
+    <title>MYTH SCANNER 4.13</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
@@ -12,13 +12,11 @@
         body { font-family: 'DotGothic16', sans-serif; background: #000; color: #fff; margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         #header { height: 40px; background: #222; display: flex; justify-content: center; align-items: center; border-bottom: 2px solid #444; flex-shrink: 0; }
         .lib-btn { width: 50%; font-size: 0.6rem; height: 24px; background: #555; border: 1px solid #fff; color: #fff; cursor: pointer; }
-        
         .char-area { height: 32%; display: flex; border-bottom: 1px solid #333; padding: 10px; box-sizing: border-box; }
         .cam-part { width: 35%; display: flex; align-items: center; justify-content: center; }
         .cam-frame { width: 90px; height: 90px; border: 2px solid #555; background: #111; overflow: hidden; position: relative; border-radius: 8px; }
         video { width: 100%; height: 100%; object-fit: cover; display: none; }
         .cam-active video { display: block !important; border-color: #0f0; }
-        
         .info-part { width: 65%; display: flex; flex-direction: column; padding-left: 10px; justify-content: center; }
         .visual-card { width: 100%; height: 80px; border: 2px solid #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #111; position: relative; border-radius: 4px; overflow: hidden; }
         .stat-text { font-size: 0.65rem; color: #ccc; margin-top: 2px; line-height: 1.2; }
@@ -27,13 +25,11 @@
         .bar-fill { height: 100%; width: 0%; transition: width 0.4s ease-out; }
         .rarity-tag { position: absolute; top: 2px; right: 2px; font-size: 0.5rem; padding: 1px 3px; background: #fff; color: #000; font-weight: bold; }
         .elem-tag { position: absolute; top: 2px; left: 2px; font-size: 0.7rem; }
-
         #mid-ui { height: 140px; background: #111; border-top: 2px solid #444; display: flex; flex-direction: column; align-items: center; padding: 5px; flex-shrink: 0; }
         #msg { font-size: 0.8rem; color: #0f0; height: 45px; text-align: center; display: flex; align-items: center; padding: 0 10px; line-height: 1.2; white-space: pre-wrap; }
         .btn-row { display: flex; gap: 5px; width: 95%; justify-content: center; margin-bottom: 5px; }
         button { flex: 1; height: 40px; font-family: 'DotGothic16'; border: 2px solid #fff; color: #fff; background: #444; font-size: 0.75rem; cursor: pointer; }
         button:disabled { opacity: 0.3; }
-
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 100; display: none; flex-direction: column; align-items: center; padding: 15px; box-sizing: border-box; }
         .lib-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; max-height: 60vh; overflow-y: auto; padding: 10px; box-sizing: border-box; }
         .lib-slot { min-height: 65px; background: #222; border: 1px solid #444; border-radius: 4px; display: flex; align-items: center; justify-content: center; padding: 5px; text-align: center; position: relative; cursor: pointer; }
@@ -41,7 +37,6 @@
         .lib-slot.found { border-color: var(--p-color); background: #333; }
         .lib-slot.found .slot-content { color: #fff; }
         .lib-rare-dot { position: absolute; top: 2px; right: 2px; font-size: 0.5rem; font-weight: bold; color: var(--gold); }
-
         .detail-pop { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #222; border: 3px solid var(--gold); padding: 20px; z-index: 200; width: 80%; text-align: center; display: none; border-radius: 10px; }
         .shake { animation: s 0.2s; }
         @keyframes s { 0%,100%{transform:translateX(0)} 25%{transform:translateX(5px)} 75%{transform:translateX(-5px)} }
@@ -112,7 +107,6 @@
 <div id="bonus-overlay" class="overlay">
     <h2 style="color:var(--gold);">ITEM SCAN</h2>
     <div class="cam-frame" style="width:150px; height:150px;"><video id="bv" autoplay playsinline muted></video></div>
-    <div id="bonus-msg" style="font-size:0.7rem; margin-top:10px;">カメラにアイテムを映してボタンを押してください</div>
     <button id="bonus-get-btn" onclick="getBonusItem()" style="background:#0044cc; width:100%; margin-top:20px; height:50px;">GET ITEM</button>
 </div>
 
@@ -219,27 +213,15 @@
     async function getBonusItem() {
         const btn = document.getElementById('bonus-get-btn');
         btn.disabled = true; btn.innerText = "SCANNING...";
-        
-        let id; try { 
-            const r = await net.classify(document.getElementById('bv')); 
-            id = Math.floor(r[0].probability * 100); 
-        } catch(e) { 
-            id = Math.floor(Math.random()*100); 
-        }
-
+        let id; try { const r = await net.classify(document.getElementById('bv')); id = Math.floor(r[0].probability * 100); }
+        catch(e) { id = Math.floor(Math.random()*100); }
         let typeArr = ["HE", "AT", "PO", "WE", "ORB"];
         let type = typeArr[Math.floor(id / 20)];
         let val = (0.1 + (id % 20 / 20) * 0.8);
         const name = DB_ITEM[id] || DB_ITEM[0];
-
-        // インベントリ追加
         if(inventory.length < 5) inventory.push({ n: name, t: type, v: val });
-        // 図鑑追加
         library.I[id+200] = {t: name, et: type, v: val, r: id >= 95 ? "MYTH" : "NORMAL"};
-        
-        save();
-        switchCamera('OFF');
-        document.getElementById('bonus-overlay').style.display='none';
+        save(); switchCamera('OFF'); document.getElementById('bonus-overlay').style.display='none';
         btn.disabled = false; btn.innerText = "GET ITEM";
         finish(true);
     }
@@ -263,7 +245,27 @@
         save(); updateUI();
     }
 
-    function closeResult() { location.reload(); }
+    function closeResult() {
+        // location.reload() を廃止し、内部リセット
+        document.getElementById('res-screen').style.display = 'none';
+        mode = "W";
+        ehp = 0; eMax = 0; eatk = 0; edef = 0;
+        document.getElementById('scan-btn').disabled = false;
+        document.getElementById('atk-btn').disabled = true;
+        document.getElementById('item-open-btn').disabled = true;
+        document.getElementById('msg').innerText = "武器をスキャンしてください";
+        resetCardUI('e');
+        updateUI();
+        switchCamera('P');
+    }
+
+    function resetCardUI(side) {
+        document.getElementById(`${side}-rare`).innerText = "-";
+        const s = document.getElementById(`${side}-sym`);
+        s.innerText = "?"; s.className = "q-mark"; s.style.fontSize = "3rem";
+        document.getElementById(`${side}-name`).innerText = side === 'p' ? "SCANNER READY" : "???";
+        document.getElementById(`${side}-elem`).innerText = "";
+    }
 
     function updateUI() {
         document.getElementById('p-lv').innerText = lv;
@@ -297,23 +299,18 @@
             const id = offset + i; const data = library[type][id];
             const slot = document.createElement('div');
             slot.className = "lib-slot" + (data ? " found" : "");
-            
             if(data) {
                 slot.onclick = () => {
                     document.getElementById('det-name').innerText = data.t;
-                    let desc = "";
-                    if(type === 'W') desc = `攻撃力: ${data.atk}\n属性: ${data.e}\n希少度: ${data.r}`;
-                    else if(type === 'M') desc = `属性: ${data.e}\n希少度: ${data.r}\n\nこのモンスターのデータはスキャナーに記録されている。`;
-                    else desc = getItemDesc(data);
+                    let desc = (type === 'W') ? `攻撃力: ${data.atk}\n属性: ${data.e}\n希少度: ${data.r}` : 
+                               (type === 'M') ? `属性: ${data.e}\n希少度: ${data.r}\n\nこのモンスターのデータはスキャナーに記録されている。` : getItemDesc(data);
                     document.getElementById('det-desc').innerText = desc;
                     document.getElementById('detail-pop').style.display = 'block';
                 };
             }
-
             const content = document.createElement('div');
             content.className = "slot-content";
             content.innerText = data ? data.t : `No.${id}`;
-            
             if(data && data.r && data.r !== "NORMAL") {
                 const dot = document.createElement('div'); dot.className = "lib-rare-dot"; dot.innerText = data.r[0];
                 slot.appendChild(dot);
@@ -347,7 +344,6 @@
     function openLibrary() { renderLib('W'); document.getElementById('lib-overlay').style.display='flex'; }
     function closeOverlay(id) { document.getElementById(id).style.display='none'; }
     function closeDetail() { document.getElementById('detail-pop').style.display = 'none'; }
-
     window.onload = init;
 </script>
 </body>
