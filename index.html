@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER 4.13</title>
+    <title>MYTH SCANNER 4.14</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
@@ -142,18 +142,6 @@
         } catch(e) { console.error("Camera Error:", e); }
     }
 
-    function getItemDesc(data) {
-        if(!data || !data.et) return "詳細不明のアイテム。";
-        let p = Math.floor((data.v || 0.5) * 100);
-        switch(data.et) {
-            case "HE": return `HP回復 +${p}%`;
-            case "AT": return `次撃ダメージ +${p+100}%`;
-            case "PO": return `割合ダメージ ${p}%`;
-            case "WE": return `防御低下 ${p}%`;
-            default: return "特殊な効果を秘めている。";
-        }
-    }
-
     async function handleScan() {
         const vid = mode==="W" ? document.getElementById('pv') : document.getElementById('ev');
         let id, aiName = "UNKNOWN";
@@ -167,7 +155,8 @@
             patk = Math.floor(100 * rarityMult * pAtkBonus);
             updateCardUI('p', rareLabel, "⚔️", `${aiName}の${base}`, pelem);
             library.W[id] = {t: base, e: pelem, r: rareLabel, atk: patk};
-            mode="M"; switchCamera('E'); document.getElementById('msg').innerText = "次はモンスターをスキャン！";
+            mode="M"; switchCamera('E'); 
+            document.getElementById('msg').innerText = "武器を装備した！\n次はモンスターをスキャン！";
         } else {
             let base = DB_MONSTER[id] || DB_MONSTER[0]; eelem = ["🔥", "💧", "⚡", "🌿"][id % 4];
             let rarityMult = (id >= 95) ? 7.0 : (id >= 80) ? 4.5 : (id >= 40) ? 2.5 : 1.1;
@@ -177,8 +166,12 @@
             edef = Math.floor(30 * currentEnemyRank * (1 + (lv-1)*0.05));
             updateCardUI('e', rareLabel === "NORMAL" ? "NORMAL" : "BOSS", "👾", `${aiName}の${base}`, eelem);
             library.M[id+100] = {t: base, e: eelem, r: rareLabel};
-            switchCamera('OFF'); document.getElementById('atk-btn').disabled = false; document.getElementById('item-open-btn').disabled = false;
-            document.getElementById('scan-btn').disabled = true; document.getElementById('msg').innerText = "BATTLE START!";
+            switchCamera('OFF'); 
+            document.getElementById('atk-btn').disabled = false; 
+            document.getElementById('item-open-btn').disabled = false;
+            document.getElementById('scan-btn').disabled = true; 
+            document.getElementById('msg').innerText = `野生の ${base} が現れた！\nBATTLE START!`;
+            setTimeout(() => { if(ehp > 0) document.getElementById('msg').innerText = "あなたのターンです！"; }, 1500);
         }
         save(); updateUI();
     }
@@ -187,25 +180,41 @@
         document.getElementById('atk-btn').disabled = true;
         let mult = (ELEMENTS[pelem] === eelem) ? 1.5 : (ELEMENTS[eelem] === pelem) ? 0.6 : 1.0;
         let dmg = Math.floor(Math.max(30, (patk * mult * atkBoostMult) - edef/3));
-        ehp -= dmg; atkBoostMult = 1; updateUI();
+        ehp -= dmg; 
+        document.getElementById('msg').innerText = `${dmg} ダメージ与えた！` + (mult > 1 ? "\n効果は抜群だ！" : "");
+        atkBoostMult = 1; 
+        updateUI();
         document.getElementById('e-area').classList.add('shake');
         setTimeout(() => {
             document.getElementById('e-area').classList.remove('shake');
-            if(ehp <= 0) showBonus(); else enemyTurn();
+            if(ehp <= 0) {
+                document.getElementById('msg').innerText = "敵を倒した！";
+                showBonus(); 
+            } else {
+                enemyTurn();
+            }
         }, 800);
     }
 
     function enemyTurn() {
+        document.getElementById('msg').innerText = "敵の攻撃ターン！";
         setTimeout(() => {
             let mult = (ELEMENTS[eelem] === pelem) ? 1.4 : (ELEMENTS[pelem] === eelem) ? 0.7 : 1.0;
             let dmg = Math.floor(Math.max(20, (eatk * mult) - pdef/2));
-            php -= dmg; updateUI();
+            php -= dmg; 
+            document.getElementById('msg').innerText = `${dmg} ダメージ受けた！`;
+            updateUI();
             document.getElementById('p-area').classList.add('shake');
             setTimeout(() => {
                 document.getElementById('p-area').classList.remove('shake');
-                if(php <= 0) finish(false); else document.getElementById('atk-btn').disabled = false;
-            }, 600);
-        }, 500);
+                if(php <= 0) {
+                    finish(false);
+                } else {
+                    document.getElementById('msg').innerText = "あなたのターンです！";
+                    document.getElementById('atk-btn').disabled = false;
+                }
+            }, 800);
+        }, 1000);
     }
 
     function showBonus() { document.getElementById('bonus-overlay').style.display='flex'; switchCamera('B'); }
@@ -220,7 +229,7 @@
         let val = (0.1 + (id % 20 / 20) * 0.8);
         const name = DB_ITEM[id] || DB_ITEM[0];
         if(inventory.length < 5) inventory.push({ n: name, t: type, v: val });
-        library.I[id+200] = {t: name, et: type, v: val, r: id >= 95 ? "MYTH" : "NORMAL"};
+        library.I[id+200] = {t: name, r: id >= 95 ? "MYTH" : "NORMAL"};
         save(); switchCamera('OFF'); document.getElementById('bonus-overlay').style.display='none';
         btn.disabled = false; btn.innerText = "GET ITEM";
         finish(true);
@@ -246,17 +255,13 @@
     }
 
     function closeResult() {
-        // location.reload() を廃止し、内部リセット
         document.getElementById('res-screen').style.display = 'none';
-        mode = "W";
-        ehp = 0; eMax = 0; eatk = 0; edef = 0;
+        mode = "W"; ehp = 0; eMax = 0; eatk = 0; edef = 0;
         document.getElementById('scan-btn').disabled = false;
         document.getElementById('atk-btn').disabled = true;
         document.getElementById('item-open-btn').disabled = true;
         document.getElementById('msg').innerText = "武器をスキャンしてください";
-        resetCardUI('e');
-        updateUI();
-        switchCamera('P');
+        resetCardUI('e'); updateUI(); switchCamera('P');
     }
 
     function resetCardUI(side) {
@@ -303,7 +308,8 @@
                 slot.onclick = () => {
                     document.getElementById('det-name').innerText = data.t;
                     let desc = (type === 'W') ? `攻撃力: ${data.atk}\n属性: ${data.e}\n希少度: ${data.r}` : 
-                               (type === 'M') ? `属性: ${data.e}\n希少度: ${data.r}\n\nこのモンスターのデータはスキャナーに記録されている。` : getItemDesc(data);
+                               (type === 'M') ? `属性: ${data.e}\n希少度: ${data.r}\n\nこのモンスターのデータはスキャナーに記録されている。` : 
+                               `希少度: ${data.r}\n\nこのアイテムはBAGから使用することができる。`;
                     document.getElementById('det-desc').innerText = desc;
                     document.getElementById('detail-pop').style.display = 'block';
                 };
@@ -325,7 +331,8 @@
         if(inventory.length === 0) list.innerHTML = "<p style='font-size:0.7rem; color:#666;'>バッグは空です</p>";
         inventory.forEach((itm, i) => {
             const b = document.createElement('button'); b.style.width = "100%"; b.style.marginBottom = "5px";
-            b.innerHTML = `${itm.n}<br><span style="font-size:0.6rem; color:#0f0;">${getItemDesc(itm)}</span>`;
+            // 説明文(緑メッセージ)を削除し名前のみ表示
+            b.innerHTML = `${itm.n}`;
             b.onclick = () => useItem(itm, i); list.appendChild(b);
         });
         document.getElementById('item-overlay').style.display='flex';
