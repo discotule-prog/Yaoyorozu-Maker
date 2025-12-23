@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER 4.14</title>
+    <title>MYTH SCANNER 4.15</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
@@ -42,6 +42,8 @@
         @keyframes s { 0%,100%{transform:translateX(0)} 25%{transform:translateX(5px)} 75%{transform:translateX(-5px)} }
         .q-mark { font-size: 3rem; color: #333; animation: blink 2s infinite; }
         @keyframes blink { 0%,100% {opacity:1} 50% {opacity:0.3} }
+        /* 小さく調整したCLOSEボタン用 */
+        .small-close { width: 120px !important; height: 35px !important; margin-top: 15px; }
     </style>
 </head>
 <body>
@@ -101,7 +103,7 @@
     <div style="display:flex; gap:5px; margin-bottom:10px;"><button onclick="renderLib('W')">WEAPON</button><button onclick="renderLib('M')">MONSTER</button><button onclick="renderLib('I')">ITEM</button></div>
     <div id="lib-grid" class="lib-grid"></div>
     <button onclick="fullReset()" style="margin-top:15px; background:#aa0000; font-size:0.6rem;">SAVE DATA RESET</button>
-    <button onclick="closeOverlay('lib-overlay')" style="margin-top:10px; width:100px;">CLOSE</button>
+    <button onclick="closeOverlay('lib-overlay')" class="small-close">CLOSE</button>
 </div>
 
 <div id="bonus-overlay" class="overlay">
@@ -110,13 +112,18 @@
     <button id="bonus-get-btn" onclick="getBonusItem()" style="background:#0044cc; width:100%; margin-top:20px; height:50px;">GET ITEM</button>
 </div>
 
-<div id="item-overlay" class="overlay"><h2>BAG</h2><div id="item-list" style="width:100%;"></div><button onclick="closeOverlay('item-overlay')" style="margin-top:10px; width:100px;">CLOSE</button></div>
-<div id="detail-pop" class="detail-pop"><h3 id="det-name"></h3><p id="det-desc" style="white-space: pre-wrap; font-size:0.8rem;"></p><button onclick="closeDetail()" style="margin-top:10px; width:100px;">CLOSE</button></div>
+<div id="item-overlay" class="overlay">
+    <h2>BAG</h2>
+    <div id="item-list" style="width:100%;"></div>
+    <button onclick="closeOverlay('item-overlay')" class="small-close">CLOSE</button>
+</div>
+
+<div id="detail-pop" class="detail-pop"><h3 id="det-name"></h3><p id="det-desc" style="white-space: pre-wrap; font-size:0.8rem;"></p><button onclick="closeDetail()" class="small-close" style="flex:none;">CLOSE</button></div>
 
 <script>
     const DB_WEAPON = ["錆びた短剣","棒切れ","鉄のヤスリ","練習用の剣","皮のムチ","石の礫","粗末な弓","鉄の棒","薪割り斧","穴の空いた盾","ブロンズナイフ","鉄の爪","ランス","警棒","木刀","石のメイス","投げナイフ","鉄の針","兵士の剣","古いハルバード","鋼鉄の長剣","処刑人の斧","銀のレイピア","剛弓","漆黒の短刀","熟練の戦槌","猛獣の牙","抜刀斎の刀","暗殺者の針","閃光のダガー","守護者の大盾","スナイパーライフル","騎士のランス","十字槍","三節棍","フランベルジュ","魔法の杖","三叉矛","黄金の槌","カトラス","バスターソード","ミスリルの小太刀","凍結の魔弓","爆炎の斧","稲妻の刺剣","竜殺しの太刀","幻影の双剣","岩断ちの巨斧","精霊の杖","破邪の弓","守護神の槍","毒蛇の尾","吸血の牙","星屑のメイス","震動のハンマー","蒼天の剣","烈風の鎌","断罪の鎖","賢者の辞典","深海のマント","フレイムタン","ミョルニル","トライデント","ガイアハンマー","円月刀","クレイモア","巨人の鉄球","フレイル","細剣","魔槍","聖騎士の盾","黒金の棍棒","呪いの呪符","煉獄の鎌","極光の矢","神速のダガー","不壊の籠手","飛龍の魔笛","混沌の杖","虚空の鏡","魔剣グラム","聖剣エクスカリバー","竜槍ゲイボルグ","聖槍ロンギヌス","天羽々斬","村正","神弓アルテミス","モーニングスター","アロンダイト","デュランダル","妖刀正宗","霊刀七支刀","魔導書アルマデル","破滅の爪","絶影","究極神剣ゼノス","時空貫通神槍","真理の魔導核","天地崩壊の終槌","黙示録の神盾"];
     const DB_MONSTER = ["スライム","ゴブリン","スケルトン","野良犬","巨大クモ","ウィスプ","コバルト","大ネズミ","ゾンビ","バット","泥人形","凶暴な鶏","迷い魂","寄生虫","影","浮遊する目玉","毒蜂","腐った樹木","石のトカゲ","はぐれメタル","オーク","デスナイト","ケルベロス","キマイラ","ミミック","ガーゴイル","リビングアーマー","ウェアウルフ","バンシー","グール","サキュバス","インプ","ハーピー","ラミア","ケンタウロス","ミノタウロス","マンティコア","コカトリス","サラマンダー","ウンディーネ","レッドドラゴン","ヴァンパイア","首なし騎士","デーモン","ゴーレム","グリフォン","バジリスク","ヒュドラ","クラーケン","フェニックス","巨大な百足","呪いの遺影","砂漠の魔人","雪女","雷獣","闇の司祭","死霊使い","沼の怪物","迷宮の番人","岩石巨人","古龍","災厄の化身","アークデーモン","堕天使","リッチ","デーモンロード","双頭の巨獣","ヤマタノオロチ","イフリート","シヴァ","ラムウ","タイタン","ガルーダ","リヴァイアサン","カオス","メドゥーサ","キュクロプス","ベヒーモス","スフィンクス","守護像","神竜","創世の巨神","熾天使","冥王ハデス","破壊神シヴァ","大天使ミカエル","妖狐玉藻前","八咫烏","麒麟","鳳凰","白虎","玄武","朱雀","青龍","魔王サタン","奈落の支配者","終焉を喰らう者","虚無の特異点","黙示録の黒竜","創世の父"];
-    const DB_ITEM = ["泥水","雑草","苔","樹液","露玉","葉っぱ","湧き水","飴玉","軟膏","薬湯","薬草","ポーション","蒸留水","お守り","粉薬","紅茶","栄養剤","ビスケット","秘薬","聖杯","砥石","爪","牙","火薬","重い石","釘","枝","インゴット","紋章","狼の血","勇気の証","硝石","矢尻","指輪","鱗","激昂の角","隕石","雷の魔石","たてがみ","狂乱のベルセルク","腐敗液","毒キノコ","針","粉末","痺れ草","蜂の針","抜け殻","毒液","腐食剤","怨念の霧","蜘蛛の糸","劇薬","瘴気","闇の雫","死神の吐息","冥界の酒","滅びの刻印","呪い符","煉獄の炎","終焉の宣告","ヤスリ","泥団子","虫食い皮","水晶","呪文","重力砂","粘着液","溶解液","破甲槌","脆化粉","亀裂石","拘束鎖","脱力霧","防壁崩し槍","虚無眼","王水","裂く爪","浸食金","魂の檻","因果の断絶","火炎玉","焔心","溶岩滴","水晶玉","氷河涙","真珠","雷電球","尾羽","帯電角","大地種","樹木記憶","森林珠","灼熱石","清流石","鳴神石","風琥珀","明星石","宵闇石","混沌珠","創世のプリズム"];
+    const DB_ITEM = ["泥水","雑草","苔","樹液","露玉","葉っぱ","湧き水","飴玉","軟膏","薬湯","薬草","ポーション","蒸留水","お守り","粉薬","紅茶","栄養剤","ビスケット","秘薬","聖杯","砥石","爪","牙","火薬","重い石","釘","枝","インゴット","紋章","狼の血","勇気の証","硝石","矢尻","指輪","鱗","激昂の角","隕石","雷の魔石","たてがみ","狂乱のベルセルク","腐敗液","毒キノコ","針","粉末","痺れ草","蜂の針","抜け殻","毒液","腐食剤","怨念の霧","蜘蛛の糸","劇薬","瘴気","闇の雫","死神の吐息","冥界の酒","滅びの刻印","呪い符","煉獄の炎","終焉の宣告","ヤスリ","泥団子","虫食い皮","水晶","呪文","重力砂","粘着液","溶解液","破甲槌","脆化粉","亀裂石","拘束鎖","脱力霧","防壁崩し槍","虚無眼","王水","裂く爪","浸食金","魂の檻","因果の断絶","火炎玉","焔心","溶岩滴","水晶玉","氷河涙","真珠","雷電球","尾羽","帯電角","大地種","樹木記憶","森林珠","灼熱石","清流石","鳴神石","風琥珀","明星石","宵闇石","混沌珠","創世 de プリズム"];
     const ELEMENTS = { "🔥": "🌿", "🌿": "⚡", "⚡": "💧", "💧": "🔥" };
 
     let net, mode="W", lv=1, exp=0, php=1000, pMax=1000, patk=0, pdefBase=50, pdef=50, ehp=0, eMax=0, eatk=0, edef=0, pelem="", eelem="", stream=null, atkBoostMult=1, currentEnemyRank=1, pAtkBonus=1.0, pDefBonus=1.0, inventory = [];
@@ -140,6 +147,16 @@
             document.querySelectorAll('.cam-frame').forEach(f=>f.classList.remove('cam-active'));
             document.getElementById(vId).parentElement.classList.add('cam-active');
         } catch(e) { console.error("Camera Error:", e); }
+    }
+
+    function getItemSimpleEff(type) {
+        switch(type) {
+            case "HE": return "HPを大きく回復する。";
+            case "AT": return "次の攻撃の威力を上げる。";
+            case "PO": return "敵の残りHPに応じたダメージを与える。";
+            case "WE": return "敵の防御力を下げる。";
+            default: return "特殊な効果を発揮する。";
+        }
     }
 
     async function handleScan() {
@@ -167,8 +184,7 @@
             updateCardUI('e', rareLabel === "NORMAL" ? "NORMAL" : "BOSS", "👾", `${aiName}の${base}`, eelem);
             library.M[id+100] = {t: base, e: eelem, r: rareLabel};
             switchCamera('OFF'); 
-            document.getElementById('atk-btn').disabled = false; 
-            document.getElementById('item-open-btn').disabled = false;
+            document.getElementById('atk-btn').disabled = false; document.getElementById('item-open-btn').disabled = false;
             document.getElementById('scan-btn').disabled = true; 
             document.getElementById('msg').innerText = `野生の ${base} が現れた！\nBATTLE START!`;
             setTimeout(() => { if(ehp > 0) document.getElementById('msg').innerText = "あなたのターンです！"; }, 1500);
@@ -182,17 +198,11 @@
         let dmg = Math.floor(Math.max(30, (patk * mult * atkBoostMult) - edef/3));
         ehp -= dmg; 
         document.getElementById('msg').innerText = `${dmg} ダメージ与えた！` + (mult > 1 ? "\n効果は抜群だ！" : "");
-        atkBoostMult = 1; 
-        updateUI();
+        atkBoostMult = 1; updateUI();
         document.getElementById('e-area').classList.add('shake');
         setTimeout(() => {
             document.getElementById('e-area').classList.remove('shake');
-            if(ehp <= 0) {
-                document.getElementById('msg').innerText = "敵を倒した！";
-                showBonus(); 
-            } else {
-                enemyTurn();
-            }
+            if(ehp <= 0) { document.getElementById('msg').innerText = "敵を倒した！"; showBonus(); } else { enemyTurn(); }
         }, 800);
     }
 
@@ -201,18 +211,11 @@
         setTimeout(() => {
             let mult = (ELEMENTS[eelem] === pelem) ? 1.4 : (ELEMENTS[pelem] === eelem) ? 0.7 : 1.0;
             let dmg = Math.floor(Math.max(20, (eatk * mult) - pdef/2));
-            php -= dmg; 
-            document.getElementById('msg').innerText = `${dmg} ダメージ受けた！`;
-            updateUI();
-            document.getElementById('p-area').classList.add('shake');
+            php -= dmg; document.getElementById('msg').innerText = `${dmg} ダメージ受けた！`;
+            updateUI(); document.getElementById('p-area').classList.add('shake');
             setTimeout(() => {
                 document.getElementById('p-area').classList.remove('shake');
-                if(php <= 0) {
-                    finish(false);
-                } else {
-                    document.getElementById('msg').innerText = "あなたのターンです！";
-                    document.getElementById('atk-btn').disabled = false;
-                }
+                if(php <= 0) { finish(false); } else { document.getElementById('msg').innerText = "あなたのターンです！"; document.getElementById('atk-btn').disabled = false; }
             }, 800);
         }, 1000);
     }
@@ -229,7 +232,7 @@
         let val = (0.1 + (id % 20 / 20) * 0.8);
         const name = DB_ITEM[id] || DB_ITEM[0];
         if(inventory.length < 5) inventory.push({ n: name, t: type, v: val });
-        library.I[id+200] = {t: name, r: id >= 95 ? "MYTH" : "NORMAL"};
+        library.I[id+200] = {t: name, et: type, r: id >= 95 ? "MYTH" : "NORMAL"};
         save(); switchCamera('OFF'); document.getElementById('bonus-overlay').style.display='none';
         btn.disabled = false; btn.innerText = "GET ITEM";
         finish(true);
@@ -244,12 +247,12 @@
             let gained = Math.max(5, Math.floor(nextReq * 0.2)); exp += gained;
             let healAmt = Math.floor(pMax * 0.5); php = Math.min(pMax, php + healAmt);
             let resultHtml = `敵を撃破！ EXP +${gained}<br>HPが ${healAmt} 回復！`;
-            if(exp >= nextReq){ lv++; exp=0; pMax = Math.floor(pMax * 1.1); pAtkBonus += 0.05; pDefBonus += 0.05; php=pMax; pdef=Math.floor(pdefBase*pDefBonus); resultHtml=`<span style="color:var(--gold)">LEVEL UP! LV.${lv}</span><br>最大HPと基本能力が上昇！`; }
+            if(exp >= nextReq){ lv++; exp=0; pMax = Math.floor(pMax * 1.1); pAtkBonus += 0.05; pDefBonus += 0.05; php=pMax; pdef=Math.floor(pdefBase*pDefBonus); resultHtml=`<span style="color:var(--gold)">LEVEL UP! LV.${lv}</span><br>能力が上昇！`; }
             resSts.innerHTML = resultHtml;
         } else {
             document.getElementById('res-title').innerText = "LOSE...";
             lv = Math.max(1, lv - 1); exp = 0; php = pMax;
-            resSts.innerText = "敗北した... レベルが低下。";
+            resSts.innerText = "敗北... レベルが低下。";
         }
         save(); updateUI();
     }
@@ -307,9 +310,10 @@
             if(data) {
                 slot.onclick = () => {
                     document.getElementById('det-name').innerText = data.t;
-                    let desc = (type === 'W') ? `攻撃力: ${data.atk}\n属性: ${data.e}\n希少度: ${data.r}` : 
-                               (type === 'M') ? `属性: ${data.e}\n希少度: ${data.r}\n\nこのモンスターのデータはスキャナーに記録されている。` : 
-                               `希少度: ${data.r}\n\nこのアイテムはBAGから使用することができる。`;
+                    let desc = "";
+                    if(type === 'W') desc = `攻撃力: ${data.atk}\n属性: ${data.e}\n希少度: ${data.r}`;
+                    else if(type === 'M') desc = `属性: ${data.e}\n希少度: ${data.r}`;
+                    else desc = `希少度: ${data.r}\n\n効果: ${getItemSimpleEff(data.et)}`;
                     document.getElementById('det-desc').innerText = desc;
                     document.getElementById('detail-pop').style.display = 'block';
                 };
@@ -331,7 +335,6 @@
         if(inventory.length === 0) list.innerHTML = "<p style='font-size:0.7rem; color:#666;'>バッグは空です</p>";
         inventory.forEach((itm, i) => {
             const b = document.createElement('button'); b.style.width = "100%"; b.style.marginBottom = "5px";
-            // 説明文(緑メッセージ)を削除し名前のみ表示
             b.innerHTML = `${itm.n}`;
             b.onclick = () => useItem(itm, i); list.appendChild(b);
         });
