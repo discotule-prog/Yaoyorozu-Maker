@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER 6.5</title>
+    <title>MYTH SCANNER 6.6</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
@@ -12,11 +12,11 @@
         body { font-family: 'DotGothic16', sans-serif; background: #000; color: #fff; margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         #header { height: 40px; background: #222; display: flex; justify-content: center; align-items: center; border-bottom: 2px solid #444; flex-shrink: 0; }
         .lib-btn { width: 50%; font-size: 0.6rem; height: 24px; background: #555; border: 1px solid #fff; color: #fff; cursor: pointer; }
-        .char-area { height: 32%; display: flex; border-bottom: 1px solid #333; padding: 10px; box-sizing: border-box; position: relative; }
+        .char-area { height: 32%; display: flex; border-bottom: 1px solid #333; padding: 10px; box-sizing: border-box; }
         .cam-part { width: 35%; display: flex; align-items: center; justify-content: center; }
-        .cam-frame { width: 90px; height: 90px; border: 2px solid #333; background: #111; overflow: hidden; position: relative; border-radius: 8px; transition: border 0.3s; }
+        .cam-frame { width: 90px; height: 90px; border: 2px solid #333; background: #111; overflow: hidden; position: relative; border-radius: 8px; }
         video { width: 100%; height: 100%; object-fit: cover; display: none; }
-        .cam-active { border: 2px solid #0f0; box-shadow: 0 0 10px #0f0; }
+        .cam-active { border: 2px solid #0f0 !important; box-shadow: 0 0 10px #0f0; }
         .cam-active video { display: block !important; }
         .info-part { width: 65%; display: flex; flex-direction: column; padding-left: 10px; justify-content: center; }
         .visual-card { width: 100%; height: 80px; border: 2px solid #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #111; position: relative; border-radius: 4px; overflow: hidden; }
@@ -26,8 +26,7 @@
         #mid-ui { height: 150px; background: #111; border-top: 2px solid #444; display: flex; flex-direction: column; align-items: center; padding: 5px; flex-shrink: 0; }
         #msg { font-size: 0.75rem; color: #0f0; height: 50px; text-align: center; display: flex; align-items: center; padding: 0 10px; line-height: 1.3; white-space: pre-wrap; }
         .btn-row { display: flex; gap: 5px; width: 95%; justify-content: center; margin-bottom: 5px; }
-        button { flex: 1; height: 42px; font-family: 'DotGothic16'; border: 2px solid #fff; color: #fff; background: #444; font-size: 0.65rem; cursor: pointer; transition: 0.1s; }
-        button:active { transform: scale(0.95); background: #666; }
+        button { flex: 1; height: 42px; font-family: 'DotGothic16'; border: 2px solid #fff; color: #fff; background: #444; font-size: 0.65rem; cursor: pointer; }
         button:disabled { opacity: 0.3; pointer-events: none; }
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 100; display: none; flex-direction: column; align-items: center; padding: 15px; box-sizing: border-box; }
         .lib-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; max-height: 60vh; overflow-y: auto; padding: 10px; }
@@ -121,7 +120,8 @@
     const DB_MONSTER = ["スライム","ゴブリン","スケルトン","野良犬","巨大クモ","ウィスプ","コバルト","大ネズミ","ゾンビ","バット","泥人形","凶暴な鶏","迷い魂","寄生虫","影","浮遊する目玉","毒蜂","腐った樹木","石のトカゲ","はぐれメタル","オーク","デスナイト","ケルベロス","キマイラ","ミミック","ガーゴイル","リビングアーマー","ウェアウルフ","バンシー","グール","サキュバス","インプ","ハーピー","ラミア","ケンタウロス","ミノタウロス","マンティコア","コカトリス","サラマンダー","ウンディーネ","レッドドラゴン","ヴァンパイア","首なし騎士","デーモン","ゴーレム","グリフォン","バジリスク","ヒュドラ","クラーケン","フェニックス","巨大な百足","呪いの遺影","砂漠の魔人","雪女","雷獣","闇の司祭","死霊使い","沼の怪物","迷宮の番人","岩石巨人","古龍","災厄の化身","アークデーモン","堕天使","リッチ","デーモンロード","双頭の巨獣","ヤマタノオロチ","イフリート","シヴァ","ラムウ","タイタン","ガルーダ","リヴァイアサン","カオス","メドゥーサ","キュクロプス","ベヒーモス","スフィンクス","守護像","神竜","創世の巨神","熾天使","冥王ハデス","破壊神シヴァ","大天使ミカエル","妖狐玉藻前","八咫烏","麒麟","鳳凰","白虎","玄武","朱雀","青龍","魔王サタン","奈落の支配者","終焉を喰らう者","虚無の特異点","黙示録の黒竜","創世の父"];
     const DB_ITEM = ["薬草","毒消し草","聖水","煙玉","魔力草","力の種","守りの種","命の木の実","不思議な木の実","まよけの鈴"];
 
-    let net, mode="W", lv=1, exp=0, php=1000, pMax=1000, patk=0, pelem="", ehp=0, eMax=0, eatk=0, eelem="", stream=null, isProcessing=false;
+    let net, mode="W", lv=1, exp=0, php=1000, pMax=1000, patk=0, pelem="", ehp=0, eMax=0, eatk=0, eelem="", stream=null;
+    let isProcessing = false; // 強力なガードフラグ
     let library = JSON.parse(localStorage.getItem('myth_v7_save')) || { W:{}, M:{}, I:{} };
     let magLvl = { "🔥":0, "💧":0, "⚡":0, "🌿":0, "💖":1 };
     let usedMagicInBattle = false;
@@ -130,14 +130,23 @@
         try { 
             net = await mobilenet.load(); 
             startGame();
-        } catch(e) { document.getElementById('msg').innerText = "AI LOADING ERROR"; }
+        } catch(e) { document.getElementById('msg').innerText = "AI BOOT ERROR"; }
     }
 
     async function switchCamera(target) {
-        if(stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
-        document.querySelectorAll('video').forEach(v => { v.pause(); v.srcObject = null; });
+        // 現在のストリームを完全に消去
+        if(stream) {
+            stream.getTracks().forEach(t => t.stop());
+            stream = null;
+        }
+        document.querySelectorAll('video').forEach(v => {
+            v.pause();
+            v.srcObject = null;
+        });
         document.querySelectorAll('.cam-frame').forEach(f => f.classList.remove('cam-active'));
+
         if(target === 'OFF') return true;
+
         const vId = target === 'P' ? 'pv' : 'ev';
         try {
             stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
@@ -150,8 +159,10 @@
     }
 
     async function handleScan() {
+        // すでに処理中なら何もしない
         if(isProcessing) return;
         isProcessing = true;
+        
         const btn = document.getElementById('scan-btn');
         btn.disabled = true;
         btn.innerText = "SCANNING...";
@@ -163,40 +174,61 @@
             const aiName = r[0].className.split(',')[0].toUpperCase();
 
             if(mode === "W") {
+                // 武器確定
                 let name = aiName + "の" + (DB_WEAPON[id % 100]);
                 pelem = ["🔥", "💧", "⚡", "🌿"][id % 4];
                 patk = 100 + id + (lv * 10);
                 updateCardUI('p', id>=90?"MYTH":"REG", pelem, "⚔️", name);
                 library.W[id % 100] = name;
-                mode = "M";
-                document.getElementById('msg').innerText = "武器を装備！ターゲット(敵)を映せ！";
+                
+                // 次のモードへ（ここを即座に行う）
+                mode = "M"; 
+                document.getElementById('msg').innerText = "武器確定！次は敵をスキャン！";
+                
                 await switchCamera('OFF');
-                setTimeout(async () => { await switchCamera('E'); btn.innerText = "SCAN"; btn.disabled = false; isProcessing = false; }, 800);
-            } 
-            else if(mode === "M") {
+                // 少し待ってからカメラを切り替える
+                setTimeout(async () => {
+                    await switchCamera('E');
+                    btn.innerText = "ENEMY SCAN";
+                    btn.disabled = false;
+                    isProcessing = false; // ここで初めて次の操作を許可
+                }, 1000);
+                
+            } else if(mode === "M") {
+                // 敵確定
                 let name = aiName + "の" + (DB_MONSTER[id % 100]);
                 eelem = ["🔥", "💧", "⚡", "🌿"][id % 4];
                 eMax = 500 + (id * 15) + (lv * 20); ehp = eMax; eatk = 50 + id + (lv * 5);
                 updateCardUI('e', id>=80?"BOSS":"NM", eelem, "👾", name);
                 library.M[id % 100] = name;
+                
                 await switchCamera('OFF');
                 document.getElementById('msg').innerText = `${name}が現れた！`;
                 usedMagicInBattle = false;
                 setBattleBtns(false);
                 btn.innerText = "SCAN";
                 isProcessing = false;
-            } 
-            else if(mode === "I") {
+                
+            } else if(mode === "I") {
+                // アイテム確定
                 let name = aiName + "の" + (DB_ITEM[id % 10]);
                 library.I[id % 10] = name;
                 document.getElementById('msg').innerText = `【${name}】を獲得！`;
                 save();
-                setTimeout(() => { startGame(); isProcessing = false; }, 1500);
+                setTimeout(() => { 
+                    startGame(); 
+                    isProcessing = false;
+                }, 1500);
             }
-        } catch(e) { isProcessing = false; btn.disabled = false; }
+        } catch(e) {
+            console.error(e);
+            isProcessing = false;
+            btn.disabled = false;
+        }
         updateUI();
     }
 
+    // --- 以降、戦闘・魔法などのロジック（変更なし） ---
     function handleAttack() {
         setBattleBtns(true);
         let dmg = Math.floor(patk * (0.9 + Math.random()*0.2));
@@ -303,7 +335,12 @@
     function startGame() {
         mode = "W"; resetCardUI('p'); resetCardUI('e');
         document.getElementById('msg').innerText = "武器をスキャンしてください";
-        switchCamera('P').then(() => { document.getElementById('scan-btn').disabled = false; setBattleBtns(true); updateUI(); });
+        switchCamera('P').then(() => { 
+            document.getElementById('scan-btn').disabled = false; 
+            document.getElementById('scan-btn').innerText = "SCAN";
+            setBattleBtns(true); 
+            updateUI(); 
+        });
     }
 
     function updateUI() {
