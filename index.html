@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER 4.28</title>
+    <title>MYTH SCANNER 4.29</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
@@ -55,7 +55,7 @@
             <div id="p-sym" class="q-mark">?</div>
             <div id="p-name" style="font-size:0.6rem; text-align:center;">SCANNER READY</div>
         </div>
-        <div class="stat-text">LV:<span id="p-lv">1</span> HP:<span id="p-hp-cur">1000</span>/<span id="p-hp-max">1000</span><br>ATK:<span id="p-atk-val">0</span> DEF:<span id="p-def-val">50</span></div>
+        <div class="stat-text">LV:<span id="p-lv">1</span> HP:<span id="p-hp-cur">1000</span>/<span id="p-hp-max">1000</span><br>ATK:<span id="p-atk-val">0</span> DEF:<span id="p-def-val">0</span></div>
         <div class="bar-container"><div class="bar-bg"><div id="p-fill" class="bar-fill" style="background:var(--p-color); width:100%"></div></div></div>
         <div class="bar-container">
             <div style="display:flex; justify-content:space-between; font-size:0.5rem; color:var(--exp-color);"><span>EXP</span><span id="exp-text">0 / 30</span></div>
@@ -122,10 +122,10 @@
     const DB_ITEM = ["泥水","雑草","苔","樹液","露玉","葉っぱ","湧き水","飴玉","軟膏","薬湯","薬草","ポーション","蒸留水","お守り","粉薬","紅茶","栄養剤","ビスケット","秘薬","聖杯","砥石","爪","牙","火薬","重い石","釘","枝","インゴット","紋章","狼の血","勇気の証","硝石","矢尻","指輪","鱗","激昂の角","隕石","雷の魔石","たてがみ","狂乱のベルセルク","腐敗液","毒キノコ","針","粉末","痺れ草","蜂の針","抜け殻","毒液","腐食剤","怨念の霧","蜘蛛の糸","劇薬","瘴気","闇の雫","死神の吐息","冥界の酒","滅びの刻印","呪い符","煉獄の炎","終焉の宣告","ヤスリ","泥団子","虫食い皮","水晶","呪文","重力砂","粘着液","溶解液","破甲槌","脆化粉","亀裂石","拘束鎖","脱力霧","防壁崩し槍","虚無眼","王水","裂く爪","浸食金","魂の檻","因果の断絶","火炎玉","焔心","溶岩滴","水晶玉","氷河涙","真珠","雷電球","尾羽","帯電角","大地種","樹木記憶","森林珠","灼熱石","清流石","鳴神石","風琥珀","明星石","宵闇石","混沌珠","創世のプリズム"];
     const ELEMENTS = { "🔥": "🌿", "🌿": "⚡", "⚡": "💧", "💧": "🔥" };
 
-    let net, mode="W", lv=1, exp=0, php=1000, pMax=1000, patk=0, pdefBase=50, pdef=50, ehp=0, eMax=0, eatk=0, edef=0, pelem="", eelem="", stream=null, atkBoostMult=1, currentEnemyRank=1, pAtkBonus=1.0, pDefBonus=1.0, inventory = [];
+    let net, mode="W", lv=1, exp=0, php=1000, pMax=1000, patk=0, pdefBase=50, pdef=0, ehp=0, eMax=0, eatk=0, edef=0, pelem="", eelem="", stream=null, atkBoostMult=1, currentEnemyRank=1, pAtkBonus=1.0, pDefBonus=1.0, inventory = [];
     let library = JSON.parse(localStorage.getItem('myth_v4_final')) || { W: {}, M: {}, I: {}, stats: {lv:1, exp:0, pMax:1000, pAtkBonus:1.0, pDefBonus:1.0} };
 
-    if(library.stats) { lv=library.stats.lv; exp=library.stats.exp; pMax=library.stats.pMax; pAtkBonus=library.stats.pAtkBonus; pDefBonus=library.stats.pDefBonus; php=pMax; pdef=Math.floor(pdefBase*pDefBonus); }
+    if(library.stats) { lv=library.stats.lv; exp=library.stats.exp; pMax=library.stats.pMax; pAtkBonus=library.stats.pAtkBonus; pDefBonus=library.stats.pDefBonus; php=pMax; }
 
     async function init() {
         try { net = await mobilenet.load(); document.getElementById('scan-btn').disabled = false; document.getElementById('scan-btn').innerText = "SCAN"; document.getElementById('msg').innerText = "武器をスキャンしてください"; switchCamera('P'); }
@@ -252,11 +252,15 @@
     }
 
     function resetBattle() {
-        mode = "W"; ehp = 0; eMax = 0; patk = 0; pdef = Math.floor(pdefBase * pDefBonus);
+        mode = "W"; 
+        ehp = 0; eMax = 0; eatk = 0; edef = 0; // 敵ステータス数値を内部リセット
+        patk = 0; pdef = 0; // プレイヤーの戦闘用ステータス表示をリセット
         document.getElementById('scan-btn').disabled = false;
         setBattleBtns(true);
         document.getElementById('msg').innerText = "武器をスキャンしてください";
-        resetCardUI('p'); resetCardUI('e'); updateUI(); switchCamera('P');
+        resetCardUI('p'); resetCardUI('e'); 
+        updateUI(); // UI全体の更新で0を表示
+        switchCamera('P');
     }
 
     function showBonus() { 
@@ -302,7 +306,6 @@
             lv = Math.max(1, lv - lvLoss);
             pMax = 1000; pAtkBonus = 1.0; pDefBonus = 1.0;
             for(let i=1; i<lv; i++){ pMax = Math.floor(pMax * 1.1); pAtkBonus += 0.05; pDefBonus += 0.05; }
-            pdef = Math.floor(pdefBase * pDefBonus);
             exp = Math.floor(exp / 2);
             php = pMax;
             let itmOff = Math.floor(Math.random() * 3) + 1;
@@ -344,7 +347,6 @@
     }
 
     function useItem(itm, idx) {
-        // 効果適用
         if(itm.t === "HE") { php = Math.min(pMax, php + pMax * itm.v); document.getElementById('msg').innerText = `${itm.n}を使用してHP回復！`; }
         else if(itm.t === "AT") { atkBoostMult = 1.5 + itm.v; document.getElementById('msg').innerText = `${itm.n}で攻撃力アップ！`; }
         else if(itm.t === "PO") { ehp -= Math.floor(ehp * itm.v); document.getElementById('msg').innerText = `${itm.n}でダメージ！`; }
@@ -354,14 +356,9 @@
             document.getElementById('msg').innerText = "煙玉で確実に逃げた！";
             setTimeout(resetBattle, 1200); updateUI(); return;
         }
-        
-        // 消耗品削除
         inventory.splice(idx, 1); 
         document.getElementById('item-overlay').style.display='none';
-        
-        // 【修正】UIを更新するが、enemyTurn()を呼ばずに自分のターンを継続
         updateUI();
-        // 連続でボタンが押せるようにボタンを有効なままにする
         setBattleBtns(false); 
     }
 
