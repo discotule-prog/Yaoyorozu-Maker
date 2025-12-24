@@ -1,256 +1,112 @@
 <script>
-    const DB_WEAPON = ["錆びた短剣","棒切れ","鉄のヤスリ","練習用の剣","皮のムチ","石の礫","粗末な弓","鉄の棒","薪割り斧","穴の空いた盾","ブロンズナイフ","鉄の爪","ランス","警棒","木刀","石 de メイス","投げナイフ","鉄の針","兵士の剣","古いハルバード","鋼鉄の長剣","処刑人の斧","銀のレイピア","剛弓","漆黒の短刀","熟練の戦槌","猛獣の牙","抜刀斎の刀","暗殺者の針","閃光のダガー","守護者の大盾","スナイパーライフル","騎士のランス","十字槍","三節棍","フランベルジュ","魔法の杖","三叉矛","黄金の槌","カトラス","バスターソード","ミスリルの小太刀","凍結の魔弓","爆炎の斧","稲妻の刺剣","竜殺しの太刀","幻影の双剣","岩断ちの巨斧","精霊の杖","破邪の弓","守護神の槍","毒蛇の尾","吸血の牙","星屑のメイス","震動のハンマー","蒼天の剣","烈風の鎌","断罪の鎖","賢者の辞典","深海のマント","フレイムタン","ミョルニル","トライデント","ガイアハンマー","円月刀","クレイモア","巨人の鉄球","フレイル","細剣","魔槍","聖騎士の盾","黒金の棍棒","呪いの呪符","煉獄の鎌","極光の矢","神速のダガー","不壊の籠手","飛龍の魔笛","混沌の杖","虚空の鏡","魔剣グラム","聖剣エクスカリバー","竜槍ゲイボルグ","聖槍ロンギヌス","天羽々斬","村正","神弓アルテミス","モーニングスター","アロンダイト","デュランダル","妖刀正宗","霊刀七支刀","魔導書アルマデル","破滅の爪","絶影","究極神剣ゼノス","時空貫通神槍","真理の魔導核","天地崩壊の終槌","黙示録の神盾","終焉を断つ神剣"];
-    const DB_MONSTER = ["スライム","ゴブリン","スケルトン","野良犬","巨大クモ","ウィスプ","コバルト","大ネズミ","ゾンビ","バット","泥人形","凶暴な鶏","迷い魂","寄生虫","影","浮遊する目玉","毒蜂","腐った樹木","石のトカゲ","はぐれメタル","オーク","デスナイト","ケルベロス","キマイラ","ミミック","ガーゴイル","リビングアーマー","ウェアウルフ","バンシー","グール","サキュバス","インプ","ハーピー","ラミア","ケンタウロス","ミノタウロス","マンティコア","コカトリス","サラマンダー","ウンディーネ","レッドドラゴン","ヴァンパイア","首なし騎士","デーモン","ゴーレム","グリフォン","バジリスク","ヒュドラ","クラーケン","フェニックス","巨大な百足","呪いの遺影","砂漠の魔人","雪女","雷獣","闇の司祭","死霊使い","沼の怪物","迷宮の番人","岩石巨人","古龍","災厄の化身","アークデーモン","堕天使","リッチ","デーモンロード","双頭の巨獣","ヤマタノオロチ","イフリート","シヴァ","ラムウ","タイタン","ガルーダ","リヴァイアサン","カオス","メドゥーサ","キュクロプス","ベヒーモス","スフィンクス","守護像","神竜","創世の巨神","熾天使","冥王ハデス","破壊神シヴァ","大天使ミカエル","妖狐玉藻前","八咫烏","麒麟","鳳凰","白虎","玄武","朱雀","青龍","魔王サタン","奈落の支配者","終焉を喰らう者","虚無の特異点","黙示録の黒竜","創世の父"];
-    const DB_ITEM = ["薬草","毒消し草","聖水","煙玉","魔力草","力の種","守りの種","命の木の実","不思議な木の実","まよけの鈴"];
+    // 状態管理フラグ
+    let isProcessing = false; 
 
-    let net, mode="W", lv=1, exp=0, php=1000, pMax=1000, patk=0, pelem="", ehp=0, eMax=0, eatk=0, eelem="", stream=null;
-    let library = JSON.parse(localStorage.getItem('myth_v7_save')) || { W:{}, M:{}, I:{} };
-    let magLvl = { "🔥":0, "💧":0, "⚡":0, "🌿":0, "💖":1 }; // 初期魔法はヒールLv1
-    let usedMagicInBattle = false;
+    async function handleScan() {
+        if(isProcessing) return; // 二重動作防止
+        isProcessing = true;
+        
+        const btn = document.getElementById('scan-btn');
+        btn.disabled = true;
+        btn.innerText = "SCANNING...";
 
-    async function init() {
-        document.getElementById('msg').innerText = "AI LOADING...";
-        try { 
-            net = await mobilenet.load(); 
-            startGame();
-        } catch(e) { document.getElementById('msg').innerText = "FAIL"; }
+        try {
+            const vid = (mode === "W") ? document.getElementById('pv') : document.getElementById('ev');
+            const r = await net.classify(vid);
+            const id = Math.floor(r[0].probability * 100);
+            const aiName = r[0].className.split(',')[0].toUpperCase();
+
+            if (mode === "W") {
+                // 1. 武器データを確定
+                let name = aiName + "の" + (DB_WEAPON[id % 100]);
+                pelem = ["🔥", "💧", "⚡", "🌿"][id % 4];
+                patk = 100 + id + (lv * 10);
+                updateCardUI('p', id >= 90 ? "MYTH" : "REG", pelem, "⚔️", name);
+                library.W[id % 100] = name;
+                save();
+
+                // 2. メッセージ更新
+                document.getElementById('msg').innerText = "武器を装備した！\n次はターゲット(敵)を映せ！";
+
+                // 3. モードを即座に変更
+                mode = "M";
+
+                // 4. カメラの物理的な切り替え（完全に停止してから開始）
+                await switchCamera('OFF');
+                await new Promise(resolve => setTimeout(resolve, 800)); // ブラウザの解放待ち
+                const success = await switchCamera('E');
+                
+                if(success) {
+                    btn.innerText = "ENEMY SCAN";
+                    btn.disabled = false;
+                }
+            } else if (mode === "M") {
+                // 敵の生成処理
+                let name = aiName + "の" + (DB_MONSTER[id % 100]);
+                eelem = ["🔥", "💧", "⚡", "🌿"][id % 4];
+                eMax = 500 + (id * 15) + (lv * 20); ehp = eMax; eatk = 50 + id + (lv * 5);
+                updateCardUI('e', id >= 80 ? "BOSS" : "NM", eelem, "👾", name);
+                library.M[id % 100] = name;
+                save();
+
+                await switchCamera('OFF');
+                document.getElementById('msg').innerText = `${name}が現れた！`;
+                setBattleBtns(false);
+                btn.innerText = "SCAN";
+            } else if (mode === "I") {
+                // アイテムの生成
+                let name = aiName + "の" + (DB_ITEM[id % 10]);
+                library.I[id % 10] = name;
+                save();
+                document.getElementById('msg').innerText = `【${name}】を獲得！`;
+                setTimeout(() => { startGame(); }, 1500);
+            }
+        } catch (error) {
+            console.error(error);
+            document.getElementById('msg').innerText = "SCAN ERROR - RETRYING...";
+            btn.disabled = false;
+        } finally {
+            isProcessing = false;
+            updateUI();
+        }
     }
 
     async function switchCamera(target) {
-        if(stream) { stream.getTracks().forEach(track => track.stop()); stream = null; }
-        document.querySelectorAll('video').forEach(v => { v.srcObject = null; });
+        // 全てのビデオ要素とストリームを明示的にクリア
+        if (stream) {
+            stream.getTracks().forEach(track => {
+                track.stop();
+                console.log("Track stopped");
+            });
+            stream = null;
+        }
+        
+        const videos = document.querySelectorAll('video');
+        videos.forEach(v => {
+            v.pause();
+            v.srcObject = null;
+            v.load();
+        });
+
         document.querySelectorAll('.cam-frame').forEach(f => f.classList.remove('cam-active'));
-        if(target === 'OFF') return;
+
+        if (target === 'OFF') return true;
+
         const vId = target === 'P' ? 'pv' : 'ev';
         try {
-            stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
-            document.getElementById(vId).srcObject = stream;
+            const newStream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: "environment" },
+                audio: false
+            });
+            stream = newStream;
+            const el = document.getElementById(vId);
+            el.srcObject = stream;
+            await el.play();
             document.getElementById(vId === 'pv' ? 'pf-frame' : 'ef-frame').classList.add('cam-active');
             return true;
-        } catch(e) { return false; }
-    }
-
-    async function handleScan() {
-        const btn = document.getElementById('scan-btn');
-        btn.disabled = true;
-        const vid = (mode==="W") ? document.getElementById('pv') : document.getElementById('ev');
-        let id, aiName = "OBJECT";
-        try {
-            const r = await net.classify(vid);
-            id = Math.floor(r[0].probability * 100);
-            aiName = r[0].className.split(',')[0].toUpperCase();
-        } catch(e) { id = Math.floor(Math.random()*100); }
-
-        if(mode === "W") {
-            let name = aiName + "の" + (DB_WEAPON[id % 100]);
-            pelem = ["🔥", "💧", "⚡", "🌿"][id % 4];
-            patk = 100 + id + (lv * 10);
-            updateCardUI('p', id>=90?"MYTH":"REG", pelem, "⚔️", name);
-            library.W[id % 100] = name;
-            save();
-            mode = "M";
-            document.getElementById('msg').innerText = "次は「敵」をスキャン！";
-            await switchCamera('OFF');
-            setTimeout(async () => { await switchCamera('E'); btn.disabled = false; }, 500);
-        } else if(mode === "M") {
-            let name = aiName + "の" + (DB_MONSTER[id % 100]);
-            eelem = ["🔥", "💧", "⚡", "🌿"][id % 4];
-            eMax = 500 + (id * 15) + (lv * 20); ehp = eMax; eatk = 50 + id + (lv * 5);
-            updateCardUI('e', id>=80?"BOSS":"NM", eelem, "👾", name);
-            library.M[id % 100] = name;
-            save();
-            await switchCamera('OFF');
-            document.getElementById('msg').innerText = `${name}が現れた！`;
-            usedMagicInBattle = false;
-            setBattleBtns(false);
-        } else if(mode === "I") {
-            let name = aiName + "の" + (DB_ITEM[id % 10]);
-            library.I[id % 10] = name;
-            save();
-            document.getElementById('msg').innerText = `【${name}】を獲得！`;
-            setTimeout(() => { startGame(); }, 1500);
+        } catch (e) {
+            console.error("Camera Error:", e);
+            return false;
         }
-        updateUI();
     }
-
-    // --- 魔法システムの実装 ---
-    function openMagicMenu() {
-        if(usedMagicInBattle) return;
-        const list = document.getElementById('magic-list') || createMagicOverlay();
-        list.innerHTML = "";
-        let hasMagic = false;
-        for(let type in magLvl) {
-            if(magLvl[type] > 0) {
-                hasMagic = true;
-                const b = document.createElement('button');
-                b.style.width="100%"; b.style.height="45px"; b.style.margin="5px 0";
-                b.innerText = `${type} 魔法 Lv.${magLvl[type]}`;
-                b.onclick = () => castMagic(type);
-                list.appendChild(b);
-            }
-        }
-        document.getElementById('magic-overlay').style.display = 'flex';
-    }
-
-    function createMagicOverlay() {
-        // OverlayがHTMLにない場合のためのフォールバック（既存のHTMLにある場合はそれを使う）
-        return document.getElementById('magic-list');
-    }
-
-    function castMagic(type) {
-        document.getElementById('magic-overlay').style.display = 'none';
-        usedMagicInBattle = true;
-        setBattleBtns(true);
-
-        if(type === "💖") {
-            let heal = Math.floor(pMax * 0.4);
-            php = Math.min(pMax, php + heal);
-            document.getElementById('msg').innerText = `回復魔法！ HPが${heal}回復した！`;
-        } else {
-            let dmg = (150 + (magLvl[type] * 100));
-            // 属性相性 (火>草, 草>雷, 雷>水, 水>火)
-            const relations = {"🔥":"🌿", "🌿":"⚡", "⚡":"💧", "💧":"🔥"};
-            if(relations[type] === eelem) {
-                dmg = Math.floor(dmg * 2.0);
-                document.getElementById('msg').innerText = "弱点属性！ ";
-            }
-            ehp -= dmg;
-            document.getElementById('msg').innerText += `${type}の魔法！ ${dmg}ダメージ！`;
-            document.getElementById('e-area').classList.add('shake');
-        }
-
-        updateUI();
-        setTimeout(() => {
-            document.getElementById('e-area').classList.remove('shake');
-            if(ehp <= 0) finish(true); else enemyTurn();
-        }, 1000);
-    }
-
-    // --- 戦闘終了とレベルアップ処理 ---
-    function finish(win) {
-        const res = document.getElementById('res-screen');
-        const stats = document.getElementById('res-stats');
-        res.style.display = 'flex';
-
-        if(win) {
-            document.getElementById('res-title').innerText = "VICTORY!";
-            let gExp = 50 + Math.floor(eMax/10);
-            exp += gExp;
-            stats.innerHTML = `EXP +${gExp}`;
-            
-            if(exp >= 100) {
-                lv++; exp -= 100; pMax += 150; php = pMax;
-                stats.innerHTML += `<br><span style="color:var(--gold)">LV UP! 現在: ${lv}</span>`;
-                // 2レベルごとに新魔法習得
-                if(lv % 2 === 0) {
-                    document.getElementById('res-cont-btn').innerText = "新魔法の習得";
-                    document.getElementById('res-cont-btn').onclick = showLearnMagic;
-                    save(); return;
-                }
-            }
-            document.getElementById('res-cont-btn').innerText = "アイテムスキャンへ";
-            document.getElementById('res-cont-btn').onclick = () => {
-                res.style.display = 'none';
-                mode = "I";
-                document.getElementById('msg').innerText = "戦利品(ITEM)をスキャン！";
-                switchCamera('E').then(() => { document.getElementById('scan-btn').disabled = false; });
-            };
-        } else {
-            document.getElementById('res-title').innerText = "DEFEAT...";
-            php = pMax;
-            document.getElementById('res-cont-btn').innerText = "RETRY";
-            document.getElementById('res-cont-btn').onclick = () => { res.style.display='none'; startGame(); };
-        }
-        updateUI(); save();
-    }
-
-    function showLearnMagic() {
-        document.getElementById('res-screen').style.display = 'none';
-        const overlay = document.getElementById('magic-learn-overlay');
-        const list = document.getElementById('magic-learn-list');
-        list.innerHTML = "";
-        ["🔥", "💧", "⚡", "🌿", "💖"].forEach(type => {
-            const b = document.createElement('button');
-            b.style.width="100%"; b.style.height="45px"; b.style.margin="5px 0";
-            b.innerText = `${type} 魔法を強化/習得`;
-            b.onclick = () => {
-                magLvl[type]++;
-                overlay.style.display = 'none';
-                startGame();
-            };
-            list.appendChild(b);
-        });
-        overlay.style.display = 'flex';
-    }
-
-    // --- 基本システム ---
-    function startGame() {
-        mode = "W";
-        resetCardUI('p'); resetCardUI('e');
-        document.getElementById('msg').innerText = "武器をスキャンしてください";
-        switchCamera('P').then(() => {
-            document.getElementById('scan-btn').disabled = false;
-            setBattleBtns(true);
-            updateUI();
-        });
-    }
-
-    function handleAttack() {
-        setBattleBtns(true);
-        let dmg = Math.floor(patk * (0.9 + Math.random()*0.2));
-        ehp -= dmg; document.getElementById('msg').innerText = `Playerの攻撃！ ${dmg}ダメージ！`;
-        document.getElementById('e-area').classList.add('shake');
-        updateUI();
-        setTimeout(() => { 
-            document.getElementById('e-area').classList.remove('shake');
-            if(ehp <= 0) finish(true); else enemyTurn(); 
-        }, 800);
-    }
-
-    function enemyTurn() {
-        let dmg = Math.floor(eatk * (0.8 + Math.random()*0.4));
-        php -= dmg; document.getElementById('msg').innerText = `敵の攻撃！ ${dmg}ダメージ！`;
-        document.getElementById('p-area').classList.add('shake');
-        updateUI();
-        setTimeout(() => { 
-            document.getElementById('p-area').classList.remove('shake');
-            if(php <= 0) finish(false); else { document.getElementById('msg').innerText = "君のターン！"; setBattleBtns(false); }
-        }, 800);
-    }
-
-    function updateUI() {
-        document.getElementById('p-lv').innerText = lv;
-        document.getElementById('p-hp-cur').innerText = Math.max(0, Math.floor(php));
-        document.getElementById('p-hp-max').innerText = pMax;
-        document.getElementById('p-fill').style.width = (php/pMax*100) + "%";
-        document.getElementById('e-hp-cur').innerText = Math.max(0, Math.floor(ehp));
-        document.getElementById('e-hp-max').innerText = eMax;
-        document.getElementById('e-fill').style.width = (eMax>0 ? (ehp/eMax*100) : 0) + "%";
-        document.getElementById('exp-fill').style.width = Math.min(100, exp) + "%";
-        document.getElementById('exp-val').innerText = exp;
-        document.getElementById('p-atk-val').innerText = patk;
-        // 魔法ボタンの活性化
-        document.getElementById('mag-btn').disabled = usedMagicInBattle || mode !== "M" || eMax === 0;
-    }
-
-    function updateCardUI(side, rare, elem, sym, name) {
-        document.getElementById(`${side}-rare`).innerText = rare;
-        document.getElementById(`${side}-elem`).innerText = elem;
-        document.getElementById(`${side}-sym`).innerText = sym;
-        document.getElementById(`${side}-sym`).style.color = "#fff";
-        document.getElementById(`${side}-name`).innerText = name;
-    }
-
-    function resetCardUI(side) {
-        document.getElementById(`${side}-rare`).innerText = "-";
-        document.getElementById(`${side}-elem`).innerText = "";
-        document.getElementById(`${side}-sym`).innerText = "?";
-        document.getElementById(`${side}-sym`).style.color = "#333";
-        document.getElementById(`${side}-name`).innerText = side==='p'?"READY":"???";
-        if(side==='e') { ehp=0; eMax=0; }
-    }
-
-    function setBattleBtns(dis) { ["atk-btn","mag-btn","esc-btn"].forEach(id=>document.getElementById(id).disabled=dis); }
-    function save() { localStorage.setItem('myth_v7_save', JSON.stringify({library, lv, exp, pMax, magLvl})); }
-    window.onload = init;
 </script>
