@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER 5.95</title>
+    <title>MYTH SCANNER 6.0</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
@@ -29,7 +29,7 @@
         button:disabled { opacity: 0.3; }
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 100; display: none; flex-direction: column; align-items: center; padding: 15px; box-sizing: border-box; }
         .lib-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; max-height: 60vh; overflow-y: auto; padding: 10px; box-sizing: border-box; }
-        .lib-slot { min-height: 65px; background: #222; border: 1px solid #444; border-radius: 4px; display: flex; align-items: center; justify-content: center; padding: 5px; text-align: center; font-size: 0.55rem; color: #555; }
+        .lib-slot { min-height: 65px; background: #222; border: 1px solid #444; border-radius: 4px; display: flex; align-items: center; justify-content: center; padding: 5px; text-align: center; font-size: 0.55rem; color: #777; }
         .lib-slot.found { border-color: var(--p-color); background: #333; color: #fff; }
         .rarity-tag { position: absolute; top: 2px; right: 2px; font-size: 0.5rem; padding: 1px 3px; background: #fff; color: #000; font-weight: bold; }
         .elem-tag { position: absolute; top: 2px; left: 2px; font-size: 0.7rem; }
@@ -42,7 +42,7 @@
 <div id="header"><button onclick="openLibrary()" class="lib-btn">COLLECTION</button></div>
 
 <div class="char-area" id="p-area">
-    <div class="cam-part"><div class="cam-frame"><video id="pv" autoplay playsinline muted></video></div></div>
+    <div class="cam-part"><div class="cam-frame" id="pf-frame"><video id="pv" autoplay playsinline muted></video></div></div>
     <div class="info-part">
         <div class="visual-card">
             <div id="p-rare" class="rarity-tag">-</div>
@@ -52,7 +52,8 @@
         </div>
         <div class="stat-text">LV:<span id="p-lv">1</span> HP:<span id="p-hp-cur">1000</span>/<span id="p-hp-max">1000</span><br>ATK:<span id="p-atk-val">0</span></div>
         <div class="bar-bg"><div id="p-fill" class="bar-fill" style="background:var(--p-color); width:100%"></div></div>
-        <div class="bar-bg" style="height:4px;"><div id="exp-fill" class="bar-fill" style="background:var(--exp-color);"></div></div>
+        <div class="stat-text" style="text-align:right; margin-top:2px;">EXP: <span id="exp-val">0</span> / 100</div>
+        <div class="bar-bg" style="height:4px; margin-top:0;"><div id="exp-fill" class="bar-fill" style="background:var(--exp-color);"></div></div>
     </div>
 </div>
 
@@ -70,7 +71,7 @@
 </div>
 
 <div class="char-area" id="e-area">
-    <div class="cam-part"><div class="cam-frame"><video id="ev" autoplay playsinline muted></video></div></div>
+    <div class="cam-part"><div class="cam-frame" id="ef-frame"><video id="ev" autoplay playsinline muted></video></div></div>
     <div class="info-part">
         <div class="visual-card">
             <div id="e-rare" class="rarity-tag">-</div>
@@ -112,31 +113,31 @@
     let usedMagicInBattle = false;
 
     async function init() {
-        document.getElementById('msg').innerText = "AI LOADING...";
+        document.getElementById('msg').innerText = "AI BOOTING...";
         try { 
             net = await mobilenet.load(); 
             await switchCamera('P');
             document.getElementById('scan-btn').disabled = false;
             document.getElementById('msg').innerText = "武器をスキャンしてください";
-        } catch(e) { document.getElementById('msg').innerText = "ERROR: CAMERA FAILED"; }
+        } catch(e) { document.getElementById('msg').innerText = "SYSTEM ERROR"; }
         updateUI();
     }
 
     async function switchCamera(target) {
         if(stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
-        const vId = {P:'pv', E:'ev'}[target]; if(!vId) return;
+        const vId = {P:'pv', E:'ev'}[target];
+        if(!vId) return;
         try {
             stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
-            document.getElementById(vId).srcObject = stream;
+            const videoEl = document.getElementById(vId);
+            videoEl.srcObject = stream;
             document.querySelectorAll('.cam-frame').forEach(f=>f.classList.remove('cam-active'));
-            document.getElementById(vId).parentElement.classList.add('cam-active');
-        } catch(e) {}
+            document.getElementById(vId === 'pv' ? 'pf-frame' : 'ef-frame').classList.add('cam-active');
+        } catch(e) { console.error(e); }
     }
 
     async function handleScan() {
         if(document.getElementById('scan-btn').disabled) return;
-        document.getElementById('scan-btn').disabled = true; // 連打防止
-        
         const vid = (mode==="W") ? document.getElementById('pv') : document.getElementById('ev');
         let id, aiName = "OBJECT";
         try { const r = await net.classify(vid); id = Math.floor(r[0].probability * 100); aiName = r[0].className.split(',')[0].toUpperCase(); } catch(e) { id = Math.floor(Math.random()*100); }
@@ -145,19 +146,22 @@
             let name = aiName + "の" + (DB_WEAPON[id] || DB_WEAPON[0]);
             pelem = ["🔥", "💧", "⚡", "🌿"][id % 4]; patk = 100 + id + (lv * 10);
             updateCardUI('p', id>=90?"MYTH":"REG", pelem, "⚔️", name);
-            library.W[id] = name; mode="M";
-            // 敵エリアを完全にクリア
+            library.W[id] = name; 
+            
+            // 敵スキャンモードへ即座に切り替え
+            mode="M";
             ehp=0; eMax=0; eatk=0; resetCardUI('e');
             await switchCamera('E');
             document.getElementById('msg').innerText = "次は「敵」をスキャンせよ！";
-            document.getElementById('scan-btn').disabled = false;
         } else {
             let name = aiName + "の" + (DB_MONSTER[id] || DB_MONSTER[0]);
             eelem = ["🔥", "💧", "⚡", "🌿"][id % 4];
             eMax = 500 + (id * 15) + (lv * 20); ehp = eMax; eatk = 50 + id + (lv * 5);
             updateCardUI('e', id>=80?"BOSS":"NM", eelem, "👾", name);
             library.M[id] = name;
-            switchCamera('OFF'); setBattleBtns(false);
+            switchCamera('OFF');
+            setBattleBtns(false);
+            document.getElementById('scan-btn').disabled = true;
             document.getElementById('msg').innerText = `${name}が現れた！`;
             usedMagicInBattle = false;
         }
@@ -273,7 +277,8 @@
     }
 
     function renderLib(type) {
-        const grid = document.getElementById('lib-grid'); grid.innerHTML = "";
+        const grid = document.getElementById('lib-grid'); 
+        grid.innerHTML = "";
         const db = (type === 'W') ? DB_WEAPON : (type === 'M' ? DB_MONSTER : DB_ITEM);
         let count = 0;
         db.forEach((name, i) => {
@@ -296,31 +301,36 @@
         document.getElementById('e-hp-cur').innerText = Math.max(0, Math.floor(ehp));
         document.getElementById('e-hp-max').innerText = eMax;
         document.getElementById('e-fill').style.width = (eMax>0 ? (ehp/eMax*100) : 0) + "%";
-        document.getElementById('exp-fill').style.width = exp + "%";
+        document.getElementById('exp-fill').style.width = Math.min(100, exp) + "%";
+        document.getElementById('exp-val').innerText = exp; // 数値表示を追加
         document.getElementById('p-atk-val').innerText = patk;
-        document.getElementById('mag-btn').disabled = !Object.values(magLvl).some(v => v > 0) || usedMagicInBattle || eMax === 0;
+        document.getElementById('mag-btn').disabled = usedMagicInBattle || eMax === 0;
     }
     function updateCardUI(side, rare, elem, sym, name) {
         document.getElementById(`${side}-rare`).innerText = rare;
         document.getElementById(`${side}-elem`).innerText = elem;
         const s = document.getElementById(`${side}-sym`); s.innerText = sym; s.style.color = "#fff";
         document.getElementById(`${side}-name`).innerText = name;
+        if(side==='e') document.getElementById('e-atk-val').innerText = eatk;
     }
     function resetCardUI(side) {
         document.getElementById(`${side}-rare`).innerText = "-";
         document.getElementById(`${side}-elem`).innerText = "";
         const s = document.getElementById(`${side}-sym`); s.innerText = "?"; s.style.color = "#333";
         document.getElementById(`${side}-name`).innerText = side==='p'?"SCANNER READY":"???";
+        if(side==='e') { ehp=0; eMax=0; eatk=0; }
     }
     function setBattleBtns(dis) { ["atk-btn","mag-btn","esc-btn"].forEach(id=>document.getElementById(id).disabled=dis); }
     function closeResult() { document.getElementById('res-screen').style.display='none'; resetBattle(); }
     function resetBattle() { 
-        mode="W"; ehp=0; eMax=0; eatk=0;
-        resetCardUI('p'); resetCardUI('e'); switchCamera('P'); 
-        document.getElementById('scan-btn').disabled=false; 
-        document.getElementById('res-cont-btn').innerText = "CONTINUE";
-        document.getElementById('res-cont-btn').onclick = closeResult;
-        setBattleBtns(true); updateUI(); 
+        mode="W"; resetCardUI('p'); resetCardUI('e'); 
+        switchCamera('P').then(() => {
+            document.getElementById('scan-btn').disabled=false;
+            document.getElementById('res-cont-btn').innerText = "CONTINUE";
+            document.getElementById('res-cont-btn').onclick = closeResult;
+            setBattleBtns(true); 
+            updateUI(); 
+        });
     }
     function handleEscape() { resetBattle(); }
     function openItemMenu() { alert("アイテム袋は空だ！"); }
