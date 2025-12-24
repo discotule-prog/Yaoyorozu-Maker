@@ -1,109 +1,12 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER 6.4</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
-    <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
-    <style>
-        :root { --p-color: #00f2ff; --e-color: #ff3c00; --exp-color: #32ff32; --gold: #ffd700; --magic-p: #a200ff; }
-        body { font-family: 'DotGothic16', sans-serif; background: #000; color: #fff; margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-        #header { height: 40px; background: #222; display: flex; justify-content: center; align-items: center; border-bottom: 2px solid #444; flex-shrink: 0; }
-        .lib-btn { width: 50%; font-size: 0.6rem; height: 24px; background: #555; border: 1px solid #fff; color: #fff; cursor: pointer; }
-        .char-area { height: 32%; display: flex; border-bottom: 1px solid #333; padding: 10px; box-sizing: border-box; }
-        .cam-part { width: 35%; display: flex; align-items: center; justify-content: center; }
-        .cam-frame { width: 90px; height: 90px; border: 2px solid #555; background: #111; overflow: hidden; position: relative; border-radius: 8px; }
-        video { width: 100%; height: 100%; object-fit: cover; display: none; }
-        .cam-active video { display: block !important; border-color: #0f0; }
-        .info-part { width: 65%; display: flex; flex-direction: column; padding-left: 10px; justify-content: center; }
-        .visual-card { width: 100%; height: 80px; border: 2px solid #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #111; position: relative; border-radius: 4px; overflow: hidden; }
-        .stat-text { font-size: 0.65rem; color: #ccc; margin-top: 2px; line-height: 1.2; }
-        .bar-bg { width: 100%; height: 8px; background: #222; border: 1px solid #666; position: relative; overflow: hidden; margin-top: 4px; }
-        .bar-fill { height: 100%; width: 0%; transition: width 0.4s ease-out; }
-        #mid-ui { height: 140px; background: #111; border-top: 2px solid #444; display: flex; flex-direction: column; align-items: center; padding: 5px; flex-shrink: 0; }
-        #msg { font-size: 0.8rem; color: #0f0; height: 45px; text-align: center; display: flex; align-items: center; padding: 0 10px; line-height: 1.2; white-space: pre-wrap; }
-        .btn-row { display: flex; gap: 5px; width: 95%; justify-content: center; margin-bottom: 5px; }
-        button { flex: 1; height: 40px; font-family: 'DotGothic16'; border: 2px solid #fff; color: #fff; background: #444; font-size: 0.6rem; cursor: pointer; }
-        button:disabled { opacity: 0.3; pointer-events: none; }
-        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 100; display: none; flex-direction: column; align-items: center; padding: 15px; box-sizing: border-box; }
-        .lib-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; max-height: 60vh; overflow-y: auto; padding: 10px; box-sizing: border-box; }
-        .lib-slot { min-height: 65px; background: #222; border: 1px solid #444; border-radius: 4px; display: flex; align-items: center; justify-content: center; padding: 5px; text-align: center; font-size: 0.55rem; color: #666; }
-        .lib-slot.found { border-color: var(--p-color); background: #333; color: #fff; }
-        .rarity-tag { position: absolute; top: 2px; right: 2px; font-size: 0.5rem; padding: 1px 3px; background: #fff; color: #000; font-weight: bold; }
-        .elem-tag { position: absolute; top: 2px; left: 2px; font-size: 0.7rem; }
-        .shake { animation: s 0.2s; }
-        @keyframes s { 0%,100%{transform:translateX(0)} 25%{transform:translateX(5px)} 75%{transform:translateX(-5px)} }
-    </style>
-</head>
-<body>
-
-<div id="header"><button onclick="openLibrary()" class="lib-btn">COLLECTION</button></div>
-
-<div class="char-area" id="p-area">
-    <div class="cam-part"><div class="cam-frame" id="pf-frame"><video id="pv" autoplay playsinline muted></video></div></div>
-    <div class="info-part">
-        <div class="visual-card">
-            <div id="p-rare" class="rarity-tag">-</div>
-            <div id="p-elem" class="elem-tag"></div>
-            <div id="p-sym" style="font-size:3.5rem; color:#333;">?</div>
-            <div id="p-name" style="font-size:0.6rem; text-align:center; position:absolute; bottom:5px;">SCANNER READY</div>
-        </div>
-        <div class="stat-text">LV:<span id="p-lv">1</span> HP:<span id="p-hp-cur">1000</span>/<span id="p-hp-max">1000</span><br>ATK:<span id="p-atk-val">0</span></div>
-        <div class="bar-bg"><div id="p-fill" class="bar-fill" style="background:var(--p-color); width:100%"></div></div>
-        <div class="stat-text" style="text-align:right; margin-top:2px;">EXP: <span id="exp-val">0</span> / 100</div>
-        <div class="bar-bg" style="height:4px; margin-top:0;"><div id="exp-fill" class="bar-fill" style="background:var(--exp-color);"></div></div>
-    </div>
-</div>
-
-<div id="mid-ui">
-    <div id="msg">INITIALIZING...</div>
-    <div class="btn-row">
-        <button id="scan-btn" onclick="handleScan()" disabled style="background:#0044cc">SCAN</button>
-        <button id="atk-btn" onclick="handleAttack()" disabled style="background:#aa0000">ATTACK</button>
-    </div>
-    <div class="btn-row">
-        <button id="mag-btn" onclick="openMagicMenu()" disabled style="background:var(--magic-p)">MAGIC</button>
-        <button id="item-open-btn" onclick="openItemMenu()" disabled style="background:#008844">ITEM</button>
-        <button id="esc-btn" onclick="handleEscape()" disabled>ESCAPE</button>
-    </div>
-</div>
-
-<div class="char-area" id="e-area">
-    <div class="cam-part"><div class="cam-frame" id="ef-frame"><video id="ev" autoplay playsinline muted></video></div></div>
-    <div class="info-part">
-        <div class="visual-card">
-            <div id="e-rare" class="rarity-tag">-</div>
-            <div id="e-elem" class="elem-tag"></div>
-            <div id="e-sym" style="font-size:3.5rem; color:#333;">?</div>
-            <div id="e-name" style="font-size:0.6rem; text-align:center; position:absolute; bottom:5px;">???</div>
-        </div>
-        <div class="stat-text">HP:<span id="e-hp-cur">0</span>/<span id="e-hp-max">0</span><br>ATK:<span id="e-atk-val">0</span></div>
-        <div class="bar-bg"><div id="e-fill" class="bar-fill" style="background:var(--e-color);"></div></div>
-    </div>
-</div>
-
-<div id="lib-overlay" class="overlay">
-    <h2 style="margin:5px;">COLLECTION</h2>
-    <div style="display:flex; gap:5px; margin-bottom:10px; width:100%;">
-        <button onclick="renderLib('W')">WEAPON</button>
-        <button onclick="renderLib('M')">MONSTER</button>
-        <button onclick="renderLib('I')">ITEM</button>
-    </div>
-    <div id="lib-count" style="color:var(--gold); margin-bottom:5px;">FOUND: 0</div>
-    <div id="lib-grid" class="lib-grid"></div>
-    <button onclick="document.getElementById('lib-overlay').style.display='none'" style="width:90%; margin-top:10px; height:40px; background:#444;">CLOSE</button>
-</div>
-<div id="res-screen" class="overlay" style="justify-content:center;"><h1 id="res-title"></h1><div id="res-stats" style="text-align:center; margin:20px;"></div><button id="res-cont-btn" onclick="closeResult()" style="width:90%; height:45px; background:#0044cc;">CONTINUE</button></div>
-
 <script>
-    const DB_WEAPON = ["錆びた短剣","棒切れ","鉄のヤスリ","練習用の剣","皮のムチ","石の礫","粗末な弓","鉄の棒","薪割り斧","穴の空いた盾","ブロンズナイフ","鉄の爪","ランス","警棒","木刀","石のメイス","投げナイフ","鉄の針","兵士の剣","古いハルバード","鋼鉄の長剣","処刑人の斧","銀のレイピア","剛弓","漆黒の短刀","熟練の戦槌","猛獣の牙","抜刀斎の刀","暗殺者の針","閃光のダガー","守護者の大盾","スナイパーライフル","騎士のランス","十字槍","三節棍","フランベルジュ","魔法の杖","三叉矛","黄金の槌","カトラス","バスターソード","ミスリルの小太刀","凍結の魔弓","爆炎の斧","稲妻の刺剣","竜殺しの太刀","幻影の双剣","岩断ちの巨斧","精霊の杖","破邪の弓","守護神の槍","毒蛇の尾","吸血の牙","星屑のメイス","震動のハンマー","蒼天の剣","烈風の鎌","断罪の鎖","賢者の辞典","深海のマント","フレイムタン","ミョルニル","トライデント","ガイアハンマー","円月刀","クレイモア","巨人の鉄球","フレイル","細剣","魔槍","聖騎士の盾","黒金の棍棒","呪いの呪符","煉獄の鎌","極光の矢","神速のダガー","不壊の籠手","飛龍の魔笛","混沌の杖","虚空の鏡","魔剣グラム","聖剣エクスカリバー","竜槍ゲイボルグ","聖槍ロンギヌス","天羽々斬","村正","神弓アルテミス","モーニングスター","アロンダイト","デュランダル","妖刀正宗","霊刀七支刀","魔導書アルマデル","破滅の爪","絶影","究極神剣ゼノス","時空貫通神槍","真理の魔導核","天地崩壊の終槌","黙示録の神盾","終焉を断つ神剣"];
+    const DB_WEAPON = ["錆びた短剣","棒切れ","鉄のヤスリ","練習用の剣","皮のムチ","石の礫","粗末な弓","鉄の棒","薪割り斧","穴の空いた盾","ブロンズナイフ","鉄の爪","ランス","警棒","木刀","石 de メイス","投げナイフ","鉄の針","兵士の剣","古いハルバード","鋼鉄の長剣","処刑人の斧","銀のレイピア","剛弓","漆黒の短刀","熟練の戦槌","猛獣の牙","抜刀斎の刀","暗殺者の針","閃光のダガー","守護者の大盾","スナイパーライフル","騎士のランス","十字槍","三節棍","フランベルジュ","魔法の杖","三叉矛","黄金の槌","カトラス","バスターソード","ミスリルの小太刀","凍結の魔弓","爆炎の斧","稲妻の刺剣","竜殺しの太刀","幻影の双剣","岩断ちの巨斧","精霊の杖","破邪の弓","守護神の槍","毒蛇の尾","吸血の牙","星屑のメイス","震動のハンマー","蒼天の剣","烈風の鎌","断罪の鎖","賢者の辞典","深海のマント","フレイムタン","ミョルニル","トライデント","ガイアハンマー","円月刀","クレイモア","巨人の鉄球","フレイル","細剣","魔槍","聖騎士の盾","黒金の棍棒","呪いの呪符","煉獄の鎌","極光の矢","神速のダガー","不壊の籠手","飛龍の魔笛","混沌の杖","虚空の鏡","魔剣グラム","聖剣エクスカリバー","竜槍ゲイボルグ","聖槍ロンギヌス","天羽々斬","村正","神弓アルテミス","モーニングスター","アロンダイト","デュランダル","妖刀正宗","霊刀七支刀","魔導書アルマデル","破滅の爪","絶影","究極神剣ゼノス","時空貫通神槍","真理の魔導核","天地崩壊の終槌","黙示録の神盾","終焉を断つ神剣"];
     const DB_MONSTER = ["スライム","ゴブリン","スケルトン","野良犬","巨大クモ","ウィスプ","コバルト","大ネズミ","ゾンビ","バット","泥人形","凶暴な鶏","迷い魂","寄生虫","影","浮遊する目玉","毒蜂","腐った樹木","石のトカゲ","はぐれメタル","オーク","デスナイト","ケルベロス","キマイラ","ミミック","ガーゴイル","リビングアーマー","ウェアウルフ","バンシー","グール","サキュバス","インプ","ハーピー","ラミア","ケンタウロス","ミノタウロス","マンティコア","コカトリス","サラマンダー","ウンディーネ","レッドドラゴン","ヴァンパイア","首なし騎士","デーモン","ゴーレム","グリフォン","バジリスク","ヒュドラ","クラーケン","フェニックス","巨大な百足","呪いの遺影","砂漠の魔人","雪女","雷獣","闇の司祭","死霊使い","沼の怪物","迷宮の番人","岩石巨人","古龍","災厄の化身","アークデーモン","堕天使","リッチ","デーモンロード","双頭の巨獣","ヤマタノオロチ","イフリート","シヴァ","ラムウ","タイタン","ガルーダ","リヴァイアサン","カオス","メドゥーサ","キュクロプス","ベヒーモス","スフィンクス","守護像","神竜","創世の巨神","熾天使","冥王ハデス","破壊神シヴァ","大天使ミカエル","妖狐玉藻前","八咫烏","麒麟","鳳凰","白虎","玄武","朱雀","青龍","魔王サタン","奈落の支配者","終焉を喰らう者","虚無の特異点","黙示録の黒竜","創世の父"];
     const DB_ITEM = ["薬草","毒消し草","聖水","煙玉","魔力草","力の種","守りの種","命の木の実","不思議な木の実","まよけの鈴"];
 
     let net, mode="W", lv=1, exp=0, php=1000, pMax=1000, patk=0, pelem="", ehp=0, eMax=0, eatk=0, eelem="", stream=null;
     let library = JSON.parse(localStorage.getItem('myth_v7_save')) || { W:{}, M:{}, I:{} };
+    let magLvl = { "🔥":0, "💧":0, "⚡":0, "🌿":0, "💖":1 }; // 初期魔法はヒールLv1
+    let usedMagicInBattle = false;
 
     async function init() {
         document.getElementById('msg').innerText = "AI LOADING...";
@@ -114,21 +17,14 @@
     }
 
     async function switchCamera(target) {
-        // 既存のストリームを確実に停止
-        if(stream) {
-            stream.getTracks().forEach(track => track.stop());
-            stream = null;
-        }
+        if(stream) { stream.getTracks().forEach(track => track.stop()); stream = null; }
         document.querySelectorAll('video').forEach(v => { v.srcObject = null; });
         document.querySelectorAll('.cam-frame').forEach(f => f.classList.remove('cam-active'));
-
         if(target === 'OFF') return;
-
         const vId = target === 'P' ? 'pv' : 'ev';
         try {
             stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
-            const el = document.getElementById(vId);
-            el.srcObject = stream;
+            document.getElementById(vId).srcObject = stream;
             document.getElementById(vId === 'pv' ? 'pf-frame' : 'ef-frame').classList.add('cam-active');
             return true;
         } catch(e) { return false; }
@@ -137,7 +33,6 @@
     async function handleScan() {
         const btn = document.getElementById('scan-btn');
         btn.disabled = true;
-        
         const vid = (mode==="W") ? document.getElementById('pv') : document.getElementById('ev');
         let id, aiName = "OBJECT";
         try {
@@ -147,39 +42,28 @@
         } catch(e) { id = Math.floor(Math.random()*100); }
 
         if(mode === "W") {
-            // 武器生成
             let name = aiName + "の" + (DB_WEAPON[id % 100]);
             pelem = ["🔥", "💧", "⚡", "🌿"][id % 4];
             patk = 100 + id + (lv * 10);
             updateCardUI('p', id>=90?"MYTH":"REG", pelem, "⚔️", name);
             library.W[id % 100] = name;
             save();
-
-            // モード遷移
             mode = "M";
             document.getElementById('msg').innerText = "次は「敵」をスキャン！";
-            
-            // 重要：一度カメラを止めてから次に
             await switchCamera('OFF');
-            setTimeout(async () => {
-                await switchCamera('E');
-                btn.disabled = false;
-            }, 500);
-
+            setTimeout(async () => { await switchCamera('E'); btn.disabled = false; }, 500);
         } else if(mode === "M") {
-            // 敵生成
             let name = aiName + "の" + (DB_MONSTER[id % 100]);
             eelem = ["🔥", "💧", "⚡", "🌿"][id % 4];
             eMax = 500 + (id * 15) + (lv * 20); ehp = eMax; eatk = 50 + id + (lv * 5);
             updateCardUI('e', id>=80?"BOSS":"NM", eelem, "👾", name);
             library.M[id % 100] = name;
             save();
-
             await switchCamera('OFF');
             document.getElementById('msg').innerText = `${name}が現れた！`;
+            usedMagicInBattle = false;
             setBattleBtns(false);
         } else if(mode === "I") {
-            // アイテム
             let name = aiName + "の" + (DB_ITEM[id % 10]);
             library.I[id % 10] = name;
             save();
@@ -189,6 +73,117 @@
         updateUI();
     }
 
+    // --- 魔法システムの実装 ---
+    function openMagicMenu() {
+        if(usedMagicInBattle) return;
+        const list = document.getElementById('magic-list') || createMagicOverlay();
+        list.innerHTML = "";
+        let hasMagic = false;
+        for(let type in magLvl) {
+            if(magLvl[type] > 0) {
+                hasMagic = true;
+                const b = document.createElement('button');
+                b.style.width="100%"; b.style.height="45px"; b.style.margin="5px 0";
+                b.innerText = `${type} 魔法 Lv.${magLvl[type]}`;
+                b.onclick = () => castMagic(type);
+                list.appendChild(b);
+            }
+        }
+        document.getElementById('magic-overlay').style.display = 'flex';
+    }
+
+    function createMagicOverlay() {
+        // OverlayがHTMLにない場合のためのフォールバック（既存のHTMLにある場合はそれを使う）
+        return document.getElementById('magic-list');
+    }
+
+    function castMagic(type) {
+        document.getElementById('magic-overlay').style.display = 'none';
+        usedMagicInBattle = true;
+        setBattleBtns(true);
+
+        if(type === "💖") {
+            let heal = Math.floor(pMax * 0.4);
+            php = Math.min(pMax, php + heal);
+            document.getElementById('msg').innerText = `回復魔法！ HPが${heal}回復した！`;
+        } else {
+            let dmg = (150 + (magLvl[type] * 100));
+            // 属性相性 (火>草, 草>雷, 雷>水, 水>火)
+            const relations = {"🔥":"🌿", "🌿":"⚡", "⚡":"💧", "💧":"🔥"};
+            if(relations[type] === eelem) {
+                dmg = Math.floor(dmg * 2.0);
+                document.getElementById('msg').innerText = "弱点属性！ ";
+            }
+            ehp -= dmg;
+            document.getElementById('msg').innerText += `${type}の魔法！ ${dmg}ダメージ！`;
+            document.getElementById('e-area').classList.add('shake');
+        }
+
+        updateUI();
+        setTimeout(() => {
+            document.getElementById('e-area').classList.remove('shake');
+            if(ehp <= 0) finish(true); else enemyTurn();
+        }, 1000);
+    }
+
+    // --- 戦闘終了とレベルアップ処理 ---
+    function finish(win) {
+        const res = document.getElementById('res-screen');
+        const stats = document.getElementById('res-stats');
+        res.style.display = 'flex';
+
+        if(win) {
+            document.getElementById('res-title').innerText = "VICTORY!";
+            let gExp = 50 + Math.floor(eMax/10);
+            exp += gExp;
+            stats.innerHTML = `EXP +${gExp}`;
+            
+            if(exp >= 100) {
+                lv++; exp -= 100; pMax += 150; php = pMax;
+                stats.innerHTML += `<br><span style="color:var(--gold)">LV UP! 現在: ${lv}</span>`;
+                // 2レベルごとに新魔法習得
+                if(lv % 2 === 0) {
+                    document.getElementById('res-cont-btn').innerText = "新魔法の習得";
+                    document.getElementById('res-cont-btn').onclick = showLearnMagic;
+                    save(); return;
+                }
+            }
+            document.getElementById('res-cont-btn').innerText = "アイテムスキャンへ";
+            document.getElementById('res-cont-btn').onclick = () => {
+                res.style.display = 'none';
+                mode = "I";
+                document.getElementById('msg').innerText = "戦利品(ITEM)をスキャン！";
+                switchCamera('E').then(() => { document.getElementById('scan-btn').disabled = false; });
+            };
+        } else {
+            document.getElementById('res-title').innerText = "DEFEAT...";
+            php = pMax;
+            document.getElementById('res-cont-btn').innerText = "RETRY";
+            document.getElementById('res-cont-btn').onclick = () => { res.style.display='none'; startGame(); };
+        }
+        updateUI(); save();
+    }
+
+    function showLearnMagic() {
+        document.getElementById('res-screen').style.display = 'none';
+        const overlay = document.getElementById('magic-learn-overlay');
+        const list = document.getElementById('magic-learn-list');
+        list.innerHTML = "";
+        ["🔥", "💧", "⚡", "🌿", "💖"].forEach(type => {
+            const b = document.createElement('button');
+            b.style.width="100%"; b.style.height="45px"; b.style.margin="5px 0";
+            b.innerText = `${type} 魔法を強化/習得`;
+            b.onclick = () => {
+                magLvl[type]++;
+                overlay.style.display = 'none';
+                startGame();
+            };
+            list.appendChild(b);
+        });
+        overlay.style.display = 'flex';
+    }
+
+    // --- 基本システム ---
     function startGame() {
         mode = "W";
         resetCardUI('p'); resetCardUI('e');
@@ -223,29 +218,6 @@
         }, 800);
     }
 
-    function finish(win) {
-        document.getElementById('res-screen').style.display='flex';
-        const stats = document.getElementById('res-stats');
-        if(win) {
-            document.getElementById('res-title').innerText = "VICTORY!";
-            let gExp = Math.floor((eMax/10) + (eatk/2));
-            exp += gExp; stats.innerHTML = `EXP +${gExp}`;
-            document.getElementById('res-cont-btn').onclick = () => {
-                document.getElementById('res-screen').style.display='none';
-                mode = "I";
-                document.getElementById('msg').innerText = "戦利品(ITEM)をスキャン！";
-                switchCamera('E').then(() => { document.getElementById('scan-btn').disabled = false; });
-            };
-        } else {
-            document.getElementById('res-title').innerText = "DEFEAT..."; php=pMax;
-            document.getElementById('res-cont-btn').onclick = () => {
-                document.getElementById('res-screen').style.display='none';
-                startGame();
-            };
-        }
-        updateUI();
-    }
-
     function updateUI() {
         document.getElementById('p-lv').innerText = lv;
         document.getElementById('p-hp-cur').innerText = Math.max(0, Math.floor(php));
@@ -257,25 +229,10 @@
         document.getElementById('exp-fill').style.width = Math.min(100, exp) + "%";
         document.getElementById('exp-val').innerText = exp;
         document.getElementById('p-atk-val').innerText = patk;
+        // 魔法ボタンの活性化
+        document.getElementById('mag-btn').disabled = usedMagicInBattle || mode !== "M" || eMax === 0;
     }
 
-    function renderLib(type) {
-        const grid = document.getElementById('lib-grid'); 
-        grid.innerHTML = "";
-        const db = (type === 'W') ? DB_WEAPON : (type === 'M' ? DB_MONSTER : DB_ITEM);
-        let count = 0;
-        db.forEach((name, i) => {
-            const slot = document.createElement('div');
-            const isFound = library[type][i];
-            slot.className = "lib-slot" + (isFound ? " found" : "");
-            slot.innerText = isFound ? isFound : `No.${i}`;
-            grid.appendChild(slot);
-            if(isFound) count++;
-        });
-        document.getElementById('lib-count').innerText = `FOUND: ${count}`;
-    }
-
-    function openLibrary() { document.getElementById('lib-overlay').style.display='flex'; renderLib('W'); }
     function updateCardUI(side, rare, elem, sym, name) {
         document.getElementById(`${side}-rare`).innerText = rare;
         document.getElementById(`${side}-elem`).innerText = elem;
@@ -283,6 +240,7 @@
         document.getElementById(`${side}-sym`).style.color = "#fff";
         document.getElementById(`${side}-name`).innerText = name;
     }
+
     function resetCardUI(side) {
         document.getElementById(`${side}-rare`).innerText = "-";
         document.getElementById(`${side}-elem`).innerText = "";
@@ -291,12 +249,8 @@
         document.getElementById(`${side}-name`).innerText = side==='p'?"READY":"???";
         if(side==='e') { ehp=0; eMax=0; }
     }
+
     function setBattleBtns(dis) { ["atk-btn","mag-btn","esc-btn"].forEach(id=>document.getElementById(id).disabled=dis); }
-    function handleEscape() { startGame(); }
-    function openMagicMenu() { alert("魔法(未実装)"); }
-    function openItemMenu() { alert("アイテム袋は空だ！"); }
-    function save() { localStorage.setItem('myth_v7_save', JSON.stringify({library, lv, exp, pMax})); }
+    function save() { localStorage.setItem('myth_v7_save', JSON.stringify({library, lv, exp, pMax, magLvl})); }
     window.onload = init;
 </script>
-</body>
-</html>
