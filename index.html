@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER 7.0 - REBORN</title>
+    <title>MYTH SCANNER 7.1 - FAST STABLE</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
@@ -11,7 +11,7 @@
         :root { --p-color: #00f2ff; --e-color: #ff3c00; --exp-color: #32ff32; --gold: #ffd700; --magic-p: #a200ff; }
         body { font-family: 'DotGothic16', sans-serif; background: #000; color: #fff; margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         #header { height: 40px; background: #222; border-bottom: 2px solid #444; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
-        .lib-btn { width: 60%; height: 26px; font-size: 0.7rem; background: #444; color: #fff; border: 1px solid #fff; }
+        .lib-btn { width: 60%; height: 26px; font-size: 0.7rem; background: #444; color: #fff; border: 1px solid #fff; cursor: pointer; }
         .char-area { height: 32%; display: flex; border-bottom: 1px solid #333; padding: 10px; box-sizing: border-box; }
         .cam-part { width: 35%; display: flex; align-items: center; justify-content: center; }
         .cam-frame { width: 90px; height: 90px; border: 2px solid #333; background: #111; overflow: hidden; position: relative; border-radius: 8px; }
@@ -19,7 +19,7 @@
         .cam-active { border: 2px solid #0f0 !important; box-shadow: 0 0 10px #0f0; }
         .cam-active video { display: block !important; }
         .info-part { width: 65%; display: flex; flex-direction: column; padding-left: 10px; justify-content: center; }
-        .visual-card { width: 100%; height: 80px; border: 2px solid #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #111; position: relative; border-radius: 4px; }
+        .visual-card { width: 100%; height: 80px; border: 2px solid #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #111; position: relative; border-radius: 4px; overflow: hidden; }
         .stat-text { font-size: 0.65rem; color: #ccc; margin-top: 2px; line-height: 1.2; }
         .bar-bg { width: 100%; height: 8px; background: #222; border: 1px solid #666; position: relative; overflow: hidden; margin-top: 4px; }
         .bar-fill { height: 100%; width: 0%; transition: width 0.4s ease-out; }
@@ -29,9 +29,6 @@
         button { flex: 1; font-family: 'DotGothic16'; border: 2px solid #fff; color: #fff; background: #444; font-size: 0.7rem; cursor: pointer; }
         button:disabled { opacity: 0.3; pointer-events: none; }
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 100; display: none; flex-direction: column; align-items: center; padding: 15px; box-sizing: border-box; }
-        .lib-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; max-height: 60vh; overflow-y: auto; padding: 10px; }
-        .lib-slot { min-height: 65px; background: #222; border: 1px solid #444; border-radius: 4px; display: flex; align-items: center; justify-content: center; padding: 5px; text-align: center; font-size: 0.55rem; color: #666; }
-        .lib-slot.found { border-color: var(--p-color); background: #333; color: #fff; }
         .rarity-tag { position: absolute; top: 2px; right: 2px; font-size: 0.5rem; padding: 1px 3px; background: #fff; color: #000; font-weight: bold; }
         .elem-tag { position: absolute; top: 2px; left: 2px; font-size: 0.7rem; }
         .shake { animation: s 0.2s; }
@@ -40,7 +37,7 @@
 </head>
 <body>
 
-<div id="header"><button onclick="openLibrary()" class="lib-btn">COLLECTION</button></div>
+<div id="header"><button onclick="alert('図鑑機能は戦闘後に開放されます')" class="lib-btn">COLLECTION</button></div>
 
 <div class="char-area" id="p-area">
     <div class="cam-part"><div class="cam-frame" id="pf-frame"><video id="pv" autoplay playsinline muted></video></div></div>
@@ -60,8 +57,7 @@
 
 <div id="mid-ui">
     <div id="msg">AI BOOTING...</div>
-    <div id="scan-btn-area" class="btn-container">
-        </div>
+    <div id="scan-btn-area" class="btn-container"></div>
     <div class="btn-container">
         <button id="atk-btn" onclick="handleAttack()" disabled style="background:#aa0000">ATTACK</button>
         <button id="mag-btn" onclick="openMagicMenu()" disabled style="background:var(--magic-p)">MAGIC</button>
@@ -94,10 +90,8 @@
     const DB_MONSTER = ["スライム","ゴブリン","スケルトン","野良犬","巨大クモ","ウィスプ","コバルト","大ネズミ","ゾンビ","バット","泥人形","凶暴な鶏","迷い魂","寄生虫","影","浮遊する目玉","毒蜂","腐った樹木","石のトカゲ","はぐれメタル","オーク","デスナイト","ケルベロス","キマイラ","ミミック","ガーゴイル","リビングアーマー","ウェアウルフ","バンシー","グール","サキュバス","インプ","ハーピー","ラミア","ケンタウロス","ミノタウロス","マンティコア","コカトリス","サラマンダー","ウンディーネ","レッドドラゴン","ヴァンパイア","首なし騎士","デーモン","ゴーレム","グリフォン","バジリスク","ヒュドラ","クラーケン","フェニックス","巨大な百足","呪いの遺影","砂漠の魔人","雪女","雷獣","闇の司祭","死霊使い","沼の怪物","迷宮の番人","岩石巨人","古龍","灾厄の化身","アークデーモン","堕天使","リッチ","デーモンロード","双頭の巨獣","ヤマタノオロチ","イフリート","シヴァ","ラムウ","タイタン","ガルーダ","リヴァイアサン","カオス","メドゥーサ","キュクロプス","ベヒーモス","スフィンクス","守護像","神竜","創世の巨神","熾天使","冥王ハデス","破壊神シヴァ","大天使ミカエル","妖狐玉藻前","八咫烏","麒麟","鳳凰","白虎","玄武","朱雀","青龍","魔王サタン","奈落の支配者","終焉を喰らう者","虚無の特異点","黙示録の黒竜","創世の父"];
 
     let net, mode="W", lv=1, exp=0, php=1000, pMax=1000, patk=0, pelem="", ehp=0, eMax=0, eatk=0, eelem="", stream=null;
-    let systemLock = false; // 状態ロックの最上位フラグ
-    let library = JSON.parse(localStorage.getItem('myth_v8_save')) || { W:{}, M:{}, I:{} };
+    let systemLock = false; 
     let magLvl = { "🔥":0, "💧":0, "⚡":0, "🌿":0, "💖":1 };
-    let usedMagicInBattle = false;
 
     async function init() {
         try { 
@@ -106,7 +100,6 @@
         } catch(e) { document.getElementById('msg').innerText = "AI BOOT ERROR"; }
     }
 
-    // カメラのON/OFF
     async function switchCamera(target) {
         if(stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
         document.querySelectorAll('video').forEach(v => { v.pause(); v.srcObject = null; });
@@ -121,26 +114,22 @@
         } catch(e) { return false; }
     }
 
-    // ボタンを物理的に再生成する関数（古いイベントを完全に消す）
     function rebuildScanButton(label, active = true) {
         const area = document.getElementById('scan-btn-area');
-        area.innerHTML = ""; // 一旦空にする
+        area.innerHTML = ""; 
         if (!active) return;
-        
         const btn = document.createElement('button');
-        btn.id = "scan-btn";
         btn.innerText = label;
         btn.style.background = "#0044cc";
-        btn.onclick = handleScan; // 新しいイベントを設定
+        btn.onclick = handleScan; 
         area.appendChild(btn);
     }
 
     async function handleScan() {
-        if(systemLock) return; // 二重起動を完全に阻止
+        if(systemLock) return;
         systemLock = true;
-        
-        rebuildScanButton("", false); // ボタンを物理的に消去
-        document.getElementById('msg').innerText = "SCANNING...";
+        rebuildScanButton("", false);
+        document.getElementById('msg').innerText = "ANALYZING...";
 
         try {
             const vid = (mode === "W") ? document.getElementById('pv') : document.getElementById('ev');
@@ -154,17 +143,18 @@
                 patk = 100 + id + (lv * 10);
                 updateCardUI('p', id>=90?"MYTH":"REG", pelem, "⚔️", name);
                 
-                mode = "M"; // 内部状態を速攻で変更
-                document.getElementById('msg').innerText = `【${name}】を装備した！\n次のスキャン準備中...`;
+                mode = "M";
+                document.getElementById('msg').innerText = "TARGET LOCK...";
                 
-                await switchCamera('OFF');
-                // 3秒間の完全な冷却期間（ここは何をしても無駄な時間にする）
+                if(stream) stream.getTracks().forEach(t => t.stop());
+                
+                // 待ち時間を0.8秒へ短縮
                 setTimeout(async () => {
                     await switchCamera('E');
                     document.getElementById('msg').innerText = "敵をスキャンしてください";
                     rebuildScanButton("ENEMY SCAN");
-                    systemLock = false; // ここで初めてロック解除
-                }, 3000);
+                    systemLock = false; 
+                }, 800);
 
             } else if(mode === "M") {
                 let name = aiName + "の" + (DB_MONSTER[id % 100]);
@@ -175,7 +165,7 @@
                 await switchCamera('OFF');
                 document.getElementById('msg').innerText = `${name}が現れた！`;
                 setBattleBtns(false);
-                systemLock = false; // 戦闘開始のためロック解除（ただしボタンは再生成しない）
+                systemLock = false;
             }
         } catch(e) {
             systemLock = false;
@@ -184,7 +174,6 @@
         updateUI();
     }
 
-    // --- 戦闘ロジック ---
     function handleAttack() {
         setBattleBtns(true);
         let dmg = Math.floor(patk * (0.9 + Math.random()*0.2));
@@ -231,9 +220,7 @@
         resetCardUI('p'); resetCardUI('e');
         document.getElementById('msg').innerText = "武器をスキャンしてください";
         setBattleBtns(true);
-        switchCamera('P').then(() => {
-            rebuildScanButton("SCAN WEAPON");
-        });
+        switchCamera('P').then(() => { rebuildScanButton("SCAN WEAPON"); });
     }
 
     function updateUI() {
@@ -265,8 +252,7 @@
 
     function setBattleBtns(dis) { ["atk-btn","mag-btn","esc-btn"].forEach(id=>document.getElementById(id).disabled=dis); }
     function handleEscape() { startGame(); }
-    function openLibrary() { alert("図鑑機能準備中"); }
-    function openMagicMenu() { alert("魔法はLV2から習得可能です"); }
+    function openMagicMenu() { alert("魔法機能は開発中です"); }
     
     window.onload = init;
 </script>
