@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER 6.7 - STABLE</title>
+    <title>MYTH SCANNER 6.8 - ULTIMATE</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
@@ -49,7 +49,7 @@
             <div id="p-rare" class="rarity-tag">-</div>
             <div id="p-elem" class="elem-tag"></div>
             <div id="p-sym" style="font-size:3.5rem; color:#333;">?</div>
-            <div id="p-name" style="font-size:0.6rem; text-align:center; position:absolute; bottom:5px;">SYSTEM READY</div>
+            <div id="p-name" style="font-size:0.6rem; text-align:center; position:absolute; bottom:5px;">READY</div>
         </div>
         <div class="stat-text">LV:<span id="p-lv">1</span> HP:<span id="p-hp-cur">1000</span>/<span id="p-hp-max">1000</span><br>ATK:<span id="p-atk-val">0</span></div>
         <div class="bar-bg"><div id="p-fill" class="bar-fill" style="background:var(--p-color); width:100%"></div></div>
@@ -92,9 +92,8 @@
         <button onclick="renderLib('M')">MONSTER</button>
         <button onclick="renderLib('I')">ITEM</button>
     </div>
-    <div id="lib-count" style="color:var(--gold); margin-bottom:5px;">FOUND: 0</div>
     <div id="lib-grid" class="lib-grid"></div>
-    <button onclick="document.getElementById('lib-overlay').style.display='none'" style="width:90%; margin-top:10px; height:45px; background:#444;">CLOSE</button>
+    <button onclick="document.getElementById('lib-overlay').style.display='none'" style="width:90%; margin-top:10px; height:45px;">CLOSE</button>
 </div>
 
 <div id="magic-overlay" class="overlay">
@@ -105,14 +104,14 @@
 
 <div id="magic-learn-overlay" class="overlay">
     <h2 style="color:var(--gold);">LEVEL UP!</h2>
-    <p>強化する魔法を選んでください</p>
+    <p>習得する魔法を選択</p>
     <div id="magic-learn-list" style="width:100%; display:flex; flex-direction:column; gap:10px;"></div>
 </div>
 
 <div id="res-screen" class="overlay" style="justify-content:center;">
     <h1 id="res-title"></h1>
-    <div id="res-stats" style="text-align:center; margin:20px; font-size:1.2rem;"></div>
-    <button id="res-cont-btn" style="width:90%; height:50px; background:#0044cc;">CONTINUE</button>
+    <div id="res-stats"></div>
+    <button id="res-cont-btn" style="width:90%; height:50px; background:#0044cc; margin-top:20px;">CONTINUE</button>
 </div>
 
 <script>
@@ -121,7 +120,7 @@
     const DB_ITEM = ["薬草","毒消し草","聖水","煙玉","魔力草","力の種","守りの種","命の木の実","不思議な木の実","まよけの鈴"];
 
     let net, mode="W", lv=1, exp=0, php=1000, pMax=1000, patk=0, pelem="", ehp=0, eMax=0, eatk=0, eelem="", stream=null;
-    let isProcessing = false; // 強力ガード
+    let isProcessing = false; 
     let library = JSON.parse(localStorage.getItem('myth_v7_save')) || { W:{}, M:{}, I:{} };
     let magLvl = { "🔥":0, "💧":0, "⚡":0, "🌿":0, "💖":1 };
     let usedMagicInBattle = false;
@@ -134,18 +133,10 @@
     }
 
     async function switchCamera(target) {
-        if(stream) {
-            stream.getTracks().forEach(t => t.stop());
-            stream = null;
-        }
-        document.querySelectorAll('video').forEach(v => {
-            v.pause();
-            v.srcObject = null;
-        });
+        if(stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+        document.querySelectorAll('video').forEach(v => { v.pause(); v.srcObject = null; });
         document.querySelectorAll('.cam-frame').forEach(f => f.classList.remove('cam-active'));
-
         if(target === 'OFF') return true;
-
         const vId = target === 'P' ? 'pv' : 'ev';
         try {
             stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
@@ -163,7 +154,9 @@
         
         const btn = document.getElementById('scan-btn');
         btn.disabled = true;
-        btn.innerText = "装備中...";
+        btn.style.visibility = "hidden"; // 物理的に隠す
+
+        document.getElementById('msg').innerText = "解析中...";
 
         try {
             const vid = (mode === "W") ? document.getElementById('pv') : document.getElementById('ev');
@@ -172,28 +165,27 @@
             const aiName = r[0].className.split(',')[0].toUpperCase();
 
             if(mode === "W") {
-                // --- 武器スキャン成功直後の処理 ---
                 let name = aiName + "の" + (DB_WEAPON[id % 100]);
                 pelem = ["🔥", "💧", "⚡", "🌿"][id % 4];
                 patk = 100 + id + (lv * 10);
                 updateCardUI('p', id>=90?"MYTH":"REG", pelem, "⚔️", name);
                 library.W[id % 100] = name;
                 
-                // モードを先に変更し、解析を完全に遮断
                 mode = "M"; 
-                document.getElementById('msg').innerText = "【" + name + "】を装備した！\nターゲット(敵)を探せ！";
+                document.getElementById('msg').innerText = "【" + name + "】装備！\nターゲット(敵)へ切り替えます...";
                 
                 await switchCamera('OFF');
-                // 1.5秒待機：この間isProcessingはtrueのまま
+                // 2秒間の完全なデッドタイムを作る
                 setTimeout(async () => {
                     await switchCamera('E');
                     btn.innerText = "ENEMY SCAN";
+                    btn.style.visibility = "visible";
                     btn.disabled = false;
-                    isProcessing = false; // ここで初めてガードを解く
-                }, 1500);
+                    isProcessing = false; 
+                    document.getElementById('msg').innerText = "敵をスキャンしてください";
+                }, 2000);
                 
             } else if(mode === "M") {
-                // --- 敵スキャン成功直後の処理 ---
                 let name = aiName + "の" + (DB_MONSTER[id % 100]);
                 eelem = ["🔥", "💧", "⚡", "🌿"][id % 4];
                 eMax = 500 + (id * 15) + (lv * 20); ehp = eMax; eatk = 50 + id + (lv * 5);
@@ -205,21 +197,16 @@
                 usedMagicInBattle = false;
                 setBattleBtns(false);
                 btn.innerText = "SCAN";
-                isProcessing = false;
-                
+                isProcessing = false; // 戦闘開始
             } else if(mode === "I") {
                 let name = aiName + "の" + (DB_ITEM[id % 10]);
                 library.I[id % 10] = name;
                 document.getElementById('msg').innerText = `【${name}】を獲得！`;
                 save();
-                setTimeout(() => { 
-                    startGame(); 
-                    isProcessing = false;
-                }, 1500);
+                setTimeout(() => { startGame(); isProcessing = false; }, 1500);
             }
         } catch(e) {
-            isProcessing = false;
-            btn.disabled = false;
+            btn.style.visibility = "visible"; btn.disabled = false; isProcessing = false;
         }
         updateUI();
     }
@@ -228,8 +215,8 @@
         setBattleBtns(true);
         let dmg = Math.floor(patk * (0.9 + Math.random()*0.2));
         const relations = {"🔥":"🌿", "🌿":"⚡", "⚡":"💧", "💧":"🔥"};
-        if(relations[pelem] === eelem) { dmg = Math.floor(dmg * 1.5); document.getElementById('msg').innerText = "弱点を突いた！\n"; }
-        ehp -= dmg; document.getElementById('msg').innerText += `Playerの攻撃！ ${dmg}ダメージ！`;
+        if(relations[pelem] === eelem) { dmg = Math.floor(dmg * 1.5); }
+        ehp -= dmg; document.getElementById('msg').innerText = `攻撃！ ${dmg}ダメージ！`;
         document.getElementById('e-area').classList.add('shake');
         updateUI();
         setTimeout(() => { 
@@ -258,12 +245,12 @@
         usedMagicInBattle = true; setBattleBtns(true);
         if(type === "💖") {
             let h = Math.floor(pMax * 0.5); php = Math.min(pMax, php + h);
-            document.getElementById('msg').innerText = `回復魔法！ HPが${h}回復！`;
+            document.getElementById('msg').innerText = `ヒール！ HP+${h}`;
         } else {
             let d = 200 + (magLvl[type]*100);
             const rel = {"🔥":"🌿", "🌿":"⚡", "⚡":"💧", "💧":"🔥"};
             if(rel[type] === eelem) d *= 2;
-            ehp -= d; document.getElementById('msg').innerText = `${type}の魔法！ ${d}ダメージ！`;
+            ehp -= d; document.getElementById('msg').innerText = `${type}魔法！ ${d}ダメ！`;
             document.getElementById('e-area').classList.add('shake');
         }
         updateUI();
@@ -275,7 +262,7 @@
 
     function enemyTurn() {
         let dmg = Math.floor(eatk * (0.8 + Math.random()*0.4));
-        php -= dmg; document.getElementById('msg').innerText = `敵の攻撃！ ${dmg}ダメージ！`;
+        php -= dmg; document.getElementById('msg').innerText = `敵の攻撃！ ${dmg}ダメ！`;
         document.getElementById('p-area').classList.add('shake');
         updateUI();
         setTimeout(() => { 
@@ -295,7 +282,7 @@
                 lv++; exp -= 100; pMax += 150; php = pMax;
                 stats.innerHTML += `<br><span style="color:var(--gold)">LV UP! 現在:${lv}</span>`;
                 if(lv % 2 === 0) {
-                    document.getElementById('res-cont-btn').innerText = "LEARN MAGIC";
+                    document.getElementById('res-cont-btn').innerText = "NEW MAGIC";
                     document.getElementById('res-cont-btn').onclick = showLearnMagic;
                     save(); return;
                 }
@@ -303,8 +290,11 @@
             document.getElementById('res-cont-btn').innerText = "ITEM SCAN";
             document.getElementById('res-cont-btn').onclick = () => {
                 res.style.display='none'; mode="I";
-                document.getElementById('msg').innerText = "戦利品(ITEM)をスキャンせよ！";
-                switchCamera('E').then(() => { document.getElementById('scan-btn').disabled = false; });
+                document.getElementById('msg').innerText = "戦利品をスキャン！";
+                switchCamera('E').then(() => { 
+                    const b = document.getElementById('scan-btn');
+                    b.style.visibility = "visible"; b.disabled = false; b.innerText = "ITEM SCAN";
+                });
             };
         } else {
             document.getElementById('res-title').innerText = "DEFEAT..."; php=pMax;
@@ -332,8 +322,10 @@
         mode = "W"; resetCardUI('p'); resetCardUI('e');
         document.getElementById('msg').innerText = "武器をスキャンしてください";
         switchCamera('P').then(() => { 
-            document.getElementById('scan-btn').disabled = false; 
-            document.getElementById('scan-btn').innerText = "SCAN";
+            const b = document.getElementById('scan-btn');
+            b.style.visibility = "visible"; 
+            b.disabled = false; 
+            b.innerText = "SCAN";
             setBattleBtns(true); 
             updateUI(); 
         });
@@ -381,7 +373,7 @@
         document.getElementById(`${side}-name`).innerText = side==='p'?"READY":"???";
         if(side==='e') { ehp=0; eMax=0; }
     }
-    function setBattleBtns(dis) { ["atk-btn","mag-btn","esc-btn"].forEach(id=>document.getElementById(id).disabled=dis); }
+    function setBattleBtns(dis) { ["atk-btn","mag-btn","esc-btn","item-open-btn"].forEach(id=>document.getElementById(id).disabled=dis); }
     function handleEscape() { startGame(); }
     function openItemMenu() { alert("アイテム袋は空だ！"); }
     function save() { localStorage.setItem('myth_v7_save', JSON.stringify({library, lv, exp, pMax, magLvl})); }
