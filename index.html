@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER 4.27</title>
+    <title>MYTH SCANNER 4.28</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
@@ -286,19 +286,13 @@
             let nextReq = Math.floor(30 * Math.pow(lv, 1.5));
             let gained = Math.floor(nextReq * 0.25 * currentEnemyRank);
             exp += gained; 
-            
-            // 勝利時の基本回復
             php = Math.min(pMax, php + Math.floor(pMax * 0.5));
-            
             let lvUp = 0;
             while (exp >= Math.floor(30 * Math.pow(lv, 1.5))) { 
                 exp -= Math.floor(30 * Math.pow(lv, 1.5)); 
-                lv++; 
-                lvUp++; 
+                lv++; lvUp++; 
                 pMax = Math.floor(pMax * 1.1); 
-                pAtkBonus += 0.05; 
-                pDefBonus += 0.05; 
-                // レベルアップで全回復
+                pAtkBonus += 0.05; pDefBonus += 0.05; 
                 php = pMax; 
             }
             resSts.innerHTML = `敵を撃破！<br><span style="color:var(--exp-color)">EXP +${gained}</span>` + (lvUp ? `<br><span style="color:var(--gold)">LEVEL UP! HP FULL! (${lv})</span>` : "");
@@ -350,17 +344,25 @@
     }
 
     function useItem(itm, idx) {
-        if(itm.t === "HE") php = Math.min(pMax, php + pMax * itm.v);
-        else if(itm.t === "AT") atkBoostMult = 1.5 + itm.v;
-        else if(itm.t === "PO") ehp -= Math.floor(ehp * itm.v);
-        else if(itm.t === "WE") edef = Math.floor(edef * (1 - itm.v));
+        // 効果適用
+        if(itm.t === "HE") { php = Math.min(pMax, php + pMax * itm.v); document.getElementById('msg').innerText = `${itm.n}を使用してHP回復！`; }
+        else if(itm.t === "AT") { atkBoostMult = 1.5 + itm.v; document.getElementById('msg').innerText = `${itm.n}で攻撃力アップ！`; }
+        else if(itm.t === "PO") { ehp -= Math.floor(ehp * itm.v); document.getElementById('msg').innerText = `${itm.n}でダメージ！`; }
+        else if(itm.t === "WE") { edef = Math.floor(edef * (1 - itm.v)); document.getElementById('msg').innerText = `${itm.n}で敵の防御低下！`; }
         else if(itm.t === "SM") {
             inventory.splice(idx, 1); document.getElementById('item-overlay').style.display='none';
             document.getElementById('msg').innerText = "煙玉で確実に逃げた！";
             setTimeout(resetBattle, 1200); updateUI(); return;
         }
-        inventory.splice(idx, 1); document.getElementById('item-overlay').style.display='none';
-        updateUI(); setTimeout(() => { if(ehp>0) enemyTurn(); }, 800);
+        
+        // 消耗品削除
+        inventory.splice(idx, 1); 
+        document.getElementById('item-overlay').style.display='none';
+        
+        // 【修正】UIを更新するが、enemyTurn()を呼ばずに自分のターンを継続
+        updateUI();
+        // 連続でボタンが押せるようにボタンを有効なままにする
+        setBattleBtns(false); 
     }
 
     function openItemMenu() {
