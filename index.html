@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER 4.26</title>
+    <title>MYTH SCANNER 4.27</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
@@ -286,29 +286,35 @@
             let nextReq = Math.floor(30 * Math.pow(lv, 1.5));
             let gained = Math.floor(nextReq * 0.25 * currentEnemyRank);
             exp += gained; 
+            
+            // 勝利時の基本回復
             php = Math.min(pMax, php + Math.floor(pMax * 0.5));
+            
             let lvUp = 0;
-            while (exp >= Math.floor(30 * Math.pow(lv, 1.5))) { exp -= Math.floor(30 * Math.pow(lv, 1.5)); lv++; lvUp++; pMax = Math.floor(pMax * 1.1); pAtkBonus += 0.05; pDefBonus += 0.05; }
-            resSts.innerHTML = `敵を撃破！<br><span style="color:var(--exp-color)">EXP +${gained}</span>` + (lvUp ? `<br><span style="color:var(--gold)">LV UP! (${lv})</span>` : "");
+            while (exp >= Math.floor(30 * Math.pow(lv, 1.5))) { 
+                exp -= Math.floor(30 * Math.pow(lv, 1.5)); 
+                lv++; 
+                lvUp++; 
+                pMax = Math.floor(pMax * 1.1); 
+                pAtkBonus += 0.05; 
+                pDefBonus += 0.05; 
+                // レベルアップで全回復
+                php = pMax; 
+            }
+            resSts.innerHTML = `敵を撃破！<br><span style="color:var(--exp-color)">EXP +${gained}</span>` + (lvUp ? `<br><span style="color:var(--gold)">LEVEL UP! HP FULL! (${lv})</span>` : "");
         } else {
             document.getElementById('res-title').innerText = "LOSE...";
-            // レベル低下の緩和：1〜3に修正
             const lvLoss = Math.floor(Math.random() * 3) + 1;
             lv = Math.max(1, lv - lvLoss);
             pMax = 1000; pAtkBonus = 1.0; pDefBonus = 1.0;
             for(let i=1; i<lv; i++){ pMax = Math.floor(pMax * 1.1); pAtkBonus += 0.05; pDefBonus += 0.05; }
             pdef = Math.floor(pdefBase * pDefBonus);
-            
-            // 経験値半減を維持
             exp = Math.floor(exp / 2);
             php = pMax;
-            
             let itmOff = Math.floor(Math.random() * 3) + 1;
             for(let i=0; i<itmOff; i++) if(inventory.length > 0) inventory.splice(Math.floor(Math.random() * inventory.length), 1);
-            
             let fKeys = [];
             ['W','M','I'].forEach(c => Object.keys(library[c]).forEach(k => fKeys.push({c,k})));
-            // 図鑑消失の緩和：1〜5に修正
             let libOffCount = Math.floor(Math.random() * 5) + 1;
             let actualLibOff = 0;
             for(let i=0; i<libOffCount; i++) if(fKeys.length > 0) { let t = fKeys.splice(Math.floor(Math.random()*fKeys.length), 1)[0]; delete library[t.c][t.k]; actualLibOff++; }
