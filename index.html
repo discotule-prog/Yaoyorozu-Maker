@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER 6.6</title>
+    <title>MYTH SCANNER 6.7 - STABLE</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
@@ -121,7 +121,7 @@
     const DB_ITEM = ["薬草","毒消し草","聖水","煙玉","魔力草","力の種","守りの種","命の木の実","不思議な木の実","まよけの鈴"];
 
     let net, mode="W", lv=1, exp=0, php=1000, pMax=1000, patk=0, pelem="", ehp=0, eMax=0, eatk=0, eelem="", stream=null;
-    let isProcessing = false; // 強力なガードフラグ
+    let isProcessing = false; // 強力ガード
     let library = JSON.parse(localStorage.getItem('myth_v7_save')) || { W:{}, M:{}, I:{} };
     let magLvl = { "🔥":0, "💧":0, "⚡":0, "🌿":0, "💖":1 };
     let usedMagicInBattle = false;
@@ -134,7 +134,6 @@
     }
 
     async function switchCamera(target) {
-        // 現在のストリームを完全に消去
         if(stream) {
             stream.getTracks().forEach(t => t.stop());
             stream = null;
@@ -159,13 +158,12 @@
     }
 
     async function handleScan() {
-        // すでに処理中なら何もしない
         if(isProcessing) return;
         isProcessing = true;
         
         const btn = document.getElementById('scan-btn');
         btn.disabled = true;
-        btn.innerText = "SCANNING...";
+        btn.innerText = "装備中...";
 
         try {
             const vid = (mode === "W") ? document.getElementById('pv') : document.getElementById('ev');
@@ -174,28 +172,28 @@
             const aiName = r[0].className.split(',')[0].toUpperCase();
 
             if(mode === "W") {
-                // 武器確定
+                // --- 武器スキャン成功直後の処理 ---
                 let name = aiName + "の" + (DB_WEAPON[id % 100]);
                 pelem = ["🔥", "💧", "⚡", "🌿"][id % 4];
                 patk = 100 + id + (lv * 10);
                 updateCardUI('p', id>=90?"MYTH":"REG", pelem, "⚔️", name);
                 library.W[id % 100] = name;
                 
-                // 次のモードへ（ここを即座に行う）
+                // モードを先に変更し、解析を完全に遮断
                 mode = "M"; 
-                document.getElementById('msg').innerText = "武器確定！次は敵をスキャン！";
+                document.getElementById('msg').innerText = "【" + name + "】を装備した！\nターゲット(敵)を探せ！";
                 
                 await switchCamera('OFF');
-                // 少し待ってからカメラを切り替える
+                // 1.5秒待機：この間isProcessingはtrueのまま
                 setTimeout(async () => {
                     await switchCamera('E');
                     btn.innerText = "ENEMY SCAN";
                     btn.disabled = false;
-                    isProcessing = false; // ここで初めて次の操作を許可
-                }, 1000);
+                    isProcessing = false; // ここで初めてガードを解く
+                }, 1500);
                 
             } else if(mode === "M") {
-                // 敵確定
+                // --- 敵スキャン成功直後の処理 ---
                 let name = aiName + "の" + (DB_MONSTER[id % 100]);
                 eelem = ["🔥", "💧", "⚡", "🌿"][id % 4];
                 eMax = 500 + (id * 15) + (lv * 20); ehp = eMax; eatk = 50 + id + (lv * 5);
@@ -210,7 +208,6 @@
                 isProcessing = false;
                 
             } else if(mode === "I") {
-                // アイテム確定
                 let name = aiName + "の" + (DB_ITEM[id % 10]);
                 library.I[id % 10] = name;
                 document.getElementById('msg').innerText = `【${name}】を獲得！`;
@@ -221,14 +218,12 @@
                 }, 1500);
             }
         } catch(e) {
-            console.error(e);
             isProcessing = false;
             btn.disabled = false;
         }
         updateUI();
     }
 
-    // --- 以降、戦闘・魔法などのロジック（変更なし） ---
     function handleAttack() {
         setBattleBtns(true);
         let dmg = Math.floor(patk * (0.9 + Math.random()*0.2));
@@ -333,6 +328,7 @@
     }
 
     function startGame() {
+        isProcessing = false;
         mode = "W"; resetCardUI('p'); resetCardUI('e');
         document.getElementById('msg').innerText = "武器をスキャンしてください";
         switchCamera('P').then(() => { 
