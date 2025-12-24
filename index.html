@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER 4.22</title>
+    <title>MYTH SCANNER 4.23</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
@@ -33,7 +33,7 @@
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 100; display: none; flex-direction: column; align-items: center; padding: 15px; box-sizing: border-box; }
         .lib-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; max-height: 60vh; overflow-y: auto; padding: 10px; box-sizing: border-box; }
         .lib-slot { min-height: 65px; background: #222; border: 1px solid #444; border-radius: 4px; display: flex; align-items: center; justify-content: center; padding: 5px; text-align: center; position: relative; }
-        .slot-content { font-size: 0.55rem; color: #555; word-break: break-all; }
+        .slot-content { font-size: 0.55rem; color: #555; word-break: break-all; pointer-events: none; }
         .lib-slot.found { border-color: var(--p-color); background: #333; }
         .lib-slot.found .slot-content { color: #fff; }
         .q-mark { font-size: 3rem; color: #333; animation: blink 2s infinite; }
@@ -100,6 +100,12 @@
     <div style="display:flex; gap:5px; margin-bottom:10px;"><button onclick="renderLib('W')">WEAPON</button><button onclick="renderLib('M')">MONSTER</button><button onclick="renderLib('I')">ITEM</button></div>
     <div id="lib-grid" class="lib-grid"></div>
     <button onclick="document.getElementById('lib-overlay').style.display='none'" style="margin-top:15px;">CLOSE</button>
+</div>
+
+<div id="detail-pop" style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#222; border:3px solid var(--gold); padding:20px; z-index:200; width:80%; text-align:center; display:none; border-radius:10px;">
+    <h3 id="det-name"></h3>
+    <p id="det-desc" style="white-space: pre-wrap; font-size:0.8rem; line-height:1.4;"></p>
+    <button onclick="document.getElementById('detail-pop').style.display='none'" style="width:120px; height:35px; margin-top:15px; background:#444;">CLOSE</button>
 </div>
 
 <div id="bonus-overlay" class="overlay">
@@ -236,7 +242,7 @@
         const btn = document.getElementById('bonus-get-btn');
         btn.disabled = true;
         let id; try { const r = await net.classify(document.getElementById('bv')); id = Math.floor(r[0].probability * 100); } catch(e) { id = Math.floor(Math.random()*100); }
-        let typeArr = ["HE", "AT", "PO", "WE", "SM"]; // SM = 煙玉
+        let typeArr = ["HE", "AT", "PO", "WE", "SM"];
         let type = typeArr[Math.floor(id / 20)];
         let name = DB_ITEM[id] || DB_ITEM[0];
         if(type === "SM") name = "煙玉・" + name;
@@ -257,7 +263,6 @@
             while (exp >= Math.floor(30 * Math.pow(lv, 1.5))) { exp -= Math.floor(30 * Math.pow(lv, 1.5)); lv++; lvUp++; pMax = Math.floor(pMax * 1.1); pAtkBonus += 0.05; pDefBonus += 0.05; }
             resSts.innerHTML = `EXP +${gained}` + (lvUp ? `<br>LV UP! (${lv})` : "");
         } else {
-            // --- 強化ペナルティ ---
             document.getElementById('res-title').innerText = "LOSE...";
             const lvLoss = Math.floor(Math.random() * 5) + 1;
             lv = Math.max(1, lv - lvLoss);
@@ -273,10 +278,47 @@
             let libOffCount = Math.floor(Math.random() * 6) + 5;
             let actualLibOff = 0;
             for(let i=0; i<libOffCount; i++) if(fKeys.length > 0) { let t = fKeys.splice(Math.floor(Math.random()*fKeys.length), 1)[0]; delete library[t.c][t.k]; actualLibOff++; }
-
             resSts.innerHTML = `LV ${lvLoss}低下 / アイテム消失 / 図鑑データ${actualLibOff}件消滅`;
         }
         save(); updateUI();
+    }
+
+    function renderLib(type) {
+        const grid = document.getElementById('lib-grid');
+        grid.innerHTML = "";
+        const offset = {W: 0, M: 100, I: 200}[type];
+        const dataSrc = {W: DB_WEAPON, M: DB_MONSTER, I: DB_ITEM}[type];
+
+        for (let i = 0; i < dataSrc.length; i++) {
+            const id = offset + i;
+            const data = library[type][id];
+            const slot = document.createElement('div');
+            slot.className = "lib-slot" + (data ? " found" : "");
+            
+            if (data) {
+                slot.style.cursor = "pointer";
+                slot.onclick = () => {
+                    document.getElementById('det-name').innerText = data.t;
+                    let desc = "";
+                    if (type === 'W') {
+                        desc = `【武器】\nATK: ${data.atk}\nDEF: ${data.def}\n属性: ${data.e}\n希少度: ${data.r}`;
+                    } else if (type === 'M') {
+                        desc = `【モンスター】\n属性: ${data.e}\n希少度: ${data.r}`;
+                    } else if (type === 'I') {
+                        const effs = {HE:"HP回復", AT:"攻撃UP", PO:"割合ダメ", WE:"防御DOWN", SM:"確実逃走"};
+                        desc = `【アイテム】\n効果: ${effs[data.et] || "不明"}\n希少度: ${data.r}`;
+                    }
+                    document.getElementById('det-desc').innerText = desc;
+                    document.getElementById('detail-pop').style.display = 'block';
+                };
+            }
+
+            const content = document.createElement('div');
+            content.className = "slot-content";
+            content.innerText = data ? data.t : `No.${id}`;
+            slot.appendChild(content);
+            grid.appendChild(slot);
+        }
     }
 
     function useItem(itm, idx) {
@@ -304,7 +346,6 @@
     function resetCardUI(side) { document.getElementById(`${side}-rare`).innerText="-"; document.getElementById(`${side}-sym`).innerText="?"; document.getElementById(`${side}-sym`).className="q-mark"; document.getElementById(`${side}-name`).innerText=side==='p'?"SCANNER READY":"???"; document.getElementById(`${side}-elem`).innerText=""; }
     function updateUI() { document.getElementById('p-lv').innerText=lv; document.getElementById('p-hp-cur').innerText=Math.max(0,Math.floor(php)); document.getElementById('p-hp-max').innerText=pMax; document.getElementById('p-fill').style.width=(php/pMax*100)+"%"; document.getElementById('e-hp-cur').innerText=Math.max(0,Math.floor(ehp)); document.getElementById('e-hp-max').innerText=eMax; document.getElementById('e-fill').style.width=(eMax>0?(ehp/eMax*100):0)+"%"; document.getElementById('p-atk-val').innerText=patk; document.getElementById('p-def-val').innerText=pdef; document.getElementById('e-atk-val').innerText=eatk; document.getElementById('e-def-val').innerText=edef; document.getElementById('bag-status').innerText=`BAG: ${inventory.length}/5`; }
     function updateCardUI(side, rare, sym, name, elem) { document.getElementById(`${side}-rare`).innerText=rare; const s=document.getElementById(`${side}-sym`); s.innerText=sym; s.className=""; s.style.fontSize="2rem"; document.getElementById(`${side}-name`).innerText=name; document.getElementById(`${side}-elem`).innerText=elem; }
-    function renderLib(type) { const grid=document.getElementById('lib-grid'); grid.innerHTML=""; const offset={W:0,M:100,I:200}[type]; const dataSrc={W:DB_WEAPON,M:DB_MONSTER,I:DB_ITEM}[type]; for(let i=0;i<dataSrc.length;i++){ const id=offset+i; const data=library[type][id]; const slot=document.createElement('div'); slot.className="lib-slot"+(data?" found":""); const content=document.createElement('div'); content.className="slot-content"; content.innerText=data?data.t:`No.${id}`; slot.appendChild(content); grid.appendChild(slot); } }
     function openLibrary() { renderLib('W'); document.getElementById('lib-overlay').style.display='flex'; }
     window.onload = init;
 </script>
