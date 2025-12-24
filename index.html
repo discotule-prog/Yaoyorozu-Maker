@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER 4.31</title>
+    <title>MYTH SCANNER 4.32</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
     <style>
-        :root { --p-color: #00f2ff; --e-color: #ff3c00; --exp-color: #32ff32; --gold: #ffd700; --close-btn: #880000; }
+        :root { --p-color: #00f2ff; --e-color: #ff3c00; --exp-color: #32ff32; --gold: #ffd700; --close-btn: #880000; --main-blue: #0044cc; }
         body { font-family: 'DotGothic16', sans-serif; background: #000; color: #fff; margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         #header { height: 40px; background: #222; display: flex; justify-content: center; align-items: center; border-bottom: 2px solid #444; flex-shrink: 0; }
         .lib-btn { width: 50%; font-size: 0.6rem; height: 24px; background: #555; border: 1px solid #fff; color: #fff; cursor: pointer; }
@@ -40,16 +40,13 @@
         .shake { animation: s 0.2s; }
         @keyframes s { 0%,100%{transform:translateX(0)} 25%{transform:translateX(5px)} 75%{transform:translateX(-5px)} }
         @keyframes blink { 0%,100% {opacity:1} 50% {opacity:0.3} }
-        /* アイテム画面専用スタイル */
-        #item-list { width: 95%; max-height: 70vh; overflow-y: auto; margin-bottom: 10px; }
-        .item-close-btn { 
-            background: var(--close-btn) !important; 
-            width: 95% !important; 
-            height: 40px !important; 
-            flex: none !important; /* 他の要素との自動伸長を無効化 */
-            flex-shrink: 0 !important;
-            margin-top: 10px;
-        }
+
+        /* オーバーレイ用共通ボタンボタン */
+        .ov-btn-blue { background: var(--main-blue) !important; width: 95% !important; height: 40px !important; flex: none !important; flex-shrink: 0 !important; margin-top: 15px; }
+        .ov-btn-red { background: var(--close-btn) !important; width: 95% !important; height: 40px !important; flex: none !important; flex-shrink: 0 !important; margin-top: 15px; }
+        .ov-btn-gray { background: #444 !important; width: 95% !important; height: 40px !important; flex: none !important; flex-shrink: 0 !important; margin-top: 15px; }
+
+        #item-list { width: 95%; max-height: 70vh; overflow-y: auto; }
     </style>
 </head>
 <body>
@@ -102,14 +99,14 @@
 <div id="res-screen" class="overlay" style="justify-content:center;">
     <h1 id="res-title" style="font-size:3rem; margin:0;"></h1>
     <div id="res-stats" style="background:#222; padding:15px; border:2px solid #fff; margin:10px 0; width:85%; font-size:0.75rem; line-height:1.6; text-align:center;"></div>
-    <button onclick="closeResult()" style="width:200px; height:50px; background:#0044cc;">CONTINUE</button>
+    <button class="ov-btn-blue" onclick="closeResult()">CONTINUE</button>
 </div>
 
 <div id="lib-overlay" class="overlay">
     <h2>COLLECTION</h2>
     <div style="display:flex; gap:5px; margin-bottom:10px;"><button onclick="renderLib('W')">WEAPON</button><button onclick="renderLib('M')">MONSTER</button><button onclick="renderLib('I')">ITEM</button></div>
     <div id="lib-grid" class="lib-grid"></div>
-    <button onclick="document.getElementById('lib-overlay').style.display='none'" style="margin-top:15px; height:40px; background:#444; width:95%;">CLOSE</button>
+    <button class="ov-btn-gray" onclick="document.getElementById('lib-overlay').style.display='none'">CLOSE</button>
 </div>
 
 <div id="detail-pop" style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#222; border:3px solid var(--gold); padding:20px; z-index:200; width:80%; text-align:center; display:none; border-radius:10px;">
@@ -121,13 +118,13 @@
 <div id="bonus-overlay" class="overlay">
     <h2 style="color:var(--gold);">ITEM SCAN</h2>
     <div class="cam-frame" style="width:150px; height:150px;"><video id="bv" autoplay playsinline muted></video></div>
-    <button id="bonus-get-btn" onclick="getBonusItem()" style="background:#0044cc; width:100%; margin-top:20px; height:50px;">GET ITEM</button>
+    <button id="bonus-get-btn" class="ov-btn-blue" onclick="getBonusItem()">GET ITEM</button>
 </div>
 
 <div id="item-overlay" class="overlay">
     <h2>BAG</h2>
     <div id="item-list"></div>
-    <button class="item-close-btn" onclick="document.getElementById('item-overlay').style.display='none'">CLOSE</button>
+    <button class="ov-btn-red" onclick="document.getElementById('item-overlay').style.display='none'">CLOSE</button>
 </div>
 
 <script>
