@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER 6.1</title>
+    <title>MYTH SCANNER 6.2</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
@@ -29,7 +29,7 @@
         button:disabled { opacity: 0.3; pointer-events: none; }
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 100; display: none; flex-direction: column; align-items: center; padding: 15px; box-sizing: border-box; }
         .lib-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; max-height: 60vh; overflow-y: auto; padding: 10px; box-sizing: border-box; }
-        .lib-slot { min-height: 65px; background: #222; border: 1px solid #444; border-radius: 4px; display: flex; align-items: center; justify-content: center; padding: 5px; text-align: center; font-size: 0.55rem; color: #666; }
+        .lib-slot { min-height: 65px; background: #222; border: 1px solid #444; border-radius: 4px; display: flex; align-items: center; justify-content: center; padding: 5px; text-align: center; font-size: 0.55rem; color: #666; border: 1px solid #444; }
         .lib-slot.found { border-color: var(--p-color); background: #333; color: #fff; }
         .rarity-tag { position: absolute; top: 2px; right: 2px; font-size: 0.5rem; padding: 1px 3px; background: #fff; color: #000; font-weight: bold; }
         .elem-tag { position: absolute; top: 2px; left: 2px; font-size: 0.7rem; }
@@ -108,42 +108,39 @@
     const ABSORB = { "🔥": "💧", "💧": "⚡", "⚡": "🌿", "🌿": "🔥" };
 
     let net, mode="W", lv=1, exp=0, php=1000, pMax=1000, patk=0, pelem="", ehp=0, eMax=0, eatk=0, eelem="", stream=null;
-    let library = JSON.parse(localStorage.getItem('myth_v5_save')) || { W:{}, M:{}, I:{} };
+    let library = JSON.parse(localStorage.getItem('myth_v6_save')) || { W:{}, M:{}, I:{} };
     let magLvl = { "🔥":0, "💧":0, "⚡":0, "🌿":0, "💖":1 };
     let usedMagicInBattle = false;
 
     async function init() {
-        document.getElementById('msg').innerText = "AI BOOTING...";
+        document.getElementById('msg').innerText = "AI LOADING...";
         try { 
             net = await mobilenet.load(); 
             await switchCamera('P');
             document.getElementById('scan-btn').disabled = false;
             document.getElementById('msg').innerText = "武器をスキャンしてください";
-        } catch(e) { document.getElementById('msg').innerText = "CAMERA ERROR"; }
+        } catch(e) { document.getElementById('msg').innerText = "CAMERA FAIL"; }
         updateUI();
     }
 
     async function switchCamera(target) {
         if(stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
         const vId = {P:'pv', E:'ev'}[target];
-        if(!vId) {
-            document.querySelectorAll('.cam-frame').forEach(f=>f.classList.remove('cam-active'));
-            return;
-        }
+        document.querySelectorAll('.cam-frame').forEach(f=>f.classList.remove('cam-active'));
+        if(!vId) return;
         try {
             stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
             const videoEl = document.getElementById(vId);
             videoEl.srcObject = stream;
-            document.querySelectorAll('.cam-frame').forEach(f=>f.classList.remove('cam-active'));
             document.getElementById(vId === 'pv' ? 'pf-frame' : 'ef-frame').classList.add('cam-active');
         } catch(e) { console.error(e); }
     }
 
     async function handleScan() {
-        const scanBtn = document.getElementById('scan-btn');
-        if(scanBtn.disabled) return;
-        scanBtn.disabled = true; // 処理開始時に即ロック
-        
+        const btn = document.getElementById('scan-btn');
+        if(btn.disabled) return;
+        btn.disabled = true;
+
         const vid = (mode==="W") ? document.getElementById('pv') : document.getElementById('ev');
         let id, aiName = "OBJECT";
         try {
@@ -153,19 +150,23 @@
         } catch(e) { id = Math.floor(Math.random()*100); }
 
         if(mode === "W") {
+            // 武器生成
             let name = aiName + "の" + (DB_WEAPON[id] || DB_WEAPON[0]);
             pelem = ["🔥", "💧", "⚡", "🌿"][id % 4];
             patk = 100 + id + (lv * 10);
             updateCardUI('p', id>=90?"MYTH":"REG", pelem, "⚔️", name);
             library.W[id] = name; 
             
-            mode = "M"; // モードを敵スキャンに固定
+            // 強制的に「敵モード」へ移行
+            mode = "M"; 
             document.getElementById('msg').innerText = "次は「敵」をスキャンせよ！";
-            setTimeout(async () => {
-                await switchCamera('E');
-                scanBtn.disabled = false; // カメラ切り替え後にロック解除
-            }, 500);
-        } else if(mode === "M") {
+            save();
+            
+            // カメラを確実に切り替える
+            await switchCamera('E');
+            btn.disabled = false; // 切り替え後にボタン復活
+        } else {
+            // 敵生成
             let name = aiName + "の" + (DB_MONSTER[id] || DB_MONSTER[0]);
             eelem = ["🔥", "💧", "⚡", "🌿"][id % 4];
             eMax = 500 + (id * 15) + (lv * 20); ehp = eMax; eatk = 50 + id + (lv * 5);
@@ -176,8 +177,9 @@
             setBattleBtns(false);
             document.getElementById('msg').innerText = `${name}が現れた！`;
             usedMagicInBattle = false;
+            save();
         }
-        save(); updateUI();
+        updateUI();
     }
 
     function handleAttack() {
@@ -211,8 +213,7 @@
 
     function castMagic(type) {
         document.getElementById('magic-overlay').style.display='none';
-        setBattleBtns(true);
-        usedMagicInBattle = true;
+        setBattleBtns(true); usedMagicInBattle = true;
         if(Math.random() < 0.1) {
             document.getElementById('msg').innerText = "『詠唱に失敗した。』\n魔法が不発に終わった！";
         } else {
@@ -222,12 +223,9 @@
                 document.getElementById('msg').innerText = `回復魔法！ HPが${heal}回復した！`;
             } else {
                 let baseDmg = 150 + (magLvl[type] * 60);
-                if(WEAKNESS[type] === eelem) {
-                    baseDmg = Math.floor(baseDmg * 2.0);
-                    document.getElementById('msg').innerText = `弱点属性！ ${type}の大魔法！\n`;
-                } else if(ABSORB[type] === eelem) {
-                    let heal = Math.floor(baseDmg * 0.5);
-                    ehp = Math.min(eMax, ehp + heal);
+                if(WEAKNESS[type] === eelem) { baseDmg = Math.floor(baseDmg * 2.0); document.getElementById('msg').innerText = `弱点属性！ ${type}の大魔法！\n`; }
+                else if(ABSORB[type] === eelem) {
+                    let heal = Math.floor(baseDmg * 0.5); ehp = Math.min(eMax, ehp + heal);
                     document.getElementById('msg').innerText = `相性が悪い！ 敵のHPが${heal}回復した！`;
                     updateUI(); setTimeout(enemyTurn, 800); return;
                 }
@@ -269,17 +267,13 @@
                     document.getElementById('res-cont-btn').onclick = showMagicLearn;
                 }
             }
-        } else {
-            document.getElementById('res-title').innerText = "DEFEAT...";
-            php=pMax; stats.innerText = "手痛い敗北を喫した...";
-        }
+        } else { document.getElementById('res-title').innerText = "DEFEAT..."; php=pMax; stats.innerText = "手痛い敗北を喫した..."; }
         save(); updateUI();
     }
 
     function showMagicLearn() {
         document.getElementById('res-screen').style.display='none';
-        const list = document.getElementById('magic-learn-list');
-        list.innerHTML = "";
+        const list = document.getElementById('magic-learn-list'); list.innerHTML = "";
         ["🔥","💧","⚡","🌿","💖"].forEach(m => {
             const b = document.createElement('button');
             b.style.width="100%"; b.style.height="45px"; b.style.marginBottom="5px";
@@ -338,35 +332,28 @@
         const s = document.getElementById(`${side}-sym`);
         s.innerText = "?"; s.style.color = "#333";
         document.getElementById(`${side}-name`).innerText = side==='p'?"SCANNER READY":"???";
-        if(side==='e') { ehp=0; eMax=0; eatk=0; }
+        if(side==='e') { ehp=0; eMax=0; eatk=0; document.getElementById('e-atk-val').innerText = 0; }
     }
 
-    function setBattleBtns(dis) {
-        ["atk-btn","mag-btn","esc-btn"].forEach(id=>document.getElementById(id).disabled=dis);
-    }
-
-    function closeResult() {
-        document.getElementById('res-screen').style.display='none';
-        resetBattle();
-    }
-
-    function resetBattle() { 
+    function setBattleBtns(dis) { ["atk-btn","mag-btn","esc-btn"].forEach(id=>document.getElementById(id).disabled=dis); }
+    function closeResult() { document.getElementById('res-screen').style.display='none'; resetBattle(); }
+    
+    async function resetBattle() { 
         mode="W";
         resetCardUI('p');
         resetCardUI('e');
         document.getElementById('msg').innerText = "武器をスキャンしてください";
-        switchCamera('P').then(() => {
-            document.getElementById('scan-btn').disabled = false;
-            document.getElementById('res-cont-btn').innerText = "CONTINUE";
-            document.getElementById('res-cont-btn').onclick = closeResult;
-            setBattleBtns(true); 
-            updateUI(); 
-        });
+        await switchCamera('P');
+        document.getElementById('scan-btn').disabled = false;
+        document.getElementById('res-cont-btn').innerText = "CONTINUE";
+        document.getElementById('res-cont-btn').onclick = closeResult;
+        setBattleBtns(true); 
+        updateUI(); 
     }
 
     function handleEscape() { resetBattle(); }
     function openItemMenu() { alert("アイテム袋は空だ！"); }
-    function save() { localStorage.setItem('myth_v5_save', JSON.stringify({library, magLvl, lv, exp, pMax})); }
+    function save() { localStorage.setItem('myth_v6_save', JSON.stringify({library, magLvl, lv, exp, pMax})); }
 
     window.onload = init;
 </script>
