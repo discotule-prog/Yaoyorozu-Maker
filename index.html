@@ -3,50 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER 4.36 - COLLECTION DETAIL</title>
+    <title>MYTH SCANNER 4.36 - REVERTED</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
     <style>
         :root { --p-color: #00f2ff; --e-color: #ff3c00; }
         body { font-family: 'DotGothic16', sans-serif; background: #000; color: #fff; margin: 0; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
-        #header { height: 40px; background: #222; display: flex; align-items: center; justify-content: space-around; border-bottom: 2px solid #444; }
+        #header { height: 40px; background: #222; display: flex; align-items: center; justify-content: center; border-bottom: 2px solid #444; }
         .char-area { height: 32%; display: flex; border-bottom: 1px solid #333; padding: 10px; box-sizing: border-box; }
+        .cam-part { width: 35%; display: flex; justify-content: center; align-items: center; }
         .cam-frame { width: 90px; height: 90px; border: 2px solid #333; background: #111; overflow: hidden; position: relative; border-radius: 8px; }
         video { width: 100%; height: 100%; object-fit: cover; display: none; }
         .cam-active { border: 2px solid #0f0; box-shadow: 0 0 10px #0f0; }
         .cam-active video { display: block; }
-        .info-part { flex: 1; padding-left: 10px; display: flex; flex-direction: column; justify-content: center; }
+        .info-part { width: 65%; display: flex; flex-direction: column; padding-left: 10px; justify-content: center; }
         .visual-card { width: 100%; height: 80px; border: 2px solid #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #111; position: relative; }
+        .stat-text { font-size: 0.7rem; color: #ccc; margin-top: 5px; }
+        .bar-bg { width: 100%; height: 10px; background: #222; border: 1px solid #666; margin-top: 5px; }
+        .bar-fill { height: 100%; width: 0%; transition: width 0.3s; }
         #mid-ui { flex-grow: 1; background: #111; border-top: 2px solid #444; display: flex; flex-direction: column; align-items: center; padding: 5px; }
         #msg { font-size: 0.8rem; color: #0f0; height: 45px; text-align: center; display: flex; align-items: center; }
         .btn-row { display: flex; gap: 5px; width: 95%; margin-bottom: 5px; }
         button { flex: 1; height: 40px; font-family: 'DotGothic16'; background: #444; color: #fff; border: 2px solid #fff; cursor: pointer; }
         button:disabled { opacity: 0.3; }
-        
-        /* コレクション・ポップアップ用 */
-        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; display: none; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; }
-        .lib-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; width: 100%; overflow-y: auto; }
-        .lib-slot { height: 60px; background: #222; border: 1px solid #444; font-size: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; cursor: pointer; }
-        .found { color: var(--p-color); border-color: var(--p-color); }
-        .detail-card { background: #222; border: 2px solid #fff; padding: 20px; width: 80%; text-align: center; }
+        .shake { animation: s 0.2s; }
+        @keyframes s { 0%,100%{transform:translateX(0)} 50%{transform:translateX(5px)} }
     </style>
 </head>
 <body>
 
-<div id="header">
-    <button onclick="showLib()" style="height:25px; font-size:0.6rem;">COLLECTION</button>
-    <button onclick="resetGame()" style="height:25px; font-size:0.6rem;">RESET</button>
-</div>
+<div id="header"><div style="font-size: 0.8rem;">MYTH SCANNER v4.36</div></div>
 
 <div class="char-area" id="p-area">
-    <div class="cam-frame" id="pf"><video id="pv" autoplay playsinline muted></video></div>
+    <div class="cam-part"><div class="cam-frame" id="pf"><video id="pv" autoplay playsinline muted></video></div></div>
     <div class="info-part">
         <div class="visual-card">
             <div id="p-sym" style="font-size:3rem;">?</div>
             <div id="p-name" style="font-size:0.6rem; position:absolute; bottom:2px;">READY</div>
         </div>
-        <div style="font-size:0.7rem;">HP: <span id="php">1000</span></div>
+        <div class="stat-text">LV:1 HP:<span id="php">1000</span></div>
+        <div class="bar-bg"><div id="p-bar" class="bar-fill" style="background:var(--p-color); width:100%;"></div></div>
     </div>
 </div>
 
@@ -56,155 +53,147 @@
         <button id="scan-btn" onclick="doScan()" style="background:#0044cc;">SCAN</button>
         <button id="atk-btn" onclick="doAtk()" disabled style="background:#880000;">ATTACK</button>
     </div>
+    <div class="btn-row">
+        <button onclick="resetGame()" style="font-size:0.6rem; height: 30px;">RESET GAME</button>
+    </div>
 </div>
 
 <div class="char-area" id="e-area">
-    <div class="cam-frame" id="ef"><video id="ev" autoplay playsinline muted></video></div>
+    <div class="cam-part"><div class="cam-frame" id="ef"><video id="ev" autoplay playsinline muted></video></div></div>
     <div class="info-part">
         <div class="visual-card">
             <div id="e-sym" style="font-size:3rem;">?</div>
             <div id="e-name" style="font-size:0.6rem; position:absolute; bottom:2px;">???</div>
         </div>
-        <div style="font-size:0.7rem;">HP: <span id="ehp">0</span></div>
-    </div>
-</div>
-
-<div id="lib-ui" class="overlay">
-    <h2>COLLECTION</h2>
-    <div id="lib-grid" class="lib-grid"></div>
-    <button onclick="closeOverlay('lib-ui')" style="margin-top:20px; width:100%;">CLOSE</button>
-</div>
-
-<div id="detail-ui" class="overlay" style="justify-content:center;">
-    <div class="detail-card">
-        <h3 id="det-name" style="color:var(--p-color);">NAME</h3>
-        <p id="det-type" style="font-size:0.7rem;">TYPE</p>
-        <hr>
-        <p id="det-stat" style="font-size:0.9rem;">ATK: 0</p>
-        <p id="det-desc" style="font-size:0.6rem; color:#aaa;">FLAVOR TEXT...</p>
-        <button onclick="closeOverlay('detail-ui')" style="width:100%;">OK</button>
+        <div class="stat-text">HP:<span id="ehp">0</span></div>
+        <div class="bar-bg"><div id="e-bar" class="bar-fill" style="background:var(--e-color);"></div></div>
     </div>
 </div>
 
 <script>
-    const W_DB = ["短剣","長剣","斧","杖","弓","槍"];
-    const M_DB = ["スライム","ゴブリン","ドラキー","ゾンビ","オーク","ゴーレム"];
+    const W_DB = ["短剣","長剣","斧","杖","弓","槍","槌","刀","鞭","盾"];
+    const M_DB = ["スライム","ゴブリン","ドラキー","ゾンビ","オーク","ゴーレム","竜","魔王"];
     
     let net, mode="W", stream, busy=false;
     let php=1000, pmx=1000, patk=0;
     let ehp=0, emx=0, eatk=0;
-    
-    // 図鑑データ（ローカルストレージに保存可能）
-    let collection = JSON.parse(localStorage.getItem('myth_col')) || [];
 
     async function init() {
-        net = await mobilenet.load();
-        resetGame();
+        try {
+            net = await mobilenet.load();
+            resetGame();
+        } catch(e) { document.getElementById('msg').innerText = "AI LOAD ERROR"; }
     }
 
     async function cam(t) {
-        if(stream) stream.getTracks().forEach(s=>s.stop());
+        if(stream) {
+            stream.getTracks().forEach(s=>s.stop());
+            stream = null;
+        }
+        document.querySelectorAll('video').forEach(v=>{v.pause(); v.srcObject=null;});
+        document.querySelectorAll('.cam-frame').forEach(f=>f.classList.remove('cam-active'));
         if(t==='OFF') return;
         try {
             stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
             const id = t==='W'?'pv':'ev';
+            const f = t==='W'?'pf':'ef';
             document.getElementById(id).srcObject = stream;
-            document.getElementById(t==='W'?'pf':'ef').classList.add('cam-active');
-        } catch(e) { alert("CAM ERROR"); }
+            document.getElementById(f).classList.add('cam-active');
+        } catch(e) { document.getElementById('msg').innerText = "CAMERA ERROR"; }
     }
 
     async function doScan() {
         if(busy) return;
         busy = true;
+        document.getElementById('scan-btn').disabled = true;
         document.getElementById('msg').innerText = "SCANNING...";
-        const vid = mode==="W"?document.getElementById('pv'):document.getElementById('ev');
-        const res = await net.classify(vid);
-        const id = Math.floor(res[0].probability * 100);
-        const aiName = res[0].className.split(',')[0].toUpperCase();
 
-        if(mode==="W") {
-            const name = aiName + "の" + W_DB[id % W_DB.length];
-            patk = 100 + id;
-            document.getElementById('p-name').innerText = name;
-            document.getElementById('p-sym').innerText = "⚔️";
-            saveToCol(name, "WEAPON", `ATK: ${patk}`, "スキャンによって具現化された武器。");
-            
-            mode = "M";
-            document.getElementById('msg').innerText = "ターゲットを捕捉せよ";
-            await cam('OFF');
-            setTimeout(()=> { cam('M'); busy=false; }, 1000);
-        } else {
-            const name = aiName + "の" + M_DB[id % M_DB.length];
-            emx = 500 + (id * 10); ehp = emx; eatk = 50 + id;
-            document.getElementById('e-name').innerText = name;
-            document.getElementById('e-sym').innerText = "👾";
-            saveToCol(name, "MONSTER", `HP: ${emx} / ATK: ${eatk}`, "このエリアに生息する未知の個体。");
+        try {
+            const v = mode==="W"?document.getElementById('pv'):document.getElementById('ev');
+            const res = await net.classify(v);
+            const id = Math.floor(res[0].probability * 100);
+            const name = res[0].className.split(',')[0].toUpperCase();
 
-            document.getElementById('msg').innerText = "BATTLE START!";
-            document.getElementById('scan-btn').disabled = true;
-            document.getElementById('atk-btn').disabled = false;
-            await cam('OFF');
-            busy = false;
-        }
+            if(mode==="W") {
+                const wName = name + "の" + W_DB[id % W_DB.length];
+                patk = 100 + id;
+                document.getElementById('p-name').innerText = wName;
+                document.getElementById('p-sym').innerText = "⚔️";
+                
+                mode = "M";
+                document.getElementById('msg').innerText = "武器装備完了！敵を探せ！";
+                await cam('OFF');
+                setTimeout(()=> {
+                    cam('M');
+                    document.getElementById('scan-btn').disabled = false;
+                    busy = false;
+                }, 1000);
+            } else {
+                const mName = name + "の" + M_DB[id % M_DB.length];
+                emx = 500 + (id * 10); ehp = emx; eatk = 50 + id;
+                document.getElementById('e-name').innerText = mName;
+                document.getElementById('e-sym').innerText = "👾";
+
+                document.getElementById('msg').innerText = mName + "が現れた！";
+                document.getElementById('scan-btn').disabled = true;
+                document.getElementById('atk-btn').disabled = false;
+                await cam('OFF');
+                busy = false;
+            }
+        } catch(e) { busy=false; document.getElementById('scan-btn').disabled=false; }
+        updateUI();
     }
-
-    function saveToCol(name, type, stat, desc) {
-        if(!collection.find(i => i.name === name)) {
-            collection.push({name, type, stat, desc});
-            localStorage.setItem('myth_col', JSON.stringify(collection));
-        }
-    }
-
-    function showLib() {
-        const grid = document.getElementById('lib-grid');
-        grid.innerHTML = "";
-        collection.forEach(item => {
-            const slot = document.createElement('div');
-            slot.className = "lib-slot found";
-            slot.innerText = item.name;
-            slot.onclick = () => showDetail(item);
-            grid.appendChild(slot);
-        });
-        document.getElementById('lib-ui').style.display = 'flex';
-    }
-
-    function showDetail(item) {
-        document.getElementById('det-name').innerText = item.name;
-        document.getElementById('det-type').innerText = `[ ${item.type} ]`;
-        document.getElementById('det-stat').innerText = item.stat;
-        document.getElementById('det-desc').innerText = item.desc;
-        document.getElementById('detail-ui').style.display = 'flex';
-    }
-
-    function closeOverlay(id) { document.getElementById(id).style.display = 'none'; }
 
     function doAtk() {
         const d = Math.floor(patk * (0.8 + Math.random()*0.4));
         ehp -= d;
-        document.getElementById('msg').innerText = d + " ダメージ！";
-        if(ehp <= 0) { alert("WIN!"); resetGame(); } else { setTimeout(eTurn, 800); }
+        document.getElementById('msg').innerText = d + "のダメージ！";
+        document.getElementById('e-area').classList.add('shake');
+        setTimeout(()=>document.getElementById('e-area').classList.remove('shake'), 200);
+        if(ehp <= 0) {
+            alert("勝利！武器が破損した！");
+            resetGame();
+        } else {
+            document.getElementById('atk-btn').disabled = true;
+            setTimeout(eTurn, 800);
+        }
         updateUI();
     }
 
     function eTurn() {
         const d = Math.floor(eatk * (0.8 + Math.random()*0.4));
         php -= d;
-        document.getElementById('msg').innerText = "敵の攻撃！ " + d + "ダメージ";
-        if(php <= 0) { alert("LOSE..."); resetGame(); }
+        document.getElementById('msg').innerText = "敵の攻撃！ " + d + "ダメージ！";
+        document.getElementById('p-area').classList.add('shake');
+        setTimeout(()=>document.getElementById('p-area').classList.remove('shake'), 200);
+        if(php <= 0) {
+            alert("敗北...");
+            resetGame();
+        } else {
+            document.getElementById('atk-btn').disabled = false;
+        }
         updateUI();
     }
 
     function resetGame() {
-        mode = "W"; busy = false; php = 1000; ehp = 0;
+        mode = "W"; busy = false;
+        php = pmx; ehp = 0; emx = 0;
+        document.getElementById('p-name').innerText = "READY";
+        document.getElementById('p-sym').innerText = "?";
+        document.getElementById('e-name').innerText = "???";
+        document.getElementById('e-sym').innerText = "?";
+        document.getElementById('msg').innerText = "武器をスキャンしてください";
         document.getElementById('scan-btn').disabled = false;
         document.getElementById('atk-btn').disabled = true;
-        document.getElementById('msg').innerText = "武器をスキャンしてください";
-        cam('W'); updateUI();
+        cam('W');
+        updateUI();
     }
 
     function updateUI() {
         document.getElementById('php').innerText = Math.max(0, Math.floor(php));
         document.getElementById('ehp').innerText = Math.max(0, Math.floor(ehp));
+        document.getElementById('p-bar').style.width = (php/pmx*100) + "%";
+        document.getElementById('e-bar').style.width = emx>0 ? (ehp/emx*100) + "%" : "0%";
     }
 
     window.onload = init;
