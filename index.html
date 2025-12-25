@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER 4.7 - HARD MODE</title>
+    <title>MYTH SCANNER 4.8</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
@@ -31,15 +31,18 @@
         button { flex: 1; height: 38px; font-family: 'DotGothic16'; border: 2px solid #fff; color: #fff; background: #444; font-size: 0.65rem; cursor: pointer; }
         button:disabled { opacity: 0.25; cursor: default; }
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 100; display: none; flex-direction: column; align-items: center; padding: 15px; box-sizing: border-box; }
-        .lib-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; max-height: 60vh; overflow-y: auto; padding: 10px; box-sizing: border-box; }
-        .lib-slot { min-height: 60px; background: #222; border: 1px solid #444; border-radius: 4px; display: flex; align-items: center; justify-content: center; padding: 4px; text-align: center; cursor: pointer; }
-        .slot-content { font-size: 0.55rem; color: #555; pointer-events: none; }
+        .lib-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; max-height: 60vh; overflow-y: auto; padding: 10px; box-sizing: border-box; border: 1px solid #444; }
+        .lib-slot { min-height: 60px; background: #222; border: 1px solid #444; border-radius: 4px; display: flex; align-items: center; justify-content: center; padding: 4px; text-align: center; }
+        .slot-content { font-size: 0.55rem; color: #555; }
         .lib-slot.found { border-color: var(--p-color); background: #333; }
         .lib-slot.found .slot-content { color: #fff; }
         .shake { animation: s 0.2s; }
         @keyframes s { 0%,100%{transform:translateX(0)} 25%{transform:translateX(5px)} 75%{transform:translateX(-5px)} }
         .ov-btn-red { background: var(--close-btn) !important; width: 95% !important; height: 40px !important; margin-top: 15px; }
         .ov-btn-blue { background: var(--main-blue) !important; width: 95% !important; height: 40px !important; margin-top: 15px; }
+        .lib-tabs { display: flex; width: 95%; gap: 5px; margin-bottom: 10px; }
+        .lib-tabs button { height: 30px; font-size: 0.5rem; background: #333; }
+        .lib-tabs button.active { background: var(--main-blue); border-color: var(--p-color); }
     </style>
 </head>
 <body>
@@ -93,12 +96,24 @@
 </div>
 
 <div id="item-overlay" class="overlay"><h2>BAG</h2><div id="item-list" style="width:100%;"></div><button class="ov-btn-red" onclick="document.getElementById('item-overlay').style.display='none'">CLOSE</button></div>
-<div id="lib-overlay" class="overlay"><h2>COLLECTION</h2><div id="lib-grid" class="lib-grid"></div><button class="ov-btn-red" onclick="document.getElementById('lib-overlay').style.display='none'">CLOSE</button></div>
+
+<div id="lib-overlay" class="overlay">
+    <h2>COLLECTION</h2>
+    <div class="lib-tabs">
+        <button id="tab-W" onclick="renderLib('W')" class="active">WEAPON</button>
+        <button id="tab-M" onclick="renderLib('M')">MONSTER</button>
+        <button id="tab-I" onclick="renderLib('I')">ITEM</button>
+    </div>
+    <div id="lib-grid" class="lib-grid"></div>
+    <button class="ov-btn-red" onclick="document.getElementById('lib-overlay').style.display='none'">CLOSE</button>
+</div>
+
 <div id="res-screen" class="overlay" style="justify-content:center;">
     <h1 id="res-title"></h1>
     <div id="res-stats" style="background:#222; padding:15px; border:2px solid #fff; width:85%; font-size:0.75rem; text-align:center;"></div>
     <button class="ov-btn-blue" onclick="closeResult()">CONTINUE</button>
 </div>
+
 <div id="bonus-overlay" class="overlay"><h2>ITEM SCAN</h2><div class="cam-frame" style="width:150px; height:150px;"><video id="bv" autoplay playsinline muted></video></div><button id="bonus-get-btn" class="ov-btn-blue" onclick="getBonusItem()">GET ITEM</button></div>
 
 <script>
@@ -140,7 +155,7 @@
             patk = Math.floor(100 * rarityMult * (0.85 + Math.random() * 0.3) * pAtkBonus);
             pdef = Math.floor((pdefBase * pDefBonus) + (40 * rarityMult * 0.8));
             updateCardUI('p', rareLabel, "⚔️", base, pelem);
-            library.W[id] = {t: base, e: pelem, r: rareLabel}; mode="M"; switchCamera('E'); 
+            library.W[id] = {t: base}; mode="M"; switchCamera('E'); 
             document.getElementById('msg').innerText = `装備完了！次はモンスターをスキャン！`;
         } else {
             let base = DB_MONSTER[id]; eelem = ["🔥", "💧", "⚡", "🌿"][id % 4];
@@ -148,7 +163,7 @@
             eMax = Math.floor(800 * rarityMult * (1 + (lv-1)*0.1)); ehp = eMax; 
             eatk = Math.floor(75 * rarityMult * (1 + (lv-1)*0.1)); edef = Math.floor(35 * rarityMult * (1 + (lv-1)*0.1));
             updateCardUI('e', (id >= 40 ? "BOSS" : "NORMAL"), "👾", base, eelem);
-            library.M[id+100] = {t: base, e: eelem, r: rareLabel};
+            library.M[id+100] = {t: base};
             switchCamera('OFF'); setBattleBtns(false); document.getElementById('scan-btn').disabled = true; 
             document.getElementById('msg').innerText = `${base} が現れた！`;
         }
@@ -194,11 +209,8 @@
         } else {
             document.getElementById('res-title').innerText = "LOSE...";
             let pLog = "";
-            // LV DOWN
             if(lv > 1) { lv--; pMax = Math.ceil(pMax / 1.1); pAtkBonus = 1.0 + (lv * 0.01); pDefBonus = 1.0 + (lv * 0.01); pLog += `レベルが ${lv} に低下…<br>`; }
-            // ITEM LOST
             if(inventory.length > 0) { let idx = Math.floor(Math.random()*inventory.length); pLog += `バッグから ${inventory.splice(idx, 1)[0].n} を紛失！<br>`; }
-            // LIB LOST (1-5)
             let lostMax = Math.floor(Math.random()*5)+1; let actual = 0;
             for(let i=0; i<lostMax; i++){
                 let cats = ['W','M','I']; let c = cats[Math.floor(Math.random()*3)];
@@ -208,6 +220,34 @@
             php = pMax; resSts.innerHTML = `<span style="color:var(--penalty-red);">${pLog}</span><br>HPを全回復して復帰。`;
         }
         save(); updateUI();
+    }
+
+    // --- COLLECTION (固定・復旧) ---
+    function openLibrary() {
+        document.getElementById('lib-overlay').style.display = 'flex';
+        renderLib('W');
+    }
+
+    function renderLib(type) {
+        // タブの見た目更新
+        document.querySelectorAll('.lib-tabs button').forEach(b => b.classList.remove('active'));
+        document.getElementById('tab-' + type).classList.add('active');
+
+        const grid = document.getElementById('lib-grid');
+        grid.innerHTML = "";
+        
+        // 元の全データベースを参照して所持状況を確認
+        const masterDB = { 'W': DB_WEAPON, 'M': DB_MONSTER, 'I': DB_ITEM }[type];
+        const offset = { 'W': 0, 'M': 100, 'I': 200 }[type];
+
+        masterDB.forEach((name, i) => {
+            const globalId = i + offset;
+            const isFound = library[type][globalId] !== undefined;
+            const slot = document.createElement('div');
+            slot.className = "lib-slot" + (isFound ? " found" : "");
+            slot.innerHTML = `<div class="slot-content">${isFound ? name : 'No.' + globalId}</div>`;
+            grid.appendChild(slot);
+        });
     }
 
     function useItem(itm, idx) {
@@ -256,8 +296,8 @@
         document.getElementById(`${s}-sym`).style.color="#fff";
     }
     function resetCardUI(s) { document.getElementById(`${s}-rare`).innerText="-"; document.getElementById(`${s}-name`).innerText=s==='p'?"READY":"???"; document.getElementById(`${s}-sym`).innerText="?"; document.getElementById(`${s}-sym`).style.color="#333"; document.getElementById(`${s}-elem`).innerText=""; }
-    function openLibrary() { document.getElementById('lib-overlay').style.display='flex'; const g = document.getElementById('lib-grid'); g.innerHTML=""; Object.keys(library.W).forEach(k=> { const d = document.createElement('div'); d.className="lib-slot found"; d.innerHTML=`<div class="slot-content">${library.W[k].t}</div>`; g.appendChild(d); }); }
     function handleEscape() { if(Math.random()<0.5) resetBattle(); else enemyTurn(); }
+    function openMagicMenu() { document.getElementById('msg').innerText = "魔法はまだ未習得です"; }
     window.onload = init;
 </script>
 </body>
