@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER 4.9</title>
+    <title>MYTH SCANNER 5.1 - FULL DATA</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
@@ -100,7 +100,7 @@
 
 <div id="lib-overlay" class="overlay">
     <h2>COLLECTION</h2>
-    <div id="lib-counter">FOUND: 0 / 0</div>
+    <div id="lib-counter">FOUND: 0 / 100</div>
     <div class="lib-tabs">
         <button id="tab-W" onclick="renderLib('W')" class="active">WEAPON</button>
         <button id="tab-M" onclick="renderLib('M')">MONSTER</button>
@@ -121,11 +121,11 @@
 <script>
     const DB_WEAPON = ["錆びた短剣","棒切れ","鉄のヤスリ","練習用の剣","皮のムチ","石の礫","粗末な弓","鉄の棒","薪割り斧","穴の空いた盾","ブロンズナイフ","鉄の爪","ランス","警棒","木刀","石のメイス","投げナイフ","鉄の針","兵士の剣","古いハルバード","鋼鉄の長剣","処刑人の斧","銀のレイピア","剛弓","漆黒の短刀","熟練の戦槌","猛獣の牙","抜刀斎の刀","暗殺者の針","閃光のダガー","守護者の大盾","スナイパーライフル","騎士のランス","十字槍","三節棍","フランベルジュ","魔法の杖","三叉矛","黄金の槌","カトラス","バスターソード","ミスリルの小太刀","凍結の魔弓","爆炎の斧","稲妻の刺剣","竜殺しの太刀","幻影の双剣","岩断ちの巨斧","精霊の杖","破邪の弓","守護神の槍","毒蛇の尾","吸血の牙","星屑のメイス","震動のハンマー","蒼天の剣","烈風の鎌","断罪の鎖","賢者の辞典","深海のマント","フレイムタン","ミョルニル","トライデント","ガイアハンマー","円月刀","クレイモア","巨人の鉄球","フレイル","細剣","魔槍","聖騎士の盾","黒金の棍棒","呪いの呪符","煉獄の鎌","極光の矢","神速のダガー","不壊の籠手","飛龍の魔笛","混沌の杖","虚空の鏡","魔剣グラム","聖剣エクスカリバー","竜槍ゲイボルグ","聖槍ロンギヌス","天羽々斬","村正","神弓アルテミス","モーニングスター","アロンダイト","デュランダル","妖刀正宗","霊刀七支刀","魔導書アルマデル","破滅の爪","絶影","究極神剣ゼノス","時空貫通神槍","真理の魔導核","天地崩壊の終槌","黙示録の神盾","終焉を断つ神剣"];
     const DB_MONSTER = ["スライム","ゴブリン","スケルトン","野良犬","巨大クモ","ウィスプ","コバルト","大ネズミ","ゾンビ","バット","泥人形","凶暴な鶏","迷い魂","寄生虫","影","浮遊する目玉","毒蜂","腐った樹木","石のトカゲ","はぐれメタル","オーク","デスナイト","ケルベロス","キマイラ","ミミック","ガーゴイル","リビングアーマー","ウェアウルフ","バンシー","グール","サキュバス","インプ","ハーピー","ラミア","ケンタウロス","ミノタウロス","マンティコア","コカトリス","サラマンダー","ウンディーネ","レッドドラゴン","ヴァンパイア","首なし騎士","デーモン","ゴーレム","グリフォン","バジリスク","ヒュドラ","クラーケン","フェニックス","巨大な百足","呪いの遺影","砂漠の魔人","雪女","雷獣","闇の司祭","死霊使い","沼の怪物","迷宮の番人","岩石巨人","古龍","災厄の化身","アークデーモン","堕天使","リッチ","デーモンロード","双頭の巨獣","ヤマタノオロチ","イフリート","シヴァ","ラムウ","タイタン","ガルーダ","リヴァイアサン","カオス","メドゥーサ","キュクロプス","ベヒーモス","スフィンクス","守護像","神竜","創世の巨神","熾天使","冥王ハデス","破壊神シヴァ","大天使ミカエル","妖狐玉藻前","八咫烏","麒麟","鳳凰","白虎","玄武","朱雀","青龍","魔王サタン","奈落の支配者","終焉を喰らう者","虚無の特異点","黙示録の黒竜","創世の父"];
-    const DB_ITEM = ["薬草","ポーション","癒やしの水","解毒草","元気の塊","砥石","攻撃の薬","守りの粉","不思議な実","聖水"]; 
-    const ELEMENTS = { "🔥": "🌿", "🌿": "⚡", "⚡": "💧", "💧": "🔥" };
+    const DB_ITEM = ["薬草","ポーション","癒やしの水","解毒草","元気の塊","砥石","攻撃の薬","守りの粉","不思議な実","聖水","特効薬","満月草","目薬","煙玉","魔石の欠片","銀の杯","金塊","エメラルド","ルビー","サファイア","ダイヤモンド","古びた硬貨","王の証","光の玉","虹色の羽","ドラゴンの鱗","フェニックスの尾","オリハルコン","ミスリル","魔力の結晶","生命の種","力の種","守りの種","すばやさの種","知恵の種","奇跡の果実","時の砂","透明な粉","錆取り剤","不思議な磁石","魔法のランプ","聖騎士の遺骨","亡者の布","猛毒の瓶","爆裂玉","氷結結晶","稲妻の杖","風の呼び笛","暗黒の経典","神聖な十字架","古文書","英雄の魂","神の涙","悪魔の契約書","星の砂","月光の雫","太陽の石","天界の酒","冥界の鍵","竜の逆鱗","海王の角","精霊の涙","夢の欠片","呪われた呪符","黄金の林檎","不老不死の薬","賢者の石","世界樹の枝","神々の糧","虚無の残り火","聖なる灰","血染めの砂","時空の歯車","次元の羅針盤","霊魂の灯火","万能薬","エクスポーション","エリクサー","魔力回復剤","英雄の秘薬","巨人の霊薬","死者蘇生の薬","女神の祝福","戦神の角笛","魔導師の指輪","守護の首飾り","幸運のコイン","盗賊の極意","神速の具足","覇王の冠","天帝の宝珠","黙示録の断片","創世の粘土","真理の鏡","運命の糸","カオスの核","オメガの歯車","アポカリプスの雫","神域の門","究極の叡智"]; 
 
+    const ELEMENTS = { "🔥": "🌿", "🌿": "⚡", "⚡": "💧", "💧": "🔥" };
     let net, mode="W", lv=1, exp=0, php=1000, pMax=1000, patk=0, pdefBase=50, pdef=0, ehp=0, eMax=0, eatk=0, edef=0, pelem="", eelem="", stream=null, atkBoostMult=1, inventory = [], pAtkBonus=1.01, pDefBonus=1.01;
-    let library = JSON.parse(localStorage.getItem('myth_v4_hard')) || { W: {}, M: {}, I: {} };
+    let library = JSON.parse(localStorage.getItem('myth_v5_hard')) || { W: {}, M: {}, I: {} };
 
     async function init() {
         try { net = await mobilenet.load(); document.getElementById('scan-btn').disabled = false; document.getElementById('msg').innerText = "武器をスキャンしてください"; switchCamera('P'); }
@@ -149,7 +149,6 @@
         const vid = mode==="W" ? document.getElementById('pv') : document.getElementById('ev');
         let id = Math.floor(Math.random() * 100);
         try { const r = await net.classify(vid); id = Math.floor(r[0].probability * 100); } catch(e){}
-        
         const rareLabel = id >= 95 ? "MYTH" : id >= 80 ? "LEGEND" : id >= 40 ? "ELITE" : "NORMAL";
         if(mode==="W") {
             let base = DB_WEAPON[id]; pelem = ["🔥", "💧", "⚡", "🌿"][id % 4];
@@ -224,79 +223,50 @@
         save(); updateUI();
     }
 
-    function openLibrary() {
-        document.getElementById('lib-overlay').style.display = 'flex';
-        renderLib('W');
-    }
-
     function renderLib(type) {
         document.querySelectorAll('.lib-tabs button').forEach(b => b.classList.remove('active'));
         document.getElementById('tab-' + type).classList.add('active');
         const grid = document.getElementById('lib-grid');
         grid.innerHTML = "";
-        
         const masterDB = { 'W': DB_WEAPON, 'M': DB_MONSTER, 'I': DB_ITEM }[type];
         const offset = { 'W': 0, 'M': 100, 'I': 200 }[type];
-        
         let foundCount = 0;
-        masterDB.forEach((name, i) => {
+        for(let i = 0; i < 100; i++) {
             const globalId = i + offset;
             const isFound = library[type][globalId] !== undefined;
             if(isFound) foundCount++;
             const slot = document.createElement('div');
             slot.className = "lib-slot" + (isFound ? " found" : "");
-            slot.innerHTML = `<div class="slot-content">${isFound ? name : 'No.' + globalId}</div>`;
+            slot.innerHTML = `<div class="slot-content">${isFound ? masterDB[i] : 'No.' + globalId}</div>`;
             grid.appendChild(slot);
-        });
-        
-        document.getElementById('lib-counter').innerText = `FOUND: ${foundCount} / ${masterDB.length}`;
+        }
+        document.getElementById('lib-counter').innerText = `FOUND: ${foundCount} / 100`;
     }
 
     function useItem(itm, idx) {
-        if(itm.id < 5) { // Recovery
-            let h = Math.floor(pMax * 0.4); php = Math.min(pMax, php + h);
-            document.getElementById('msg').innerText = `${itm.n}で ${h} 回復！`;
-        } else {
-            atkBoostMult = 1.6; document.getElementById('msg').innerText = `${itm.n}で攻撃力アップ！`;
-        }
+        // IDが偶数なら回復、奇数なら攻撃アップ（全アイテムで機能するように簡易化）
+        if(itm.id % 2 === 0) { let h = Math.floor(pMax * 0.4); php = Math.min(pMax, php + h); document.getElementById('msg').innerText = `${itm.n}で回復！`; }
+        else { atkBoostMult = 2.0; document.getElementById('msg').innerText = `${itm.n}で攻撃倍率2倍！`; }
         inventory.splice(idx, 1); document.getElementById('item-overlay').style.display='none'; updateUI();
     }
 
-    function openItemMenu() {
-        const list = document.getElementById('item-list'); list.innerHTML = inventory.length ? "" : "EMPTY";
-        inventory.forEach((itm, i) => {
-            const b = document.createElement('button'); b.style.width="90%"; b.style.margin="5px";
-            b.innerText = itm.n; b.onclick = () => useItem(itm, i); list.appendChild(b);
-        });
-        document.getElementById('item-overlay').style.display='flex';
-    }
-
-    function showBonus() { finish(true); document.getElementById('bonus-overlay').style.display='flex'; switchCamera('B'); }
     async function getBonusItem() {
-        let id = Math.floor(Math.random()*10); let name = DB_ITEM[id];
+        let id = Math.floor(Math.random()*100); let name = DB_ITEM[id];
         if(inventory.length < 5) inventory.push({ n: name, id: id });
         library.I[id+200] = {t: name}; save(); 
         document.getElementById('bonus-overlay').style.display='none'; switchCamera('OFF');
     }
 
+    // 基本機能
+    function openLibrary() { document.getElementById('lib-overlay').style.display='flex'; renderLib('W'); }
+    function openItemMenu() { const list = document.getElementById('item-list'); list.innerHTML = inventory.length ? "" : "EMPTY"; inventory.forEach((itm, i) => { const b = document.createElement('button'); b.style.width="90%"; b.style.margin="5px"; b.innerText = itm.n; b.onclick = () => useItem(itm, i); list.appendChild(b); }); document.getElementById('item-overlay').style.display='flex'; }
+    function showBonus() { finish(true); document.getElementById('bonus-overlay').style.display='flex'; switchCamera('B'); }
     function save() { localStorage.setItem('myth_v4_hard', JSON.stringify(library)); }
     function closeResult() { document.getElementById('res-screen').style.display='none'; resetBattle(); }
     function resetBattle() { mode="W"; resetCardUI('p'); resetCardUI('e'); document.getElementById('scan-btn').disabled=false; setBattleBtns(true); updateUI(); switchCamera('P'); }
     function setBattleBtns(d) { document.getElementById('atk-btn').disabled=d; document.getElementById('item-open-btn').disabled=d; document.getElementById('esc-btn').disabled=d; }
-    function updateUI() {
-        document.getElementById('p-lv').innerText=lv; document.getElementById('p-hp-cur').innerText=Math.floor(php); document.getElementById('p-lv-hp').innerText=pMax;
-        document.getElementById('p-atk-val').innerText=Math.floor(patk); document.getElementById('p-def-val').innerText=Math.floor(pdef);
-        document.getElementById('p-fill').style.width=(php/pMax*100)+"%";
-        document.getElementById('e-hp-cur').innerText=Math.floor(ehp); document.getElementById('e-hp-max').innerText=eMax;
-        document.getElementById('e-fill').style.width=(eMax>0?(ehp/eMax*100):0)+"%";
-        document.getElementById('bag-status').innerText=`BAG: ${inventory.length}/5`;
-        let n = 30*lv; document.getElementById('exp-text').innerText=`${exp}/${n}`; document.getElementById('exp-fill').style.width=(exp/n*100)+"%";
-    }
-    function updateCardUI(s, r, sym, n, e) {
-        document.getElementById(`${s}-rare`).innerText=r; document.getElementById(`${s}-name`).innerText=n;
-        document.getElementById(`${s}-elem`).innerText=e; document.getElementById(`${s}-sym`).innerText=sym;
-        document.getElementById(`${s}-sym`).style.color="#fff";
-    }
+    function updateUI() { document.getElementById('p-lv').innerText=lv; document.getElementById('p-hp-cur').innerText=Math.floor(php); document.getElementById('p-lv-hp').innerText=pMax; document.getElementById('p-atk-val').innerText=Math.floor(patk); document.getElementById('p-def-val').innerText=Math.floor(pdef); document.getElementById('p-fill').style.width=(php/pMax*100)+"%"; document.getElementById('e-hp-cur').innerText=Math.floor(ehp); document.getElementById('e-hp-max').innerText=eMax; document.getElementById('e-fill').style.width=(eMax>0?(ehp/eMax*100):0)+"%"; document.getElementById('bag-status').innerText=`BAG: ${inventory.length}/5`; let n = 30*lv; document.getElementById('exp-text').innerText=`${exp}/${n}`; document.getElementById('exp-fill').style.width=(exp/n*100)+"%"; }
+    function updateCardUI(s, r, sym, n, e) { document.getElementById(`${s}-rare`).innerText=r; document.getElementById(`${s}-name`).innerText=n; document.getElementById(`${s}-elem`).innerText=e; document.getElementById(`${s}-sym`).innerText=sym; document.getElementById(`${s}-sym`).style.color="#fff"; }
     function resetCardUI(s) { document.getElementById(`${s}-rare`).innerText="-"; document.getElementById(`${s}-name`).innerText=s==='p'?"READY":"???"; document.getElementById(`${s}-sym`).innerText="?"; document.getElementById(`${s}-sym`).style.color="#333"; document.getElementById(`${s}-elem`).innerText=""; }
     function handleEscape() { if(Math.random()<0.5) resetBattle(); else enemyTurn(); }
     function openMagicMenu() { document.getElementById('msg').innerText = "魔法はまだ未習得です"; }
