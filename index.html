@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER 4.5</title>
+    <title>MYTH SCANNER 4.6</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
@@ -183,7 +183,7 @@
             let base = DB_WEAPON[id] || DB_WEAPON[0]; pelem = ["🔥", "💧", "⚡", "🌿"][id % 4];
             let rarityMult = (id >= 95) ? 6.0 : (id >= 80) ? 4.0 : (id >= 40) ? 2.2 : 1.2;
             
-            pAtkBonus = 1.0 + (lv * 0.01); pDefBonus = 1.0 + (lv * 0.01); // 補正更新
+            pAtkBonus = 1.0 + (lv * 0.01); pDefBonus = 1.0 + (lv * 0.01);
             patk = Math.floor(100 * rarityMult * (0.85 + Math.random() * 0.3) * pAtkBonus);
             pdef = Math.floor((pdefBase * pDefBonus) + (40 * rarityMult * 0.8));
             
@@ -203,6 +203,41 @@
         save(); updateUI();
     }
 
+    // --- ITEM SYSTEM ---
+    function useItem(itm, index) {
+        let msg = "";
+        if (itm.id < 40) { // Recovery
+            let healAmt = Math.floor(pMax * 0.3);
+            php = Math.min(pMax, php + healAmt);
+            msg = `${itm.n} を使用！\nHPが ${healAmt} 回復した！`;
+            document.getElementById('p-area').style.background = "#004400";
+            setTimeout(() => document.getElementById('p-area').style.background = "none", 300);
+        } else if (itm.id < 70) { // Buff
+            atkBoostMult = 1.5;
+            msg = `${itm.n} を使用！\n次の攻撃力が1.5倍にアップ！`;
+        } else {
+            msg = `${itm.n} を使用したが、今は効果がないようだ。`;
+        }
+        document.getElementById('msg').innerText = msg;
+        inventory.splice(index, 1);
+        document.getElementById('item-overlay').style.display = 'none';
+        updateUI();
+    }
+
+    function openItemMenu() {
+        const list = document.getElementById('item-list'); list.innerHTML = "";
+        if(inventory.length === 0) { list.innerHTML = "<p>BAG IS EMPTY</p>"; }
+        inventory.forEach((itm, i) => { 
+            const b = document.createElement('button'); 
+            b.style.cssText = "width:90%; margin-bottom:10px; padding:12px; background:#008844; border:1px solid #fff; color:#fff; font-family:'DotGothic16';";
+            b.innerText = itm.n; 
+            b.onclick = () => useItem(itm, i); 
+            list.appendChild(b); 
+        });
+        document.getElementById('item-overlay').style.display='flex';
+    }
+
+    // --- MAGIC SYSTEM ---
     function openMagicMenu() {
         const list = document.getElementById('magic-list'); list.innerHTML = "";
         learnedMagic.forEach(mId => {
@@ -280,7 +315,7 @@
     async function getBonusItem() {
         const btn = document.getElementById('bonus-get-btn'); btn.disabled = true;
         let id = Math.floor(Math.random()*100); let name = DB_ITEM[id] || DB_ITEM[0];
-        library.I[id+200] = {t: name, r: "NORMAL", e: "📦"}; // 図鑑登録
+        library.I[id+200] = {t: name, r: id>=90?"RARE":"NORMAL", e: "📦"};
         if(inventory.length < 5) inventory.push({ n: name, id: id });
         save(); switchCamera('OFF'); document.getElementById('bonus-overlay').style.display='none'; btn.disabled = false;
     }
@@ -296,9 +331,9 @@
             exp += 20; 
             if(exp >= 30 * lv) { 
                 lv++; exp=0;
-                let hpBonus = Math.floor(pMax * 0.1); // 10%上昇
+                let hpBonus = Math.floor(pMax * 0.1); 
                 pMax += hpBonus; php = pMax;
-                pAtkBonus = 1.0 + (lv * 0.01); pDefBonus = 1.0 + (lv * 0.01); // 補正更新
+                pAtkBonus = 1.0 + (lv * 0.01); pDefBonus = 1.0 + (lv * 0.01); 
                 resSts.innerHTML = `LEVEL UP! (Lv.${lv})<br>最大HPが ${hpBonus} 上昇！<br>ATK/DEF補正が ${(lv)}% に強化！`; 
             } else { 
                 resSts.innerHTML = `EXPを獲得！<br>休憩してHPが ${healAmt} 回復した。`; 
@@ -312,10 +347,9 @@
     }
 
     function getItemDetail(id) {
-        if (id < 40) return { type: "回復", effect: "HPを回復", desc: "古くから伝わる癒やしの成分を含んでいる。" };
-        if (id < 70) return { type: "強化", effect: "攻撃力を一時的に上昇", desc: "武器に塗布することで鋭さが増す。" };
-        if (id < 90) return { type: "守護", effect: "防御力を一時的に上昇", desc: "一時的に防御の膜を形成する。" };
-        return { type: "神秘", effect: "特殊な効果", desc: "未知の力が宿っているようだ。" };
+        if (id < 40) return { type: "回復", effect: "最大HPの30%回復", desc: "使うと体力が大幅に回復する。" };
+        if (id < 70) return { type: "強化", effect: "次の攻撃力が1.5倍", desc: "武器を一時的に鋭くする。" };
+        return { type: "材料", effect: "???", desc: "今はまだ使い道がないようだ。" };
     }
 
     function renderLib(type) {
@@ -336,24 +370,13 @@
                     const info = getItemDetail(globalId - 200);
                     detDesc.innerHTML = `<span style="color:var(--exp-color)">【${info.type}】</span>\n効果: ${info.effect}\n\n${info.desc}`;
                 } else {
-                    detDesc.innerText = `希少度: ${data.r || "NORMAL"}\n属性: ${data.e || "無"}\n詳細不明。`;
+                    detDesc.innerText = `希少度: ${data.r || "NORMAL"}\n属性: ${data.e || "無"}`;
                 }
                 document.getElementById('detail-pop').style.display='block'; 
             };
             grid.appendChild(slot);
         }
         document.getElementById('lib-count').innerText = `FOUND: ${found} / ${dataSrc.length}`;
-    }
-
-    function openItemMenu() {
-        const list = document.getElementById('item-list'); list.innerHTML = "";
-        inventory.forEach((itm, i) => { 
-            const b = document.createElement('button'); b.style.width="90%"; b.style.marginBottom="5px";
-            b.innerText=itm.n; 
-            b.onclick=()=> { inventory.splice(i, 1); document.getElementById('item-overlay').style.display='none'; updateUI(); }; 
-            list.appendChild(b); 
-        });
-        document.getElementById('item-overlay').style.display='flex';
     }
 
     function save() { library.stats = {lv, exp, pMax, pAtkBonus, pDefBonus}; localStorage.setItem('myth_v4_final', JSON.stringify(library)); }
