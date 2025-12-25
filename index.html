@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER 4.43</title>
+    <title>MYTH SCANNER 4.44</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
@@ -37,23 +37,18 @@
 
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 100; display: none; flex-direction: column; align-items: center; padding: 15px; box-sizing: border-box; }
         
-        /* 魔法メニューのボタン調整 */
         #magic-list { width: 100%; max-height: 60vh; overflow-y: auto; display: flex; flex-direction: column; align-items: center; }
         .magic-item { 
             width: 90%; max-width: 280px; background: #331144; border: 2px solid var(--magic-purple); 
             color: #fff; padding: 12px; margin: 8px auto; text-align: left; display: flex; 
             justify-content: space-between; align-items: center; border-radius: 8px; box-sizing: border-box;
         }
-        .magic-info { flex: 1; }
 
-        /* コレクションのグリッド */
         .lib-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; max-height: 60vh; overflow-y: auto; padding: 10px; box-sizing: border-box; }
         .lib-slot { min-height: 60px; background: #222; border: 1px solid #444; border-radius: 4px; display: flex; align-items: center; justify-content: center; padding: 4px; text-align: center; cursor: pointer; overflow: hidden; }
         .slot-content { font-size: 0.55rem; color: #555; word-break: break-all; pointer-events: none; line-height: 1.1; }
         .lib-slot.found { border-color: var(--p-color); background: #333; }
-        .lib-slot.found .slot-content { color: #fff; }
-
-        /* ❓マークのサイズ調整 */
+        
         .q-mark { font-size: 1.8rem; color: #333; animation: blink 2s infinite; margin-bottom: 5px; }
         .shake { animation: s 0.2s; }
         @keyframes s { 0%,100%{transform:translateX(0)} 25%{transform:translateX(5px)} 75%{transform:translateX(-5px)} }
@@ -61,7 +56,6 @@
 
         .ov-btn-red { background: var(--close-btn) !important; width: 95% !important; height: 40px !important; flex: none !important; margin-top: 15px; }
         .ov-btn-blue { background: var(--main-blue) !important; width: 95% !important; height: 40px !important; flex: none !important; margin-top: 15px; }
-        #item-list { width: 95%; max-height: 65vh; overflow-y: auto; }
     </style>
 </head>
 <body>
@@ -158,11 +152,10 @@
 
 <script>
     const DB_WEAPON = ["錆びた短剣","棒切れ","鉄のヤスリ","練習用の剣","皮のムチ","石の礫","粗末な弓","鉄の棒","薪割り斧","穴の空いた盾","ブロンズナイフ","鉄の爪","ランス","警棒","木刀","石のメイス","投げナイフ","鉄の針","兵士の剣","古いハルバード","鋼鉄の長剣","処刑人の斧","銀のレイピア","剛弓","漆黒の短刀","熟練の戦槌","猛獣の牙","抜刀斎の刀","暗殺者の針","閃光のダガー","守護者の大盾","スナイパーライフル","騎士のランス","十字槍","三節棍","フランベルジュ","魔法の杖","三叉矛","黄金の槌","カトラス","バスターソード","ミスリルの小太刀","凍結の魔弓","爆炎の斧","稲妻の刺剣","竜殺しの太刀","幻影の双剣","岩断ちの巨斧","精霊の杖","破邪の弓","守護神の槍","毒蛇の尾","吸血の牙","星屑のメイス","震動のハンマー","蒼天の剣","烈風の鎌","断罪の鎖","賢者の辞典","深海のマント","フレイムタン","ミョルニル","トライデント","ガイアハンマー","円月刀","クレイモア","巨人の鉄球","フレイル","細剣","魔槍","聖騎士の盾","黒金の棍棒","呪いの呪符","煉獄の鎌","極光の矢","神速のダガー","不壊の籠手","飛龍の魔笛","混沌の杖","虚空の鏡","魔剣グラム","聖剣エクスカリバー","竜槍ゲイボルグ","聖槍ロンギヌス","天羽々斬","村正","神弓アルテミス","モーニングスター","アロンダイト","デュランダル","妖刀正宗","霊刀七支刀","魔導書アルマデル","破滅の爪","絶影","究極神剣ゼノス","時空貫通神槍","真理の魔導核","天地崩壊の終槌","黙示録の神盾","終焉を断つ神剣"];
-    const DB_MONSTER = ["スライム","ゴブリン","スケルトン","野良犬","巨大クモ","ウィスプ","コバルト","大ネズミ","ゾンビ","バット","泥人形","凶暴な鶏","迷い魂","寄生虫","影","浮遊する目玉","毒蜂","腐った樹木","石のトカゲ","はぐれメタル","オーク","デスナイト","ケルベロス","キマイラ","ミミック","ガーゴイル","リビングアーマー","ウェアウルフ","バンシー","グール","サキュバス","インプ","ハーピー","ラミア","ケンタウロス","ミノタウロス","マンティコア","コカトリス","サラマンダー","ウンディーネ","レッドドラゴン","ヴァンパイア","首なし騎士","デーモン","ゴーレム","グリフォン","バジリスク","ヒュドラ","クラーケン","フェニックス","巨大な百足","呪いの遺影","砂漠の魔人","雪女","雷獣","闇の司祭","死霊使い","沼の怪物","迷宮の番人","岩石巨人","古龍","災厄の化身","アークデーモン","堕天使","リッチ","デーモンロード","双頭の巨獣","ヤマタノオロチ","イフリート","シヴァ","ラムウ","タイタン","ガルーダ","リヴァイアサン","カオス","メドゥーサ","キュクロプス","ベヒーモス","スフィンクス","守護像","神竜","創世の巨神","熾天使","冥王ハデス","破壊神シヴァ","大天使ミカエル","妖狐玉藻前","八咫烏","麒麟","鳳凰","白虎","玄武","朱雀","青龍","魔王サタン","奈落の支配者","終焉を喰らう者","虚無の特異点","黙示録の黒竜","創世 of the 父"];
+    const DB_MONSTER = ["スライム","ゴブリン","スケルトン","野良犬","巨大クモ","ウィスプ","コバルト","大ネズミ","ゾンビ","バット","泥人形","凶暴な鶏","迷い魂","寄生虫","影","浮遊する目玉","毒蜂","腐った樹木","石のトカゲ","はぐれメタル","オーク","デスナイト","ケルベロス","キマイラ","ミミック","ガーゴイル","リビングアーマー","ウェアウルフ","バンシー","グール","サキュバス","インプ","ハーピー","ラミア","ケンタウロス","ミノタウロス","マンティコア","コカトリス","サラマンダー","ウンディーネ","レッドドラゴン","ヴァンパイア","首なし騎士","デーモン","ゴーレム","グリフォン","バジリスク","ヒュドラ","クラーケン","フェニックス","巨大な百足","呪いの遺影","砂漠の魔人","雪女","雷獣","闇の司祭","死霊使い","沼の怪物","迷宮の番人","岩石巨人","古龍","災厄の化身","アークデーモン","堕天使","リッチ","デーモンロード","双頭の巨獣","ヤマタノオロチ","イフリート","シヴァ","ラムウ","タイタン","ガルーダ","リヴァイアサン","カオス","メドゥーサ","キュクロプス","ベヒーモス","スフィンクス","守護像","神竜","創世の巨神","熾天使","冥王ハデス","破壊神シヴァ","大天使ミカエル","妖狐玉藻前","八咫烏","麒麟","鳳凰","白虎","玄武","朱雀","青龍","魔王サタン","奈落の支配者","終焉を喰らう者","虚無の特異点","黙示録の黒竜","創世の父"];
     const DB_ITEM = ["泥水","雑草","苔","樹液","露玉","葉っぱ","湧き水","飴玉","軟膏","薬湯","薬草","ポーション","蒸留水","お守り","粉薬","紅茶","栄養剤","ビスケット","秘薬","聖杯","砥石","爪","牙","火薬","重い石","釘","枝","インゴット","紋章","狼の血","勇気の証","硝石","矢尻","指輪","鱗","激昂の角","隕石","雷の魔石","たてがみ","狂乱のベルセルク","腐敗液","毒キノコ","針","粉末","痺れ草","蜂の針","抜け殻","毒液","腐食剤","怨念の霧","蜘蛛の糸","劇薬","瘴気","闇の雫","死神の吐息","冥界の酒","滅びの刻印","呪い符","煉獄の炎","終焉の宣告","ヤスリ","泥団子","虫食い皮","水晶","呪文","重力砂","粘着液","溶解液","破甲槌","脆化粉","亀裂石","拘束鎖","脱力霧","防壁崩し槍","虚無眼","王水","裂く爪","浸食金","魂の檻","因果の断絶","火炎玉","焔心","溶岩滴","水晶玉","氷河涙","真珠","雷電球","尾羽","帯電角","大地種","樹木記憶","森林珠","灼熱石","清流石","鳴神石","風琥珀","明星石","宵闇石","混沌珠","創世のプリズム"];
     const ELEMENTS = { "🔥": "🌿", "🌿": "⚡", "⚡": "💧", "💧": "🔥" };
     
-    // 魔法データベース
     const MAGIC_DB = { "HEAL_1": { name: "ヒール Lv.1", type: "HEAL", value: 300, desc: "HPを回復する" } };
 
     let net, mode="W", lv=1, exp=0, php=1000, pMax=1000, patk=0, pdefBase=50, pdef=0, ehp=0, eMax=0, eatk=0, edef=0, pelem="", eelem="", stream=null, atkBoostMult=1, inventory = [], pAtkBonus=1.0, pDefBonus=1.0;
@@ -170,7 +163,7 @@
     let library = JSON.parse(localStorage.getItem('myth_v4_final')) || { W: {}, M: {}, I: {}, stats: {lv:1, exp:0, pMax:1000, pAtkBonus:1.0, pDefBonus:1.0} };
 
     async function init() {
-        try { net = await mobilenet.load(); document.getElementById('scan-btn').disabled = false; document.getElementById('scan-btn').innerText = "SCAN"; document.getElementById('msg').innerText = "武器をスキャンしてください"; switchCamera('P'); }
+        try { net = await mobilenet.load(); document.getElementById('scan-btn').disabled = false; document.getElementById('msg').innerText = "武器をスキャンしてください"; switchCamera('P'); }
         catch (e) { document.getElementById('msg').innerText = "AI ERROR"; }
         updateUI();
     }
@@ -197,7 +190,7 @@
             let base = DB_WEAPON[id] || DB_WEAPON[0]; pelem = ["🔥", "💧", "⚡", "🌿"][id % 4];
             let rarityMult = (id >= 95) ? 6.0 : (id >= 80) ? 4.0 : (id >= 40) ? 2.2 : 1.2;
             patk = Math.floor(100 * rarityMult * (0.85 + Math.random() * 0.3) * pAtkBonus);
-            let wDef = Math.floor(40 * rarityMult * 0.8); pdef = Math.floor((pdefBase * pDefBonus) + wDef);
+            pdef = Math.floor((pdefBase * pDefBonus) + (40 * rarityMult * 0.8));
             updateCardUI('p', rareLabel, "⚔️", `${aiName}の${base}`, pelem);
             library.W[id] = {t: base, e: pelem, r: rareLabel}; mode="M"; switchCamera('E'); 
             document.getElementById('msg').innerText = `装備完了！次はモンスターをスキャン！`;
@@ -357,8 +350,12 @@
     }
     function updateUI() { 
         document.getElementById('p-lv').innerText=lv; document.getElementById('p-hp-cur').innerText=Math.floor(php); document.getElementById('p-hp-max').innerText=pMax; 
-        document.getElementById('p-fill').style.width=(php/pMax*100)+"%"; document.getElementById('e-hp-cur').innerText=Math.floor(ehp); document.getElementById('e-hp-max').innerText=eMax; 
-        document.getElementById('e-fill').style.width=(eMax>0?(ehp/eMax*100):0)+"%"; document.getElementById('bag-status').innerText=`BAG: ${inventory.length}/5`; 
+        document.getElementById('p-atk-val').innerText=Math.floor(patk); document.getElementById('p-def-val').innerText=Math.floor(pdef);
+        document.getElementById('p-fill').style.width=(php/pMax*100)+"%"; 
+        document.getElementById('e-hp-cur').innerText=Math.floor(ehp); document.getElementById('e-hp-max').innerText=eMax; 
+        document.getElementById('e-atk-val').innerText=Math.floor(eatk); document.getElementById('e-def-val').innerText=Math.floor(edef);
+        document.getElementById('e-fill').style.width=(eMax>0?(ehp/eMax*100):0)+"%"; 
+        document.getElementById('bag-status').innerText=`BAG: ${inventory.length}/5`; 
         let next = 30 * lv; document.getElementById('exp-text').innerText = `${exp} / ${next}`; document.getElementById('exp-fill').style.width = (exp / next * 100) + "%";
     }
     function updateCardUI(side, rare, sym, name, elem) { 
