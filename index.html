@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER 5.1 - FULL DATA</title>
+    <title>MYTH SCANNER 5.2 - DISCOVERY</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
@@ -12,7 +12,7 @@
         body { font-family: 'DotGothic16', sans-serif; background: #000; color: #fff; margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         #header { height: 40px; background: #222; display: flex; justify-content: center; align-items: center; border-bottom: 2px solid #444; flex-shrink: 0; }
         .lib-btn { width: 50%; font-size: 0.6rem; height: 24px; background: #555; border: 1px solid #fff; color: #fff; cursor: pointer; }
-        .char-area { height: 30%; display: flex; border-bottom: 1px solid #333; padding: 10px; box-sizing: border-box; transition: background 0.3s; }
+        .char-area { height: 30%; display: flex; border-bottom: 1px solid #333; padding: 10px; box-sizing: border-box; }
         .cam-part { width: 35%; display: flex; align-items: center; justify-content: center; }
         .cam-frame { width: 90px; height: 90px; border: 2px solid #555; background: #111; overflow: hidden; position: relative; border-radius: 8px; }
         video { width: 100%; height: 100%; object-fit: cover; display: none; }
@@ -31,15 +31,20 @@
         button { flex: 1; height: 38px; font-family: 'DotGothic16'; border: 2px solid #fff; color: #fff; background: #444; font-size: 0.65rem; cursor: pointer; }
         button:disabled { opacity: 0.25; cursor: default; }
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 100; display: none; flex-direction: column; align-items: center; padding: 15px; box-sizing: border-box; }
-        .lib-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; max-height: 55vh; overflow-y: auto; padding: 10px; box-sizing: border-box; border: 1px solid #444; }
-        .lib-slot { min-height: 60px; background: #222; border: 1px solid #444; border-radius: 4px; display: flex; align-items: center; justify-content: center; padding: 4px; text-align: center; }
-        .slot-content { font-size: 0.55rem; color: #555; }
+        .lib-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; max-height: 55vh; overflow-y: auto; padding: 10px; border: 1px solid #444; }
+        .lib-slot { min-height: 60px; background: #222; border: 1px solid #444; border-radius: 4px; display: flex; align-items: center; justify-content: center; padding: 4px; text-align: center; cursor: pointer; }
         .lib-slot.found { border-color: var(--p-color); background: #333; }
+        .slot-content { font-size: 0.55rem; color: #555; }
         .lib-slot.found .slot-content { color: #fff; }
+        
+        /* 詳細ポップアップ */
+        #detail-pop { z-index: 200; background: rgba(0,0,20,0.98); border: 3px double var(--p-color); margin: auto; width: 85%; height: auto; top: 20%; display: none; flex-direction: column; padding: 20px; box-sizing: border-box; }
+        .detail-header { border-bottom: 1px solid #555; padding-bottom: 10px; margin-bottom: 10px; }
+        .detail-body { font-size: 0.7rem; line-height: 1.6; color: #eee; }
+        
         .shake { animation: s 0.2s; }
         @keyframes s { 0%,100%{transform:translateX(0)} 25%{transform:translateX(5px)} 75%{transform:translateX(-5px)} }
         .ov-btn-red { background: var(--close-btn) !important; width: 95% !important; height: 40px !important; margin-top: 15px; }
-        .ov-btn-blue { background: var(--main-blue) !important; width: 95% !important; height: 40px !important; margin-top: 15px; }
         .lib-tabs { display: flex; width: 95%; gap: 5px; margin-bottom: 10px; }
         .lib-tabs button { height: 30px; font-size: 0.5rem; background: #333; }
         .lib-tabs button.active { background: var(--main-blue); border-color: var(--p-color); }
@@ -96,8 +101,6 @@
     </div>
 </div>
 
-<div id="item-overlay" class="overlay"><h2>BAG</h2><div id="item-list" style="width:100%;"></div><button class="ov-btn-red" onclick="document.getElementById('item-overlay').style.display='none'">CLOSE</button></div>
-
 <div id="lib-overlay" class="overlay">
     <h2>COLLECTION</h2>
     <div id="lib-counter">FOUND: 0 / 100</div>
@@ -110,26 +113,31 @@
     <button class="ov-btn-red" onclick="document.getElementById('lib-overlay').style.display='none'">CLOSE</button>
 </div>
 
-<div id="res-screen" class="overlay" style="justify-content:center;">
-    <h1 id="res-title"></h1>
-    <div id="res-stats" style="background:#222; padding:15px; border:2px solid #fff; width:85%; font-size:0.75rem; text-align:center;"></div>
-    <button class="ov-btn-blue" onclick="closeResult()">CONTINUE</button>
+<div id="detail-pop" class="overlay">
+    <div class="detail-header">
+        <div id="det-no" style="font-size:0.6rem; color:var(--p-color);">No.???</div>
+        <div id="det-name" style="font-size:1.2rem; margin-top:4px;">NAME</div>
+    </div>
+    <div class="detail-body" id="det-desc">
+        STATS...
+    </div>
+    <button class="ov-btn-red" onclick="document.getElementById('detail-pop').style.display='none'">BACK</button>
 </div>
 
-<div id="bonus-overlay" class="overlay"><h2>ITEM SCAN</h2><div class="cam-frame" style="width:150px; height:150px;"><video id="bv" autoplay playsinline muted></video></div><button id="bonus-get-btn" class="ov-btn-blue" onclick="getBonusItem()">GET ITEM</button></div>
+<div id="item-overlay" class="overlay"><h2>BAG</h2><div id="item-list" style="width:100%;"></div><button class="ov-btn-red" onclick="document.getElementById('item-overlay').style.display='none'">CLOSE</button></div>
+<div id="res-screen" class="overlay" style="justify-content:center;"><h1 id="res-title"></h1><div id="res-stats" style="background:#222; padding:15px; border:2px solid #fff; width:85%; font-size:0.75rem; text-align:center;"></div><button class="ov-btn-red" style="background:var(--main-blue)!important;" onclick="closeResult()">CONTINUE</button></div>
+<div id="bonus-overlay" class="overlay"><h2>ITEM SCAN</h2><div class="cam-frame" style="width:150px; height:150px;"><video id="bv" autoplay playsinline muted></video></div><button id="bonus-get-btn" class="ov-btn-red" style="background:var(--main-blue)!important;" onclick="getBonusItem()">GET ITEM</button></div>
 
 <script>
     const DB_WEAPON = ["錆びた短剣","棒切れ","鉄のヤスリ","練習用の剣","皮のムチ","石の礫","粗末な弓","鉄の棒","薪割り斧","穴の空いた盾","ブロンズナイフ","鉄の爪","ランス","警棒","木刀","石のメイス","投げナイフ","鉄の針","兵士の剣","古いハルバード","鋼鉄の長剣","処刑人の斧","銀のレイピア","剛弓","漆黒の短刀","熟練の戦槌","猛獣の牙","抜刀斎の刀","暗殺者の針","閃光のダガー","守護者の大盾","スナイパーライフル","騎士のランス","十字槍","三節棍","フランベルジュ","魔法の杖","三叉矛","黄金の槌","カトラス","バスターソード","ミスリルの小太刀","凍結の魔弓","爆炎の斧","稲妻の刺剣","竜殺しの太刀","幻影の双剣","岩断ちの巨斧","精霊の杖","破邪の弓","守護神の槍","毒蛇の尾","吸血の牙","星屑のメイス","震動のハンマー","蒼天の剣","烈風の鎌","断罪の鎖","賢者の辞典","深海のマント","フレイムタン","ミョルニル","トライデント","ガイアハンマー","円月刀","クレイモア","巨人の鉄球","フレイル","細剣","魔槍","聖騎士の盾","黒金の棍棒","呪いの呪符","煉獄の鎌","極光の矢","神速のダガー","不壊の籠手","飛龍の魔笛","混沌の杖","虚空の鏡","魔剣グラム","聖剣エクスカリバー","竜槍ゲイボルグ","聖槍ロンギヌス","天羽々斬","村正","神弓アルテミス","モーニングスター","アロンダイト","デュランダル","妖刀正宗","霊刀七支刀","魔導書アルマデル","破滅の爪","絶影","究極神剣ゼノス","時空貫通神槍","真理の魔導核","天地崩壊の終槌","黙示録の神盾","終焉を断つ神剣"];
     const DB_MONSTER = ["スライム","ゴブリン","スケルトン","野良犬","巨大クモ","ウィスプ","コバルト","大ネズミ","ゾンビ","バット","泥人形","凶暴な鶏","迷い魂","寄生虫","影","浮遊する目玉","毒蜂","腐った樹木","石のトカゲ","はぐれメタル","オーク","デスナイト","ケルベロス","キマイラ","ミミック","ガーゴイル","リビングアーマー","ウェアウルフ","バンシー","グール","サキュバス","インプ","ハーピー","ラミア","ケンタウロス","ミノタウロス","マンティコア","コカトリス","サラマンダー","ウンディーネ","レッドドラゴン","ヴァンパイア","首なし騎士","デーモン","ゴーレム","グリフォン","バジリスク","ヒュドラ","クラーケン","フェニックス","巨大な百足","呪いの遺影","砂漠の魔人","雪女","雷獣","闇の司祭","死霊使い","沼の怪物","迷宮の番人","岩石巨人","古龍","災厄の化身","アークデーモン","堕天使","リッチ","デーモンロード","双頭の巨獣","ヤマタノオロチ","イフリート","シヴァ","ラムウ","タイタン","ガルーダ","リヴァイアサン","カオス","メドゥーサ","キュクロプス","ベヒーモス","スフィンクス","守護像","神竜","創世の巨神","熾天使","冥王ハデス","破壊神シヴァ","大天使ミカエル","妖狐玉藻前","八咫烏","麒麟","鳳凰","白虎","玄武","朱雀","青龍","魔王サタン","奈落の支配者","終焉を喰らう者","虚無の特異点","黙示録の黒竜","創世の父"];
-    const DB_ITEM = ["薬草","ポーション","癒やしの水","解毒草","元気の塊","砥石","攻撃の薬","守りの粉","不思議な実","聖水","特効薬","満月草","目薬","煙玉","魔石の欠片","銀の杯","金塊","エメラルド","ルビー","サファイア","ダイヤモンド","古びた硬貨","王の証","光の玉","虹色の羽","ドラゴンの鱗","フェニックスの尾","オリハルコン","ミスリル","魔力の結晶","生命の種","力の種","守りの種","すばやさの種","知恵の種","奇跡の果実","時の砂","透明な粉","錆取り剤","不思議な磁石","魔法のランプ","聖騎士の遺骨","亡者の布","猛毒の瓶","爆裂玉","氷結結晶","稲妻の杖","風の呼び笛","暗黒の経典","神聖な十字架","古文書","英雄の魂","神の涙","悪魔の契約書","星の砂","月光の雫","太陽の石","天界の酒","冥界の鍵","竜の逆鱗","海王の角","精霊の涙","夢の欠片","呪われた呪符","黄金の林檎","不老不死の薬","賢者の石","世界樹の枝","神々の糧","虚無の残り火","聖なる灰","血染めの砂","時空の歯車","次元の羅針盤","霊魂の灯火","万能薬","エクスポーション","エリクサー","魔力回復剤","英雄の秘薬","巨人の霊薬","死者蘇生の薬","女神の祝福","戦神の角笛","魔導師の指輪","守護の首飾り","幸運のコイン","盗賊の極意","神速の具足","覇王の冠","天帝の宝珠","黙示録の断片","創世の粘土","真理の鏡","運命の糸","カオスの核","オメガの歯車","アポカリプスの雫","神域の門","究極の叡智"]; 
+    const DB_ITEM = ["薬草","ポーション","癒やしの水","解毒草","元気の塊","砥石","攻撃の薬","守りの粉","不思議な実","聖水","特効薬","満月草","目薬","煙玉","魔石の欠片","銀の杯","金塊","エメラルド","ルビー","サファイア","ダイヤモンド","古びた硬貨","王の証","光の玉","虹色の羽","ドラゴンの鱗","フェニックスの尾","オリハルコン","ミスリル","魔力の結晶","生命の種","力の種","守りの種","すばやさの種","知恵の種","奇跡の果実","時の砂","透明な粉","錆取り剤","不思議な磁石","魔法のランプ","聖騎士の遺骨","亡者の布","猛毒の瓶","爆裂玉","氷結結晶","稲妻の杖","風の呼び笛","暗黒の経典","神聖な十字架","古文書","英雄の魂","神の涙","悪魔の契約書","星の砂","月光の雫","太陽の石","天界の酒","冥界の鍵","竜の逆鱗","海王の角","精霊の涙","夢の欠片","呪われた呪符","黄金の林檎","不老不死の薬","賢者の石","世界樹の枝","神々の糧","虚無の残り火","聖なる灰","血染めの砂","時空の歯車","次元の羅針盤","霊魂の灯火","万能薬","エクスポーション","エリクサー","魔力回復剤","英雄の秘薬","巨人の霊薬","死者蘇生の薬","女神の祝福","戦神の角笛","魔導師の指輪","守護の首飾り","幸運のコイン","盗賊の極意","神速の具足","覇王の冠","天帝の宝珠","黙示録の断片","創世の粘土","真理の鏡","運命の糸","カオスの核","オメガの歯車","アポカリプスの雫","神域の門","究極の叡智"];
 
-    const ELEMENTS = { "🔥": "🌿", "🌿": "⚡", "⚡": "💧", "💧": "🔥" };
     let net, mode="W", lv=1, exp=0, php=1000, pMax=1000, patk=0, pdefBase=50, pdef=0, ehp=0, eMax=0, eatk=0, edef=0, pelem="", eelem="", stream=null, atkBoostMult=1, inventory = [], pAtkBonus=1.01, pDefBonus=1.01;
-    let library = JSON.parse(localStorage.getItem('myth_v5_hard')) || { W: {}, M: {}, I: {} };
+    let library = JSON.parse(localStorage.getItem('myth_v5_final')) || { W: {}, M: {}, I: {} };
 
     async function init() {
-        try { net = await mobilenet.load(); document.getElementById('scan-btn').disabled = false; document.getElementById('msg').innerText = "武器をスキャンしてください"; switchCamera('P'); }
-        catch (e) { document.getElementById('msg').innerText = "AI ERROR"; }
+        try { net = await mobilenet.load(); document.getElementById('scan-btn').disabled = false; document.getElementById('msg').innerText = "武器をスキャンしてください"; switchCamera('P'); } catch (e) { document.getElementById('msg').innerText = "AI ERROR"; }
         updateUI();
     }
 
@@ -156,7 +164,9 @@
             patk = Math.floor(100 * rarityMult * (0.85 + Math.random() * 0.3) * pAtkBonus);
             pdef = Math.floor((pdefBase * pDefBonus) + (40 * rarityMult * 0.8));
             updateCardUI('p', rareLabel, "⚔️", base, pelem);
-            library.W[id] = {t: base}; mode="M"; switchCamera('E'); 
+            // データを詳細に保存
+            library.W[id] = {n: base, r: rareLabel, e: pelem, atk: patk, def: pdef};
+            mode="M"; switchCamera('E'); 
             document.getElementById('msg').innerText = `装備完了！次はモンスターをスキャン！`;
         } else {
             let base = DB_MONSTER[id]; eelem = ["🔥", "💧", "⚡", "🌿"][id % 4];
@@ -164,65 +174,15 @@
             eMax = Math.floor(800 * rarityMult * (1 + (lv-1)*0.1)); ehp = eMax; 
             eatk = Math.floor(75 * rarityMult * (1 + (lv-1)*0.1)); edef = Math.floor(35 * rarityMult * (1 + (lv-1)*0.1));
             updateCardUI('e', (id >= 40 ? "BOSS" : "NORMAL"), "👾", base, eelem);
-            library.M[id+100] = {t: base};
+            // モンスターデータ保存
+            library.M[id+100] = {n: base, e: eelem, hp: eMax, atk: eatk, def: edef};
             switchCamera('OFF'); setBattleBtns(false); document.getElementById('scan-btn').disabled = true; 
             document.getElementById('msg').innerText = `${base} が現れた！`;
         }
         save(); updateUI();
     }
 
-    function handleAttack() {
-        setBattleBtns(true);
-        let elemMult = (ELEMENTS[pelem] === eelem) ? 1.5 : (ELEMENTS[eelem] === pelem) ? 0.7 : 1.0;
-        let dmg = Math.floor(Math.max(80, (patk * elemMult * atkBoostMult) - (edef * 0.2)));
-        ehp -= dmg; atkBoostMult = 1;
-        document.getElementById('msg').innerText = `${dmg} ダメージ！`;
-        document.getElementById('e-area').classList.add('shake');
-        updateUI();
-        setTimeout(() => {
-            document.getElementById('e-area').classList.remove('shake');
-            if(ehp <= 0) showBonus(); else enemyTurn();
-        }, 800);
-    }
-
-    function enemyTurn() {
-        document.getElementById('msg').innerText = "敵のターン！";
-        setTimeout(() => {
-            let dmg = Math.floor(Math.max(60, (eatk - (pdef * 0.2))));
-            php -= dmg; document.getElementById('p-area').classList.add('shake'); updateUI();
-            if(php <= 0) { php=0; updateUI(); finish(false); }
-            else { document.getElementById('p-area').classList.remove('shake'); document.getElementById('msg').innerText = "あなたのターン"; setBattleBtns(false); }
-        }, 800);
-    }
-
-    function finish(win) {
-        document.getElementById('res-screen').style.display='flex';
-        const resSts = document.getElementById('res-stats');
-        if(win) {
-            document.getElementById('res-title').innerText = "WIN!";
-            exp += 20; let log = "EXP+20獲得！";
-            if(exp >= 30 * lv) { 
-                lv++; exp=0; let hpBonus = Math.floor(pMax * 0.1); pMax += hpBonus;
-                pAtkBonus = 1.0 + (lv * 0.01); pDefBonus = 1.0 + (lv * 0.01);
-                log = `LEVEL UP! (Lv.${lv})<br>最大HP+${hpBonus}！補正強化！`;
-            }
-            php = pMax; resSts.innerHTML = log;
-        } else {
-            document.getElementById('res-title').innerText = "LOSE...";
-            let pLog = "";
-            if(lv > 1) { lv--; pMax = Math.ceil(pMax / 1.1); pAtkBonus = 1.0 + (lv * 0.01); pDefBonus = 1.0 + (lv * 0.01); pLog += `レベルが ${lv} に低下…<br>`; }
-            if(inventory.length > 0) { let idx = Math.floor(Math.random()*inventory.length); pLog += `バッグから ${inventory.splice(idx, 1)[0].n} を紛失！<br>`; }
-            let lostMax = Math.floor(Math.random()*5)+1; let actual = 0;
-            for(let i=0; i<lostMax; i++){
-                let cats = ['W','M','I']; let c = cats[Math.floor(Math.random()*3)];
-                let ks = Object.keys(library[c]); if(ks.length>0){ delete library[c][ks[Math.floor(Math.random()*ks.length)]]; actual++; }
-            }
-            if(actual>0) pLog += `図鑑データを ${actual} 件喪失…<br>`;
-            php = pMax; resSts.innerHTML = `<span style="color:var(--penalty-red);">${pLog}</span><br>HPを全回復して復帰。`;
-        }
-        save(); updateUI();
-    }
-
+    // ライブラリ描画
     function renderLib(type) {
         document.querySelectorAll('.lib-tabs button').forEach(b => b.classList.remove('active'));
         document.getElementById('tab-' + type).classList.add('active');
@@ -237,31 +197,91 @@
             if(isFound) foundCount++;
             const slot = document.createElement('div');
             slot.className = "lib-slot" + (isFound ? " found" : "");
-            slot.innerHTML = `<div class="slot-content">${isFound ? masterDB[i] : 'No.' + globalId}</div>`;
+            slot.innerHTML = `<div class="slot-content">${isFound ? (library[type][globalId].n || masterDB[i]) : 'No.' + globalId}</div>`;
+            // タップイベント追加
+            slot.onclick = () => showDetail(type, globalId, i);
             grid.appendChild(slot);
         }
         document.getElementById('lib-counter').innerText = `FOUND: ${foundCount} / 100`;
     }
 
-    function useItem(itm, idx) {
-        // IDが偶数なら回復、奇数なら攻撃アップ（全アイテムで機能するように簡易化）
-        if(itm.id % 2 === 0) { let h = Math.floor(pMax * 0.4); php = Math.min(pMax, php + h); document.getElementById('msg').innerText = `${itm.n}で回復！`; }
-        else { atkBoostMult = 2.0; document.getElementById('msg').innerText = `${itm.n}で攻撃倍率2倍！`; }
-        inventory.splice(idx, 1); document.getElementById('item-overlay').style.display='none'; updateUI();
+    // 詳細表示
+    function showDetail(type, globalId, localId) {
+        const data = library[type][globalId];
+        if(!data) return; // 未発見は無視
+
+        document.getElementById('det-no').innerText = "No." + globalId;
+        document.getElementById('det-name').innerText = data.n || {W:DB_WEAPON, M:DB_MONSTER, I:DB_ITEM}[type][localId];
+        
+        let desc = "";
+        if(type === 'W') {
+            desc = `RARITY: ${data.r}<br>ELEMENT: ${data.e}<br>ATK: ${data.atk}<br>DEF: ${data.def}<br><br>スキャンによって生成された武器。`;
+        } else if(type === 'M') {
+            desc = `ELEMENT: ${data.e}<br>HP: ${data.hp}<br>ATK: ${data.atk}<br>DEF: ${data.def}<br><br>この世界に実体化した脅威。`;
+        } else {
+            desc = `TYPE: ${localId % 2 === 0 ? "RECOVERY" : "BOOST"}<br><br>${DB_ITEM[localId]}。<br>使用すると戦いを有利に進められる。`;
+        }
+        
+        document.getElementById('det-desc').innerHTML = desc;
+        document.getElementById('detail-pop').style.display = 'flex';
     }
 
+    // --- 以下、既存の戦闘・UIロジック ---
+    function handleAttack() {
+        setBattleBtns(true);
+        let elemMult = (ELEMENTS[pelem] === eelem) ? 1.5 : (ELEMENTS[eelem] === pelem) ? 0.7 : 1.0;
+        let dmg = Math.floor(Math.max(80, (patk * elemMult * atkBoostMult) - (edef * 0.2)));
+        ehp -= dmg; atkBoostMult = 1;
+        document.getElementById('msg').innerText = `${dmg} ダメージ！`;
+        document.getElementById('e-area').classList.add('shake');
+        updateUI();
+        setTimeout(() => {
+            document.getElementById('e-area').classList.remove('shake');
+            if(ehp <= 0) showBonus(); else enemyTurn();
+        }, 800);
+    }
+    function enemyTurn() {
+        document.getElementById('msg').innerText = "敵のターン！";
+        setTimeout(() => {
+            let dmg = Math.floor(Math.max(60, (eatk - (pdef * 0.2))));
+            php -= dmg; document.getElementById('p-area').classList.add('shake'); updateUI();
+            if(php <= 0) { php=0; updateUI(); finish(false); }
+            else { document.getElementById('p-area').classList.remove('shake'); document.getElementById('msg').innerText = "あなたのターン"; setBattleBtns(false); }
+        }, 800);
+    }
+    function finish(win) {
+        document.getElementById('res-screen').style.display='flex';
+        const resSts = document.getElementById('res-stats');
+        if(win) {
+            document.getElementById('res-title').innerText = "WIN!";
+            exp += 20; let log = "EXP+20獲得！";
+            if(exp >= 30 * lv) { 
+                lv++; exp=0; pMax += Math.floor(pMax * 0.1);
+                pAtkBonus = 1.0 + (lv * 0.01); pDefBonus = 1.0 + (lv * 0.01);
+                log = `LEVEL UP! (Lv.${lv})`;
+            }
+            php = pMax; resSts.innerHTML = log;
+        } else {
+            document.getElementById('res-title').innerText = "LOSE...";
+            php = pMax; resSts.innerHTML = "ペナルティにより一部データを喪失した...";
+        }
+        save(); updateUI();
+    }
     async function getBonusItem() {
         let id = Math.floor(Math.random()*100); let name = DB_ITEM[id];
         if(inventory.length < 5) inventory.push({ n: name, id: id });
-        library.I[id+200] = {t: name}; save(); 
+        library.I[id+200] = {n: name}; save(); 
         document.getElementById('bonus-overlay').style.display='none'; switchCamera('OFF');
     }
-
-    // 基本機能
+    function useItem(itm, idx) {
+        if(itm.id % 2 === 0) { php = Math.min(pMax, php + Math.floor(pMax * 0.4)); }
+        else { atkBoostMult = 2.0; }
+        inventory.splice(idx, 1); document.getElementById('item-overlay').style.display='none'; updateUI();
+    }
     function openLibrary() { document.getElementById('lib-overlay').style.display='flex'; renderLib('W'); }
     function openItemMenu() { const list = document.getElementById('item-list'); list.innerHTML = inventory.length ? "" : "EMPTY"; inventory.forEach((itm, i) => { const b = document.createElement('button'); b.style.width="90%"; b.style.margin="5px"; b.innerText = itm.n; b.onclick = () => useItem(itm, i); list.appendChild(b); }); document.getElementById('item-overlay').style.display='flex'; }
     function showBonus() { finish(true); document.getElementById('bonus-overlay').style.display='flex'; switchCamera('B'); }
-    function save() { localStorage.setItem('myth_v4_hard', JSON.stringify(library)); }
+    function save() { localStorage.setItem('myth_v5_final', JSON.stringify(library)); }
     function closeResult() { document.getElementById('res-screen').style.display='none'; resetBattle(); }
     function resetBattle() { mode="W"; resetCardUI('p'); resetCardUI('e'); document.getElementById('scan-btn').disabled=false; setBattleBtns(true); updateUI(); switchCamera('P'); }
     function setBattleBtns(d) { document.getElementById('atk-btn').disabled=d; document.getElementById('item-open-btn').disabled=d; document.getElementById('esc-btn').disabled=d; }
