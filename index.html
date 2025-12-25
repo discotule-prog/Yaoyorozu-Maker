@@ -2,201 +2,85 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER 4.36 - STABLE BASE</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI物体鑑定バトル - スキャナー</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
-    <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
     <style>
-        :root { --p-color: #00f2ff; --e-color: #ff3c00; }
-        body { font-family: 'DotGothic16', sans-serif; background: #000; color: #fff; margin: 0; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
-        #header { height: 40px; background: #222; display: flex; align-items: center; justify-content: center; border-bottom: 2px solid #444; }
-        .char-area { height: 32%; display: flex; border-bottom: 1px solid #333; padding: 10px; box-sizing: border-box; }
-        .cam-part { width: 35%; display: flex; justify-content: center; align-items: center; }
-        .cam-frame { width: 90px; height: 90px; border: 2px solid #333; background: #111; overflow: hidden; position: relative; border-radius: 8px; }
-        video { width: 100%; height: 100%; object-fit: cover; display: none; }
-        .cam-active { border: 2px solid #0f0; box-shadow: 0 0 10px #0f0; }
-        .cam-active video { display: block; }
-        .info-part { width: 65%; display: flex; flex-direction: column; padding-left: 10px; justify-content: center; }
-        .visual-card { width: 100%; height: 80px; border: 2px solid #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #111; position: relative; }
-        .stat-text { font-size: 0.7rem; color: #ccc; margin-top: 5px; }
-        .bar-bg { width: 100%; height: 10px; background: #222; border: 1px solid #666; margin-top: 5px; }
-        .bar-fill { height: 100%; width: 0%; transition: width 0.3s; }
-        #mid-ui { flex-grow: 1; background: #111; border-top: 2px solid #444; display: flex; flex-direction: column; align-items: center; padding: 5px; }
-        #msg { font-size: 0.8rem; color: #0f0; height: 45px; text-align: center; display: flex; align-items: center; }
-        .btn-row { display: flex; gap: 5px; width: 95%; margin-bottom: 5px; }
-        button { flex: 1; height: 40px; font-family: 'DotGothic16'; background: #444; color: #fff; border: 2px solid #fff; cursor: pointer; }
-        button:disabled { opacity: 0.3; }
-        .shake { animation: s 0.2s; }
-        @keyframes s { 0%,100%{transform:translateX(0)} 50%{transform:translateX(5px)} }
+        body { font-family: sans-serif; text-align: center; background: #222; color: white; margin: 0; overflow-x: hidden; }
+        #video-container { position: relative; width: 100%; max-width: 400px; margin: auto; border: 4px solid #00ff00; }
+        video { width: 100%; display: block; }
+        #status-card { background: #333; margin: 20px; padding: 20px; border-radius: 15px; border: 2px solid #555; }
+        .stat-val { font-size: 1.5em; font-weight: bold; color: #00ff00; }
+        button { padding: 15px 30px; font-size: 1.2em; cursor: pointer; background: #008cba; color: white; border: none; border-radius: 5px; margin-top: 10px; }
+        #loading { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 1.5em; }
     </style>
 </head>
 <body>
 
-<div id="header"><div style="font-size: 0.8rem;">MYTH SCANNER v4.36</div></div>
+    <h1>AI鑑定スキャナー</h1>
+    <div id="loading">AIモデル読み込み中...</div>
 
-<div class="char-area" id="p-area">
-    <div class="cam-part"><div class="cam-frame" id="pf"><video id="pv" autoplay playsinline muted></video></div></div>
-    <div class="info-part">
-        <div class="visual-card">
-            <div id="p-sym" style="font-size:3rem;">?</div>
-            <div id="p-name" style="font-size:0.6rem; position:absolute; bottom:2px;">READY</div>
+    <div id="video-container">
+        <video id="webcam" autoplay playsinline muted></video>
+    </div>
+
+    <button id="scan-btn">スキャン開始！</button>
+
+    <div id="status-card">
+        <h2 id="obj-name">何かが映るのを待っています...</h2>
+        <div id="stats" style="display: none;">
+            <p>HP: <span id="hp" class="stat-val">-</span></p>
+            <p>攻撃力: <span id="atk" class="stat-val">-</span></p>
+            <p>防御力: <span id="def" class="stat-val">-</span></p>
         </div>
-        <div class="stat-text">LV:1 HP:<span id="php">1000</span></div>
-        <div class="bar-bg"><div id="p-bar" class="bar-fill" style="background:var(--p-color); width:100%;"></div></div>
     </div>
-</div>
 
-<div id="mid-ui">
-    <div id="msg">AI BOOTING...</div>
-    <div class="btn-row">
-        <button id="scan-btn" onclick="doScan()" style="background:#0044cc;">SCAN</button>
-        <button id="atk-btn" onclick="doAtk()" disabled style="background:#880000;">ATTACK</button>
-    </div>
-    <div class="btn-row">
-        <button onclick="resetGame()" style="font-size:0.6rem; height: 30px;">RESET GAME</button>
-    </div>
-</div>
+    <script>
+        let net;
+        const videoElement = document.getElementById('webcam');
+        const scanBtn = document.getElementById('scan-btn');
 
-<div class="char-area" id="e-area">
-    <div class="cam-part"><div class="cam-frame" id="ef"><video id="ev" autoplay playsinline muted></video></div></div>
-    <div class="info-part">
-        <div class="visual-card">
-            <div id="e-sym" style="font-size:3rem;">?</div>
-            <div id="e-name" style="font-size:0.6rem; position:absolute; bottom:2px;">???</div>
-        </div>
-        <div class="stat-text">HP:<span id="ehp">0</span></div>
-        <div class="bar-bg"><div id="e-bar" class="bar-fill" style="background:var(--e-color);"></div></div>
-    </div>
-</div>
-
-<script>
-    const W_DB = ["短剣","長剣","斧","杖","弓","槍","槌","刀","鞭","盾"];
-    const M_DB = ["スライム","ゴブリン","ドラキー","ゾンビ","オーク","ゴーレム","竜","魔王"];
-    
-    let net, mode="W", stream, busy=false;
-    let php=1000, pmx=1000, patk=0;
-    let ehp=0, emx=0, eatk=0;
-
-    async function init() {
-        try {
+        // AIモデルの読み込みとカメラのセットアップ
+        async function setup() {
             net = await mobilenet.load();
-            resetGame();
-        } catch(e) { document.getElementById('msg').innerText = "AI LOAD ERROR"; }
-    }
+            document.getElementById('loading').style.display = 'none';
 
-    async function cam(t) {
-        if(stream) {
-            stream.getTracks().forEach(s=>s.stop());
-            stream = null;
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { facingMode: "environment" }, // 背面カメラを使用
+                audio: false 
+            });
+            videoElement.srcObject = stream;
         }
-        document.querySelectorAll('video').forEach(v=>{v.pause(); v.srcObject=null;});
-        document.querySelectorAll('.cam-frame').forEach(f=>f.classList.remove('cam-active'));
-        if(t==='OFF') return;
-        try {
-            stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
-            const id = t==='W'?'pv':'ev';
-            const f = t==='W'?'pf':'ef';
-            document.getElementById(id).srcObject = stream;
-            document.getElementById(f).classList.add('cam-active');
-        } catch(e) { document.getElementById('msg').innerText = "CAMERA ERROR"; }
-    }
 
-    async function doScan() {
-        if(busy) return;
-        busy = true;
-        document.getElementById('scan-btn').disabled = true;
-        document.getElementById('msg').innerText = "SCANNING...";
-
-        try {
-            const v = mode==="W"?document.getElementById('pv'):document.getElementById('ev');
-            const res = await net.classify(v);
-            const id = Math.floor(res[0].probability * 100);
-            const name = res[0].className.split(',')[0].toUpperCase();
-
-            if(mode==="W") {
-                const wName = name + "の" + W_DB[id % W_DB.length];
-                patk = 100 + id;
-                document.getElementById('p-name').innerText = wName;
-                document.getElementById('p-sym').innerText = "⚔️";
-                
-                mode = "M";
-                document.getElementById('msg').innerText = "武器装備完了！敵を探せ！";
-                await cam('OFF');
-                setTimeout(()=> {
-                    cam('M');
-                    document.getElementById('scan-btn').disabled = false;
-                    busy = false;
-                }, 1000);
-            } else {
-                const mName = name + "の" + M_DB[id % M_DB.length];
-                emx = 500 + (id * 10); ehp = emx; eatk = 50 + id;
-                document.getElementById('e-name').innerText = mName;
-                document.getElementById('e-sym').innerText = "👾";
-
-                document.getElementById('msg').innerText = mName + "が現れた！";
-                document.getElementById('scan-btn').disabled = true;
-                document.getElementById('atk-btn').disabled = false;
-                await cam('OFF');
-                busy = false;
+        // 文字列からステータス数値を生成するロジック
+        function generateStats(name) {
+            let seed = 0;
+            for (let i = 0; i < name.length; i++) {
+                seed += name.charCodeAt(i);
             }
-        } catch(e) { busy=false; document.getElementById('scan-btn').disabled=false; }
-        updateUI();
-    }
-
-    function doAtk() {
-        const d = Math.floor(patk * (0.8 + Math.random()*0.4));
-        ehp -= d;
-        document.getElementById('msg').innerText = d + "のダメージ！";
-        document.getElementById('e-area').classList.add('shake');
-        setTimeout(()=>document.getElementById('e-area').classList.remove('shake'), 200);
-        if(ehp <= 0) {
-            alert("勝利！武器が破損した！");
-            resetGame();
-        } else {
-            document.getElementById('atk-btn').disabled = true;
-            setTimeout(eTurn, 800);
+            // 擬似乱数で数値を決定（同じ名前なら同じ数値になる）
+            const hp = (seed % 500) + 500;
+            const atk = (seed * 7 % 100) + 50;
+            const def = (seed * 3 % 100) + 30;
+            return { hp, atk, def };
         }
-        updateUI();
-    }
 
-    function eTurn() {
-        const d = Math.floor(eatk * (0.8 + Math.random()*0.4));
-        php -= d;
-        document.getElementById('msg').innerText = "敵の攻撃！ " + d + "ダメージ！";
-        document.getElementById('p-area').classList.add('shake');
-        setTimeout(()=>document.getElementById('p-area').classList.remove('shake'), 200);
-        if(php <= 0) {
-            alert("敗北...");
-            resetGame();
-        } else {
-            document.getElementById('atk-btn').disabled = false;
-        }
-        updateUI();
-    }
+        scanBtn.addEventListener('click', async () => {
+            const result = await net.classify(videoElement);
+            if (result.length > 0) {
+                const name = result[0].className.split(',')[0];
+                const stats = generateStats(name);
 
-    function resetGame() {
-        mode = "W"; busy = false;
-        php = pmx; ehp = 0; emx = 0;
-        document.getElementById('p-name').innerText = "READY";
-        document.getElementById('p-sym').innerText = "?";
-        document.getElementById('e-name').innerText = "???";
-        document.getElementById('e-sym').innerText = "?";
-        document.getElementById('msg').innerText = "武器をスキャンしてください";
-        document.getElementById('scan-btn').disabled = false;
-        document.getElementById('atk-btn').disabled = true;
-        cam('W');
-        updateUI();
-    }
+                document.getElementById('obj-name').innerText = "判定： " + name;
+                document.getElementById('hp').innerText = stats.hp;
+                document.getElementById('atk').innerText = stats.atk;
+                document.getElementById('def').innerText = stats.def;
+                document.getElementById('stats').style.display = 'block';
+            }
+        });
 
-    function updateUI() {
-        document.getElementById('php').innerText = Math.max(0, Math.floor(php));
-        document.getElementById('ehp').innerText = Math.max(0, Math.floor(ehp));
-        document.getElementById('p-bar').style.width = (php/pmx*100) + "%";
-        document.getElementById('e-bar').style.width = emx>0 ? (ehp/emx*100) + "%" : "0%";
-    }
-
-    window.onload = init;
-</script>
+        setup();
+    </script>
 </body>
 </html>
