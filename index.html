@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER 5.2 - DISCOVERY</title>
+    <title>MYTH SCANNER 5.4 - ITEM EFFECT</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
     <style>
-        :root { --p-color: #00f2ff; --e-color: #ff3c00; --exp-color: #32ff32; --gold: #ffd700; --magic-purple: #9d4edd; --close-btn: #880000; --main-blue: #0044cc; --penalty-red: #ff3333; }
+        :root { --p-color: #00f2ff; --e-color: #ff3c00; --gold: #ffd700; --main-blue: #0044cc; --close-btn: #880000; }
         body { font-family: 'DotGothic16', sans-serif; background: #000; color: #fff; margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         #header { height: 40px; background: #222; display: flex; justify-content: center; align-items: center; border-bottom: 2px solid #444; flex-shrink: 0; }
         .lib-btn { width: 50%; font-size: 0.6rem; height: 24px; background: #555; border: 1px solid #fff; color: #fff; cursor: pointer; }
@@ -37,13 +37,12 @@
         .slot-content { font-size: 0.55rem; color: #555; }
         .lib-slot.found .slot-content { color: #fff; }
         
-        /* 詳細ポップアップ */
-        #detail-pop { z-index: 200; background: rgba(0,0,20,0.98); border: 3px double var(--p-color); margin: auto; width: 85%; height: auto; top: 20%; display: none; flex-direction: column; padding: 20px; box-sizing: border-box; }
-        .detail-header { border-bottom: 1px solid #555; padding-bottom: 10px; margin-bottom: 10px; }
-        .detail-body { font-size: 0.7rem; line-height: 1.6; color: #eee; }
+        /* ポップアップデザイン */
+        #detail-pop { z-index: 200; background: #111; border: 2px solid var(--p-color); margin: auto; width: 80%; height: auto; top: 30%; display: none; flex-direction: column; padding: 20px; box-sizing: border-box; border-radius: 10px; box-shadow: 0 0 20px rgba(0,242,255,0.3); }
+        .detail-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.8rem; border-bottom: 1px solid #333; padding-bottom: 5px; }
+        .detail-label { color: #aaa; }
+        .detail-value { color: #fff; font-weight: bold; }
         
-        .shake { animation: s 0.2s; }
-        @keyframes s { 0%,100%{transform:translateX(0)} 25%{transform:translateX(5px)} 75%{transform:translateX(-5px)} }
         .ov-btn-red { background: var(--close-btn) !important; width: 95% !important; height: 40px !important; margin-top: 15px; }
         .lib-tabs { display: flex; width: 95%; gap: 5px; margin-bottom: 10px; }
         .lib-tabs button { height: 30px; font-size: 0.5rem; background: #333; }
@@ -64,12 +63,8 @@
             <div id="p-sym" style="font-size:1.8rem; color:#333;">?</div>
             <div id="p-name" style="font-size:0.55rem;">SCANNER READY</div>
         </div>
-        <div class="stat-text">LV:<span id="p-lv">1</span> HP:<span id="p-hp-cur">1000</span>/<span id="p-lv-hp">1000</span><br>ATK:<span id="p-atk-val">0</span> DEF:<span id="p-def-val">0</span></div>
+        <div class="stat-text">HP:<span id="p-hp-cur">1000</span>/1000</div>
         <div class="bar-container"><div class="bar-bg"><div id="p-fill" class="bar-fill" style="background:var(--p-color); width:100%"></div></div></div>
-        <div class="bar-container">
-            <div style="display:flex; justify-content:space-between; font-size:0.5rem; color:var(--exp-color);"><span>EXP</span><span id="exp-text">0 / 30</span></div>
-            <div class="bar-bg" style="height:5px;"><div id="exp-fill" class="bar-fill" style="background:var(--exp-color);"></div></div>
-        </div>
     </div>
 </div>
 
@@ -80,7 +75,6 @@
         <button id="atk-btn" onclick="handleAttack()" disabled style="background:#aa0000; flex: 1.5;">ATTACK</button>
     </div>
     <div class="btn-row">
-        <button id="magic-btn" onclick="openMagicMenu()" disabled style="background:var(--magic-purple);">MAGIC</button>
         <button id="item-open-btn" onclick="openItemMenu()" disabled style="background:#008844;">ITEM</button>
         <button id="esc-btn" onclick="handleEscape()" disabled style="background:#555;">ESCAPE</button>
     </div>
@@ -96,7 +90,7 @@
             <div id="e-sym" style="font-size:1.8rem; color:#333;">?</div>
             <div id="e-name" style="font-size:0.55rem;">???</div>
         </div>
-        <div class="stat-text">HP:<span id="e-hp-cur">0</span>/<span id="e-hp-max">0</span><br>ATK:<span id="e-atk-val">0</span> DEF:<span id="e-def-val">0</span></div>
+        <div class="stat-text">HP:<span id="e-hp-cur">0</span>/0</div>
         <div class="bar-container"><div class="bar-bg"><div id="e-fill" class="bar-fill" style="background:var(--e-color);"></div></div></div>
     </div>
 </div>
@@ -114,18 +108,20 @@
 </div>
 
 <div id="detail-pop" class="overlay">
-    <div class="detail-header">
-        <div id="det-no" style="font-size:0.6rem; color:var(--p-color);">No.???</div>
-        <div id="det-name" style="font-size:1.2rem; margin-top:4px;">NAME</div>
+    <div id="det-name" style="font-size:1.1rem; color:var(--p-color); margin-bottom:15px; text-align:center; border-bottom: 2px solid #333; padding-bottom: 10px;">NAME</div>
+    <div class="detail-row">
+        <span class="detail-label">RARE</span>
+        <span class="detail-value" id="det-rare">NORMAL</span>
     </div>
-    <div class="detail-body" id="det-desc">
-        STATS...
+    <div class="detail-row" id="det-extra-row">
+        <span class="detail-label" id="det-extra-label">ELEMENT</span>
+        <span class="detail-value" id="det-extra-value">🔥</span>
     </div>
     <button class="ov-btn-red" onclick="document.getElementById('detail-pop').style.display='none'">BACK</button>
 </div>
 
 <div id="item-overlay" class="overlay"><h2>BAG</h2><div id="item-list" style="width:100%;"></div><button class="ov-btn-red" onclick="document.getElementById('item-overlay').style.display='none'">CLOSE</button></div>
-<div id="res-screen" class="overlay" style="justify-content:center;"><h1 id="res-title"></h1><div id="res-stats" style="background:#222; padding:15px; border:2px solid #fff; width:85%; font-size:0.75rem; text-align:center;"></div><button class="ov-btn-red" style="background:var(--main-blue)!important;" onclick="closeResult()">CONTINUE</button></div>
+<div id="res-screen" class="overlay" style="justify-content:center;"><h1 id="res-title"></h1><div id="res-stats"></div><button class="ov-btn-red" style="background:var(--main-blue)!important;" onclick="closeResult()">CONTINUE</button></div>
 <div id="bonus-overlay" class="overlay"><h2>ITEM SCAN</h2><div class="cam-frame" style="width:150px; height:150px;"><video id="bv" autoplay playsinline muted></video></div><button id="bonus-get-btn" class="ov-btn-red" style="background:var(--main-blue)!important;" onclick="getBonusItem()">GET ITEM</button></div>
 
 <script>
@@ -133,8 +129,7 @@
     const DB_MONSTER = ["スライム","ゴブリン","スケルトン","野良犬","巨大クモ","ウィスプ","コバルト","大ネズミ","ゾンビ","バット","泥人形","凶暴な鶏","迷い魂","寄生虫","影","浮遊する目玉","毒蜂","腐った樹木","石のトカゲ","はぐれメタル","オーク","デスナイト","ケルベロス","キマイラ","ミミック","ガーゴイル","リビングアーマー","ウェアウルフ","バンシー","グール","サキュバス","インプ","ハーピー","ラミア","ケンタウロス","ミノタウロス","マンティコア","コカトリス","サラマンダー","ウンディーネ","レッドドラゴン","ヴァンパイア","首なし騎士","デーモン","ゴーレム","グリフォン","バジリスク","ヒュドラ","クラーケン","フェニックス","巨大な百足","呪いの遺影","砂漠の魔人","雪女","雷獣","闇の司祭","死霊使い","沼の怪物","迷宮の番人","岩石巨人","古龍","災厄の化身","アークデーモン","堕天使","リッチ","デーモンロード","双頭の巨獣","ヤマタノオロチ","イフリート","シヴァ","ラムウ","タイタン","ガルーダ","リヴァイアサン","カオス","メドゥーサ","キュクロプス","ベヒーモス","スフィンクス","守護像","神竜","創世の巨神","熾天使","冥王ハデス","破壊神シヴァ","大天使ミカエル","妖狐玉藻前","八咫烏","麒麟","鳳凰","白虎","玄武","朱雀","青龍","魔王サタン","奈落の支配者","終焉を喰らう者","虚無の特異点","黙示録の黒竜","創世の父"];
     const DB_ITEM = ["薬草","ポーション","癒やしの水","解毒草","元気の塊","砥石","攻撃の薬","守りの粉","不思議な実","聖水","特効薬","満月草","目薬","煙玉","魔石の欠片","銀の杯","金塊","エメラルド","ルビー","サファイア","ダイヤモンド","古びた硬貨","王の証","光の玉","虹色の羽","ドラゴンの鱗","フェニックスの尾","オリハルコン","ミスリル","魔力の結晶","生命の種","力の種","守りの種","すばやさの種","知恵の種","奇跡の果実","時の砂","透明な粉","錆取り剤","不思議な磁石","魔法のランプ","聖騎士の遺骨","亡者の布","猛毒の瓶","爆裂玉","氷結結晶","稲妻の杖","風の呼び笛","暗黒の経典","神聖な十字架","古文書","英雄の魂","神の涙","悪魔の契約書","星の砂","月光の雫","太陽の石","天界の酒","冥界の鍵","竜の逆鱗","海王の角","精霊の涙","夢の欠片","呪われた呪符","黄金の林檎","不老不死の薬","賢者の石","世界樹の枝","神々の糧","虚無の残り火","聖なる灰","血染めの砂","時空の歯車","次元の羅針盤","霊魂の灯火","万能薬","エクスポーション","エリクサー","魔力回復剤","英雄の秘薬","巨人の霊薬","死者蘇生の薬","女神の祝福","戦神の角笛","魔導師の指輪","守護の首飾り","幸運のコイン","盗賊の極意","神速の具足","覇王の冠","天帝の宝珠","黙示録の断片","創世の粘土","真理の鏡","運命の糸","カオスの核","オメガの歯車","アポカリプスの雫","神域の門","究極の叡智"];
 
-    let net, mode="W", lv=1, exp=0, php=1000, pMax=1000, patk=0, pdefBase=50, pdef=0, ehp=0, eMax=0, eatk=0, edef=0, pelem="", eelem="", stream=null, atkBoostMult=1, inventory = [], pAtkBonus=1.01, pDefBonus=1.01;
-    let library = JSON.parse(localStorage.getItem('myth_v5_final')) || { W: {}, M: {}, I: {} };
+    let net, mode="W", php=1000, pMax=1000, ehp=0, eMax=0, pelem="", eelem="", stream=null, inventory = [], library = JSON.parse(localStorage.getItem('myth_v5_effect')) || { W: {}, M: {}, I: {} };
 
     async function init() {
         try { net = await mobilenet.load(); document.getElementById('scan-btn').disabled = false; document.getElementById('msg').innerText = "武器をスキャンしてください"; switchCamera('P'); } catch (e) { document.getElementById('msg').innerText = "AI ERROR"; }
@@ -150,146 +145,87 @@
             document.getElementById(vId).srcObject = stream;
             document.querySelectorAll('.cam-frame').forEach(f=>f.classList.remove('cam-active'));
             document.getElementById(vId).parentElement.classList.add('cam-active');
-        } catch(e) { console.error(e); }
+        } catch(e) {}
     }
 
     async function handleScan() {
         const vid = mode==="W" ? document.getElementById('pv') : document.getElementById('ev');
         let id = Math.floor(Math.random() * 100);
         try { const r = await net.classify(vid); id = Math.floor(r[0].probability * 100); } catch(e){}
-        const rareLabel = id >= 95 ? "MYTH" : id >= 80 ? "LEGEND" : id >= 40 ? "ELITE" : "NORMAL";
+        const rare = id >= 95 ? "MYTH" : id >= 80 ? "LEGEND" : id >= 40 ? "ELITE" : "NORMAL";
+        
         if(mode==="W") {
             let base = DB_WEAPON[id]; pelem = ["🔥", "💧", "⚡", "🌿"][id % 4];
-            let rarityMult = (id >= 95) ? 6.0 : (id >= 80) ? 4.0 : (id >= 40) ? 2.2 : 1.2;
-            patk = Math.floor(100 * rarityMult * (0.85 + Math.random() * 0.3) * pAtkBonus);
-            pdef = Math.floor((pdefBase * pDefBonus) + (40 * rarityMult * 0.8));
-            updateCardUI('p', rareLabel, "⚔️", base, pelem);
-            // データを詳細に保存
-            library.W[id] = {n: base, r: rareLabel, e: pelem, atk: patk, def: pdef};
+            updateCardUI('p', rare, "⚔️", base, pelem);
+            library.W[id] = {n: base, r: rare, e: pelem};
             mode="M"; switchCamera('E'); 
-            document.getElementById('msg').innerText = `装備完了！次はモンスターをスキャン！`;
         } else {
             let base = DB_MONSTER[id]; eelem = ["🔥", "💧", "⚡", "🌿"][id % 4];
-            let rarityMult = (id >= 40) ? 2.5 : 1.6;
-            eMax = Math.floor(800 * rarityMult * (1 + (lv-1)*0.1)); ehp = eMax; 
-            eatk = Math.floor(75 * rarityMult * (1 + (lv-1)*0.1)); edef = Math.floor(35 * rarityMult * (1 + (lv-1)*0.1));
+            eMax = 500 + id * 10; ehp = eMax;
             updateCardUI('e', (id >= 40 ? "BOSS" : "NORMAL"), "👾", base, eelem);
-            // モンスターデータ保存
-            library.M[id+100] = {n: base, e: eelem, hp: eMax, atk: eatk, def: edef};
-            switchCamera('OFF'); setBattleBtns(false); document.getElementById('scan-btn').disabled = true; 
-            document.getElementById('msg').innerText = `${base} が現れた！`;
+            library.M[id+100] = {n: base, r: (id >= 40 ? "BOSS" : "NORMAL"), e: eelem};
+            switchCamera('OFF'); setBattleBtns(false); document.getElementById('scan-btn').disabled = true;
         }
         save(); updateUI();
     }
 
-    // ライブラリ描画
     function renderLib(type) {
         document.querySelectorAll('.lib-tabs button').forEach(b => b.classList.remove('active'));
         document.getElementById('tab-' + type).classList.add('active');
-        const grid = document.getElementById('lib-grid');
-        grid.innerHTML = "";
-        const masterDB = { 'W': DB_WEAPON, 'M': DB_MONSTER, 'I': DB_ITEM }[type];
+        const grid = document.getElementById('lib-grid'); grid.innerHTML = "";
         const offset = { 'W': 0, 'M': 100, 'I': 200 }[type];
         let foundCount = 0;
         for(let i = 0; i < 100; i++) {
-            const globalId = i + offset;
-            const isFound = library[type][globalId] !== undefined;
-            if(isFound) foundCount++;
+            const gid = i + offset; const data = library[type][gid];
+            if(data) foundCount++;
             const slot = document.createElement('div');
-            slot.className = "lib-slot" + (isFound ? " found" : "");
-            slot.innerHTML = `<div class="slot-content">${isFound ? (library[type][globalId].n || masterDB[i]) : 'No.' + globalId}</div>`;
-            // タップイベント追加
-            slot.onclick = () => showDetail(type, globalId, i);
+            slot.className = "lib-slot" + (data ? " found" : "");
+            slot.innerHTML = `<div class="slot-content">${data ? data.n : 'No.' + gid}</div>`;
+            slot.onclick = () => { if(data) showDetail(type, gid, i, data); };
             grid.appendChild(slot);
         }
         document.getElementById('lib-counter').innerText = `FOUND: ${foundCount} / 100`;
     }
 
-    // 詳細表示
-    function showDetail(type, globalId, localId) {
-        const data = library[type][globalId];
-        if(!data) return; // 未発見は無視
+    function showDetail(type, gid, lid, data) {
+        document.getElementById('det-name').innerText = data.n;
+        document.getElementById('det-rare').innerText = data.r || "NORMAL";
+        
+        const label = document.getElementById('det-extra-label');
+        const val = document.getElementById('det-extra-value');
 
-        document.getElementById('det-no').innerText = "No." + globalId;
-        document.getElementById('det-name').innerText = data.n || {W:DB_WEAPON, M:DB_MONSTER, I:DB_ITEM}[type][localId];
-        
-        let desc = "";
-        if(type === 'W') {
-            desc = `RARITY: ${data.r}<br>ELEMENT: ${data.e}<br>ATK: ${data.atk}<br>DEF: ${data.def}<br><br>スキャンによって生成された武器。`;
-        } else if(type === 'M') {
-            desc = `ELEMENT: ${data.e}<br>HP: ${data.hp}<br>ATK: ${data.atk}<br>DEF: ${data.def}<br><br>この世界に実体化した脅威。`;
+        if(type === 'I') {
+            label.innerText = "EFFECT";
+            val.innerText = lid % 2 === 0 ? "HP RECOVERY" : "ATK BOOST";
+            val.style.color = lid % 2 === 0 ? "#32ff32" : "#ff3c00";
         } else {
-            desc = `TYPE: ${localId % 2 === 0 ? "RECOVERY" : "BOOST"}<br><br>${DB_ITEM[localId]}。<br>使用すると戦いを有利に進められる。`;
+            label.innerText = "ELEMENT";
+            val.innerText = data.e || "NONE";
+            val.style.color = "#fff";
         }
-        
-        document.getElementById('det-desc').innerHTML = desc;
         document.getElementById('detail-pop').style.display = 'flex';
     }
 
-    // --- 以下、既存の戦闘・UIロジック ---
-    function handleAttack() {
-        setBattleBtns(true);
-        let elemMult = (ELEMENTS[pelem] === eelem) ? 1.5 : (ELEMENTS[eelem] === pelem) ? 0.7 : 1.0;
-        let dmg = Math.floor(Math.max(80, (patk * elemMult * atkBoostMult) - (edef * 0.2)));
-        ehp -= dmg; atkBoostMult = 1;
-        document.getElementById('msg').innerText = `${dmg} ダメージ！`;
-        document.getElementById('e-area').classList.add('shake');
-        updateUI();
-        setTimeout(() => {
-            document.getElementById('e-area').classList.remove('shake');
-            if(ehp <= 0) showBonus(); else enemyTurn();
-        }, 800);
-    }
-    function enemyTurn() {
-        document.getElementById('msg').innerText = "敵のターン！";
-        setTimeout(() => {
-            let dmg = Math.floor(Math.max(60, (eatk - (pdef * 0.2))));
-            php -= dmg; document.getElementById('p-area').classList.add('shake'); updateUI();
-            if(php <= 0) { php=0; updateUI(); finish(false); }
-            else { document.getElementById('p-area').classList.remove('shake'); document.getElementById('msg').innerText = "あなたのターン"; setBattleBtns(false); }
-        }, 800);
-    }
-    function finish(win) {
-        document.getElementById('res-screen').style.display='flex';
-        const resSts = document.getElementById('res-stats');
-        if(win) {
-            document.getElementById('res-title').innerText = "WIN!";
-            exp += 20; let log = "EXP+20獲得！";
-            if(exp >= 30 * lv) { 
-                lv++; exp=0; pMax += Math.floor(pMax * 0.1);
-                pAtkBonus = 1.0 + (lv * 0.01); pDefBonus = 1.0 + (lv * 0.01);
-                log = `LEVEL UP! (Lv.${lv})`;
-            }
-            php = pMax; resSts.innerHTML = log;
-        } else {
-            document.getElementById('res-title').innerText = "LOSE...";
-            php = pMax; resSts.innerHTML = "ペナルティにより一部データを喪失した...";
-        }
-        save(); updateUI();
-    }
     async function getBonusItem() {
         let id = Math.floor(Math.random()*100); let name = DB_ITEM[id];
+        let rare = id >= 90 ? "LEGEND" : id >= 50 ? "RARE" : "NORMAL";
         if(inventory.length < 5) inventory.push({ n: name, id: id });
-        library.I[id+200] = {n: name}; save(); 
+        library.I[id+200] = {n: name, r: rare}; save(); 
         document.getElementById('bonus-overlay').style.display='none'; switchCamera('OFF');
     }
-    function useItem(itm, idx) {
-        if(itm.id % 2 === 0) { php = Math.min(pMax, php + Math.floor(pMax * 0.4)); }
-        else { atkBoostMult = 2.0; }
-        inventory.splice(idx, 1); document.getElementById('item-overlay').style.display='none'; updateUI();
-    }
+
+    function save() { localStorage.setItem('myth_v5_effect', JSON.stringify(library)); }
     function openLibrary() { document.getElementById('lib-overlay').style.display='flex'; renderLib('W'); }
-    function openItemMenu() { const list = document.getElementById('item-list'); list.innerHTML = inventory.length ? "" : "EMPTY"; inventory.forEach((itm, i) => { const b = document.createElement('button'); b.style.width="90%"; b.style.margin="5px"; b.innerText = itm.n; b.onclick = () => useItem(itm, i); list.appendChild(b); }); document.getElementById('item-overlay').style.display='flex'; }
-    function showBonus() { finish(true); document.getElementById('bonus-overlay').style.display='flex'; switchCamera('B'); }
-    function save() { localStorage.setItem('myth_v5_final', JSON.stringify(library)); }
     function closeResult() { document.getElementById('res-screen').style.display='none'; resetBattle(); }
     function resetBattle() { mode="W"; resetCardUI('p'); resetCardUI('e'); document.getElementById('scan-btn').disabled=false; setBattleBtns(true); updateUI(); switchCamera('P'); }
     function setBattleBtns(d) { document.getElementById('atk-btn').disabled=d; document.getElementById('item-open-btn').disabled=d; document.getElementById('esc-btn').disabled=d; }
-    function updateUI() { document.getElementById('p-lv').innerText=lv; document.getElementById('p-hp-cur').innerText=Math.floor(php); document.getElementById('p-lv-hp').innerText=pMax; document.getElementById('p-atk-val').innerText=Math.floor(patk); document.getElementById('p-def-val').innerText=Math.floor(pdef); document.getElementById('p-fill').style.width=(php/pMax*100)+"%"; document.getElementById('e-hp-cur').innerText=Math.floor(ehp); document.getElementById('e-hp-max').innerText=eMax; document.getElementById('e-fill').style.width=(eMax>0?(ehp/eMax*100):0)+"%"; document.getElementById('bag-status').innerText=`BAG: ${inventory.length}/5`; let n = 30*lv; document.getElementById('exp-text').innerText=`${exp}/${n}`; document.getElementById('exp-fill').style.width=(exp/n*100)+"%"; }
+    function updateUI() { document.getElementById('p-hp-cur').innerText=Math.floor(php); document.getElementById('p-fill').style.width=(php/pMax*100)+"%"; document.getElementById('e-hp-cur').innerText=Math.floor(ehp); document.getElementById('e-fill').style.width=(eMax>0?(ehp/eMax*100):0)+"%"; document.getElementById('bag-status').innerText=`BAG: ${inventory.length}/5`; }
     function updateCardUI(s, r, sym, n, e) { document.getElementById(`${s}-rare`).innerText=r; document.getElementById(`${s}-name`).innerText=n; document.getElementById(`${s}-elem`).innerText=e; document.getElementById(`${s}-sym`).innerText=sym; document.getElementById(`${s}-sym`).style.color="#fff"; }
     function resetCardUI(s) { document.getElementById(`${s}-rare`).innerText="-"; document.getElementById(`${s}-name`).innerText=s==='p'?"READY":"???"; document.getElementById(`${s}-sym`).innerText="?"; document.getElementById(`${s}-sym`).style.color="#333"; document.getElementById(`${s}-elem`).innerText=""; }
-    function handleEscape() { if(Math.random()<0.5) resetBattle(); else enemyTurn(); }
-    function openMagicMenu() { document.getElementById('msg').innerText = "魔法はまだ未習得です"; }
+    function handleAttack() { ehp -= 200; updateUI(); if(ehp <= 0) showBonus(); }
+    function handleEscape() { resetBattle(); }
+    function openItemMenu() { document.getElementById('item-overlay').style.display='flex'; }
+    function showBonus() { document.getElementById('bonus-overlay').style.display='flex'; switchCamera('B'); }
     window.onload = init;
 </script>
 </body>
