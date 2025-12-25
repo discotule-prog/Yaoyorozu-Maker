@@ -3,301 +3,218 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER 7.2 - COLLECTION FIXED</title>
+    <title>MYTH SCANNER 4.36 REVIVAL</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
     <style>
-        :root { --p-color: #00f2ff; --e-color: #ff3c00; --exp-color: #32ff32; --gold: #ffd700; --magic-p: #a200ff; }
-        body { font-family: 'DotGothic16', sans-serif; background: #000; color: #fff; margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-        #header { height: 40px; background: #222; border-bottom: 2px solid #444; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
-        .lib-btn { width: 60%; height: 26px; font-size: 0.7rem; background: #555; color: #fff; border: 1px solid #fff; cursor: pointer; }
+        :root { --p-color: #00f2ff; --e-color: #ff3c00; --exp-color: #32ff32; }
+        body { font-family: 'DotGothic16', sans-serif; background: #000; color: #fff; margin: 0; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
+        #header { height: 40px; background: #222; display: flex; align-items: center; justify-content: center; border-bottom: 2px solid #444; }
         .char-area { height: 32%; display: flex; border-bottom: 1px solid #333; padding: 10px; box-sizing: border-box; }
-        .cam-part { width: 35%; display: flex; align-items: center; justify-content: center; }
+        .cam-part { width: 35%; display: flex; justify-content: center; align-items: center; }
         .cam-frame { width: 90px; height: 90px; border: 2px solid #333; background: #111; overflow: hidden; position: relative; border-radius: 8px; }
         video { width: 100%; height: 100%; object-fit: cover; display: none; }
-        .cam-active { border: 2px solid #0f0 !important; box-shadow: 0 0 10px #0f0; }
-        .cam-active video { display: block !important; }
+        .cam-active { border: 2px solid #0f0; box-shadow: 0 0 10px #0f0; }
+        .cam-active video { display: block; }
         .info-part { width: 65%; display: flex; flex-direction: column; padding-left: 10px; justify-content: center; }
-        .visual-card { width: 100%; height: 80px; border: 2px solid #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #111; position: relative; border-radius: 4px; overflow: hidden; }
-        .stat-text { font-size: 0.65rem; color: #ccc; margin-top: 2px; line-height: 1.2; }
-        .bar-bg { width: 100%; height: 8px; background: #222; border: 1px solid #666; position: relative; overflow: hidden; margin-top: 4px; }
-        .bar-fill { height: 100%; width: 0%; transition: width 0.4s ease-out; }
-        #mid-ui { height: 160px; background: #111; border-top: 2px solid #444; display: flex; flex-direction: column; align-items: center; padding: 5px; flex-shrink: 0; position: relative; }
-        #msg { font-size: 0.75rem; color: #0f0; height: 50px; text-align: center; display: flex; align-items: center; padding: 0 10px; line-height: 1.3; white-space: pre-wrap; }
-        .btn-container { display: flex; gap: 5px; width: 95%; justify-content: center; margin-bottom: 5px; height: 45px; }
-        button { flex: 1; font-family: 'DotGothic16'; border: 2px solid #fff; color: #fff; background: #444; font-size: 0.7rem; cursor: pointer; }
-        button:disabled { opacity: 0.3; pointer-events: none; }
-        /* コレクション画面用スタイル */
-        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; display: none; flex-direction: column; align-items: center; padding: 15px; box-sizing: border-box; }
-        .lib-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; flex-grow: 1; overflow-y: auto; padding: 10px; border: 1px solid #444; background: #111; }
-        .lib-slot { min-height: 60px; background: #222; border: 1px solid #444; border-radius: 4px; display: flex; align-items: center; justify-content: center; padding: 5px; text-align: center; font-size: 0.5rem; color: #555; }
-        .lib-slot.found { border-color: var(--p-color); background: #333; color: #fff; box-shadow: inset 0 0 5px var(--p-color); }
+        .visual-card { width: 100%; height: 80px; border: 2px solid #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #111; position: relative; }
+        .stat-text { font-size: 0.7rem; color: #ccc; margin-top: 5px; }
+        .bar-bg { width: 100%; height: 10px; background: #222; border: 1px solid #666; margin-top: 5px; }
+        .bar-fill { height: 100%; width: 0%; transition: width 0.3s; }
+        #mid-ui { flex-grow: 1; background: #111; border-top: 2px solid #444; display: flex; flex-direction: column; align-items: center; padding: 5px; }
+        #msg { font-size: 0.8rem; color: #0f0; height: 45px; text-align: center; display: flex; align-items: center; }
+        .btn-row { display: flex; gap: 5px; width: 95%; margin-bottom: 5px; }
+        button { flex: 1; height: 40px; font-family: 'DotGothic16'; background: #444; color: #fff; border: 2px solid #fff; cursor: pointer; }
+        button:disabled { opacity: 0.3; }
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 100; display: none; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; }
+        .lib-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; width: 100%; overflow-y: auto; }
+        .lib-slot { height: 50px; background: #222; border: 1px solid #444; font-size: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; }
+        .found { color: var(--p-color); border-color: var(--p-color); }
         .shake { animation: s 0.2s; }
-        @keyframes s { 0%,100%{transform:translateX(0)} 25%{transform:translateX(5px)} 75%{transform:translateX(-5px)} }
+        @keyframes s { 0%,100%{transform:translateX(0)} 50%{transform:translateX(5px)} }
     </style>
 </head>
 <body>
 
-<div id="header"><button onclick="openLibrary()" class="lib-btn">COLLECTION</button></div>
+<div id="header"><button onclick="showLib()" style="width:120px; height:25px; font-size:0.6rem;">COLLECTION</button></div>
 
 <div class="char-area" id="p-area">
-    <div class="cam-part"><div class="cam-frame" id="pf-frame"><video id="pv" autoplay playsinline muted></video></div></div>
+    <div class="cam-part"><div class="cam-frame" id="pf"><video id="pv" autoplay playsinline muted></video></div></div>
     <div class="info-part">
         <div class="visual-card">
-            <div id="p-rare" class="rarity-tag">-</div>
-            <div id="p-elem" class="elem-tag"></div>
-            <div id="p-sym" style="font-size:3.5rem; color:#333;">?</div>
-            <div id="p-name" style="font-size:0.6rem; text-align:center; position:absolute; bottom:5px;">READY</div>
+            <div id="p-sym" style="font-size:3rem;">?</div>
+            <div id="p-name" style="font-size:0.6rem; position:absolute; bottom:2px;">READY</div>
         </div>
-        <div class="stat-text">LV:<span id="p-lv">1</span> HP:<span id="p-hp-cur">1000</span>/<span id="p-hp-max">1000</span><br>ATK:<span id="p-atk-val">0</span></div>
-        <div class="bar-bg"><div id="p-fill" class="bar-fill" style="background:var(--p-color); width:100%"></div></div>
-        <div class="stat-text" style="text-align:right; margin-top:2px;">EXP: <span id="exp-val">0</span> / 100</div>
-        <div class="bar-bg" style="height:4px; margin-top:0;"><div id="exp-fill" class="bar-fill" style="background:var(--exp-color);"></div></div>
+        <div class="stat-text">LV:<span id="lv">1</span> HP:<span id="php">1000</span></div>
+        <div class="bar-bg"><div id="p-bar" class="bar-fill" style="background:var(--p-color); width:100%;"></div></div>
     </div>
 </div>
 
 <div id="mid-ui">
-    <div id="msg">AI BOOTING...</div>
-    <div id="scan-btn-area" class="btn-container"></div>
-    <div class="btn-container">
-        <button id="atk-btn" onclick="handleAttack()" disabled style="background:#aa0000">ATTACK</button>
-        <button id="mag-btn" onclick="alert('魔法解放Lv2')" disabled style="background:var(--magic-p)">MAGIC</button>
-        <button id="esc-btn" onclick="handleEscape()" disabled>ESCAPE</button>
+    <div id="msg">AI LOADING...</div>
+    <div class="btn-row">
+        <button id="scan-btn" onclick="doScan()" style="background:#0044cc;">SCAN</button>
+        <button id="atk-btn" onclick="doAtk()" disabled style="background:#880000;">ATTACK</button>
+    </div>
+    <div class="btn-row">
+        <button onclick="resetGame()" style="font-size:0.6rem;">RESET</button>
     </div>
 </div>
 
 <div class="char-area" id="e-area">
-    <div class="cam-part"><div class="cam-frame" id="ef-frame"><video id="ev" autoplay playsinline muted></video></div></div>
+    <div class="cam-part"><div class="cam-frame" id="ef"><video id="ev" autoplay playsinline muted></video></div></div>
     <div class="info-part">
         <div class="visual-card">
-            <div id="e-rare" class="rarity-tag">-</div>
-            <div id="e-elem" class="elem-tag"></div>
-            <div id="e-sym" style="font-size:3.5rem; color:#333;">?</div>
-            <div id="e-name" style="font-size:0.6rem; text-align:center; position:absolute; bottom:5px;">???</div>
+            <div id="e-sym" style="font-size:3rem;">?</div>
+            <div id="e-name" style="font-size:0.6rem; position:absolute; bottom:2px;">???</div>
         </div>
-        <div class="stat-text">HP:<span id="e-hp-cur">0</span>/<span id="e-hp-max">0</span><br>ATK:<span id="e-atk-val">0</span></div>
-        <div class="bar-bg"><div id="e-fill" class="bar-fill" style="background:var(--e-color);"></div></div>
+        <div class="stat-text">HP:<span id="ehp">0</span></div>
+        <div class="bar-bg"><div id="e-bar" class="bar-fill" style="background:var(--e-color);"></div></div>
     </div>
 </div>
 
-<div id="lib-overlay" class="overlay">
-    <h2 style="margin:5px; color:var(--gold);">MYTH COLLECTION</h2>
-    <div style="display:flex; gap:5px; margin-bottom:10px; width:100%;">
-        <button onclick="renderLib('W')">WEAPONS</button>
-        <button onclick="renderLib('M')">MONSTERS</button>
-    </div>
+<div id="lib-ui" class="overlay">
+    <h2>COLLECTION</h2>
     <div id="lib-grid" class="lib-grid"></div>
-    <button onclick="document.getElementById('lib-overlay').style.display='none'" style="width:100%; height:50px; margin-top:10px; background:#444;">BACK TO SCAN</button>
-</div>
-
-<div id="res-screen" class="overlay" style="justify-content:center;">
-    <h1 id="res-title"></h1>
-    <div id="res-stats" style="text-align:center; margin-bottom:20px;"></div>
-    <button id="res-cont-btn" style="width:90%; height:50px; background:#0044cc;">CONTINUE</button>
+    <button onclick="hideLib()" style="margin-top:20px; width:100%;">CLOSE</button>
 </div>
 
 <script>
-    const DB_WEAPON = ["錆びた短剣","棒切れ","鉄のヤスリ","練習用の剣","皮のムチ","石の礫","粗末な弓","鉄の棒","薪割り斧","穴の空いた盾","ブロンズナイフ","鉄の爪","ランス","警棒","木刀","石のメイス","投げナイフ","鉄の針","兵士の剣","古いハルバード","鋼鉄の長剣","処刑人の斧","銀のレイピア","剛弓","漆黒の短刀","熟練の戦槌","猛獣の牙","抜刀斎の刀","暗殺者の針","閃光のダガー","守護者の大盾","スナイパーライフル","騎士のランス","十字槍","三節棍","フランベルジュ","魔法の杖","三叉矛","黄金の槌","カトラス","バスターソード","ミスリルの小太刀","凍結の魔弓","爆炎の斧","稲妻の刺剣","竜殺しの太刀","幻影の双剣","岩断ちの巨斧","精霊の杖","破邪の弓","守護神の槍","毒蛇の尾","吸血の牙","星屑のメイス","震動のハンマー","蒼天の剣","烈風の鎌","断罪の鎖","賢者の辞典","深海のマント","フレイムタン","ミョルニル","トライデント","ガイアハンマー","円月刀","クレイモア","巨人の鉄球","フレイル","細剣","魔槍","聖騎士の盾","黒金の棍棒","呪いの呪符","煉獄の鎌","極光の矢","神速のダガー","不壊の籠手","飛龍の魔笛","混沌の杖","虚空の鏡","魔剣グラム","聖剣エクスカリバー","竜槍ゲイボルグ","聖槍ロンギヌス","天羽々斬","村正","神弓アルテミス","モーニングスター","アロンダイト","デュランダル","妖刀正宗","霊刀七支刀","魔導書アルマデル","破滅の爪","絶影","究極神剣ゼノス","時空貫通神槍","真理の魔導核","天地崩壊の終槌","黙示録の神盾","終焉を断つ神剣"];
-    const DB_MONSTER = ["スライム","ゴブリン","スケルトン","野良犬","巨大クモ","ウィスプ","コバルト","大ネズミ","ゾンビ","バット","泥人形","凶暴な鶏","迷い魂","寄生虫","影","浮遊する目玉","毒蜂","腐った樹木","石のトカゲ","はぐれメタル","オーク","デスナイト","ケルベロス","キマイラ","ミミック","ガーゴイル","リビングアーマー","ウェアウルフ","バンシー","グール","サキュバス","インプ","ハーピー","ラミア","ケンタウロス","ミノタウロス","マンティコア","コカトリス","サラマンダー","ウンディーネ","レッドドラゴン","ヴァンパイア","首なし騎士","デーモン","ゴーレム","グリフォン","バジリスク","ヒュドラ","クラーケン","フェニックス","巨大な百足","呪いの遺影","砂漠の魔人","雪女","雷獣","闇の司祭","死霊使い","沼の怪物","迷宮の番人","岩石巨人","古龍","灾厄の化身","アークデーモン","堕天使","リッチ","デーモンロード","双頭の巨獣","ヤマタノオロチ","イフリート","シヴァ","ラムウ","タイタン","ガルーダ","リヴァイアサン","カオス","メドゥーサ","キュクロプス","ベヒーモス","スフィンクス","守護像","神竜","創世の巨神","熾天使","冥王ハデス","破壊神シヴァ","大天使ミカエル","妖狐玉藻前","八咫烏","麒麟","鳳凰","白虎","玄武","朱雀","青龍","魔王サタン","奈落の支配者","終焉を喰らう者","虚無の特異点","黙示録の黒竜","創世の父"];
-
-    let net, mode="W", lv=1, exp=0, php=1000, pMax=1000, patk=0, pelem="", ehp=0, eMax=0, eatk=0, eelem="", stream=null;
-    let systemLock = false; 
-    // 図鑑データの読み込み
-    let library = JSON.parse(localStorage.getItem('myth_lib_v1')) || { W:[], M:[] };
+    const W_DB = ["短剣","長剣","斧","杖","弓","槍","槌","刀","鞭","盾"];
+    const M_DB = ["スライム","ゴブリン","ドラキー","ゾンビ","オーク","ゴーレム","竜","魔王"];
+    
+    let net, mode="W", stream, busy=false;
+    let plv=1, php=1000, pmx=1000, patk=0;
+    let ehp=0, emx=0, eatk=0;
+    let lib = {W:[], M:[]};
 
     async function init() {
-        try { 
-            net = await mobilenet.load(); 
-            startGame();
-        } catch(e) { document.getElementById('msg').innerText = "AI BOOT ERROR"; }
+        net = await mobilenet.load();
+        resetGame();
     }
 
-    async function switchCamera(target) {
-        if(stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
-        document.querySelectorAll('video').forEach(v => { v.pause(); v.srcObject = null; });
-        document.querySelectorAll('.cam-frame').forEach(f => f.classList.remove('cam-active'));
-        if(target === 'OFF') return true;
-        const vId = target === 'P' ? 'pv' : 'ev';
+    async function cam(t) {
+        if(stream) stream.getTracks().forEach(s=>s.stop());
+        document.querySelectorAll('video').forEach(v=>{v.pause(); v.srcObject=null;});
+        document.querySelectorAll('.cam-frame').forEach(f=>f.classList.remove('cam-active'));
+        if(t==='OFF') return;
         try {
             stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
-            document.getElementById(vId).srcObject = stream;
-            document.getElementById(vId === 'pv' ? 'pf-frame' : 'ef-frame').classList.add('cam-active');
-            return true;
-        } catch(e) { return false; }
+            const id = t==='W'?'pv':'ev';
+            const f = t==='W'?'pf':'ef';
+            document.getElementById(id).srcObject = stream;
+            document.getElementById(f).classList.add('cam-active');
+        } catch(e) { alert("Camera Error"); }
     }
 
-    function rebuildScanButton(label, active = true) {
-        const area = document.getElementById('scan-btn-area');
-        area.innerHTML = ""; 
-        if (!active) return;
-        const btn = document.createElement('button');
-        btn.innerText = label;
-        btn.style.background = "#0044cc";
-        btn.onclick = handleScan; 
-        area.appendChild(btn);
-    }
-
-    async function handleScan() {
-        if(systemLock) return;
-        systemLock = true;
-        rebuildScanButton("", false);
-        document.getElementById('msg').innerText = "ANALYZING...";
+    async function doScan() {
+        if(busy) return;
+        busy = true;
+        document.getElementById('scan-btn').disabled = true;
+        document.getElementById('msg').innerText = "SCANNING...";
 
         try {
-            const vid = (mode === "W") ? document.getElementById('pv') : document.getElementById('ev');
-            const r = await net.classify(vid);
-            const id = Math.floor(r[0].probability * 100);
-            const aiName = r[0].className.split(',')[0].toUpperCase();
+            const v = mode==="W"?document.getElementById('pv'):document.getElementById('ev');
+            const res = await net.classify(v);
+            const id = Math.floor(res[0].probability * 100);
+            const name = res[0].className.split(',')[0].toUpperCase();
 
-            if(mode === "W") {
-                let name = aiName + "の" + (DB_WEAPON[id % 100]);
-                pelem = ["🔥", "💧", "⚡", "🌿"][id % 4];
-                patk = 100 + id + (lv * 10);
-                updateCardUI('p', id>=90?"MYTH":"REG", pelem, "⚔️", name);
+            if(mode==="W") {
+                const wName = name + "の" + W_DB[id % W_DB.length];
+                patk = 100 + id;
+                document.getElementById('p-name').innerText = wName;
+                document.getElementById('p-sym').innerText = "⚔️";
+                if(!lib.W.includes(wName)) lib.W.push(wName);
                 
-                // 図鑑に保存
-                if(!library.W.includes(name)) { library.W.push(name); saveLib(); }
-
                 mode = "M";
-                document.getElementById('msg').innerText = "TARGET LOCK...";
-                if(stream) stream.getTracks().forEach(t => t.stop());
-                
-                setTimeout(async () => {
-                    await switchCamera('E');
-                    document.getElementById('msg').innerText = "敵をスキャンしてください";
-                    rebuildScanButton("ENEMY SCAN");
-                    systemLock = false; 
-                }, 800);
+                document.getElementById('msg').innerText = "武器装備完了！敵を探せ！";
+                await cam('OFF');
+                setTimeout(()=> {
+                    cam('M');
+                    document.getElementById('scan-btn').disabled = false;
+                    busy = false;
+                }, 1000);
+            } else {
+                const mName = name + "の" + M_DB[id % M_DB.length];
+                emx = 500 + (id * 10); ehp = emx; eatk = 50 + id;
+                document.getElementById('e-name').innerText = mName;
+                document.getElementById('e-sym').innerText = "👾";
+                if(!lib.M.includes(mName)) lib.M.push(mName);
 
-            } else if(mode === "M") {
-                let name = aiName + "の" + (DB_MONSTER[id % 100]);
-                eelem = ["🔥", "💧", "⚡", "🌿"][id % 4];
-                eMax = 500 + (id * 15) + (lv * 20); ehp = eMax; eatk = 50 + id + (lv * 5);
-                updateCardUI('e', id>=80?"BOSS":"NM", eelem, "👾", name);
-
-                // 図鑑に保存
-                if(!library.M.includes(name)) { library.M.push(name); saveLib(); }
-                
-                await switchCamera('OFF');
-                document.getElementById('msg').innerText = `${name}が現れた！`;
-                setBattleBtns(false);
-                systemLock = false;
+                document.getElementById('msg').innerText = mName + "が現れた！";
+                document.getElementById('scan-btn').disabled = true;
+                document.getElementById('atk-btn').disabled = false;
+                await cam('OFF');
+                busy = false;
             }
-        } catch(e) {
-            systemLock = false;
-            rebuildScanButton("RETRY SCAN");
-        }
+        } catch(e) { busy=false; document.getElementById('scan-btn').disabled=false; }
         updateUI();
     }
 
-    // --- コレクション機能 ---
-    function saveLib() { localStorage.setItem('myth_lib_v1', JSON.stringify(library)); }
-
-    function openLibrary() {
-        document.getElementById('lib-overlay').style.display = 'flex';
-        renderLib('W'); // 最初は武器を表示
-    }
-
-    function renderLib(type) {
-        const grid = document.getElementById('lib-grid');
-        grid.innerHTML = "";
-        const db = (type === 'W') ? DB_WEAPON : DB_MONSTER;
-        
-        // 100種類のスロットを作成
-        for(let i=0; i<100; i++) {
-            const slot = document.createElement('div');
-            const itemName = (type === 'W' ? "" : "") + db[i]; // 名前の一部が含まれているかチェック
-            
-            // 図鑑に登録されているか判定（簡易判定）
-            const isFound = library[type].some(found => found.includes(db[i]));
-            
-            slot.className = "lib-slot" + (isFound ? " found" : "");
-            slot.innerText = isFound ? library[type].find(f => f.includes(db[i])) : `No.${i+1}\n???`;
-            grid.appendChild(slot);
-        }
-    }
-
-    // --- 戦闘・基本ロジック ---
-    function handleAttack() {
-        setBattleBtns(true);
-        let dmg = Math.floor(patk * (0.9 + Math.random()*0.2));
-        const rel = {"🔥":"🌿", "🌿":"⚡", "⚡":"💧", "💧":"🔥"};
-        if(rel[pelem] === eelem) dmg = Math.floor(dmg * 1.5);
-        ehp -= dmg; document.getElementById('msg').innerText = `攻撃！ ${dmg}ダメージ！`;
+    function doAtk() {
+        const d = Math.floor(patk * (0.8 + Math.random()*0.4));
+        ehp -= d;
+        document.getElementById('msg').innerText = d + "のダメージ！";
         document.getElementById('e-area').classList.add('shake');
-        updateUI();
-        setTimeout(() => {
-            document.getElementById('e-area').classList.remove('shake');
-            if(ehp <= 0) finish(true); else enemyTurn();
-        }, 800);
-    }
-
-    function enemyTurn() {
-        let dmg = Math.floor(eatk * (0.8 + Math.random()*0.4));
-        php -= dmg; document.getElementById('msg').innerText = `敵の攻撃！ ${dmg}ダメージ！`;
-        document.getElementById('p-area').classList.add('shake');
-        updateUI();
-        setTimeout(() => {
-            document.getElementById('p-area').classList.remove('shake');
-            if(php <= 0) finish(false); else { document.getElementById('msg').innerText = "君のターン！"; setBattleBtns(false); }
-        }, 800);
-    }
-
-    function finish(win) {
-        const res = document.getElementById('res-screen');
-        res.style.display = 'flex';
-        if(win) {
-            document.getElementById('res-title').innerText = "VICTORY!";
-            exp += 50; if(exp>=100){ lv++; exp=0; pMax+=200; php=pMax; }
-            document.getElementById('res-cont-btn').onclick = () => { res.style.display='none'; startGame(); };
+        setTimeout(()=>document.getElementById('e-area').classList.remove('shake'), 200);
+        if(ehp <= 0) {
+            alert("勝利！");
+            resetGame();
         } else {
-            document.getElementById('res-title').innerText = "DEFEAT...";
-            php = pMax;
-            document.getElementById('res-cont-btn').onclick = () => { res.style.display='none'; startGame(); };
+            setTimeout(eTurn, 800);
         }
         updateUI();
     }
 
-    function startGame() {
-        systemLock = false;
-        mode = "W";
-        resetCardUI('p'); resetCardUI('e');
+    function eTurn() {
+        const d = Math.floor(eatk * (0.8 + Math.random()*0.4));
+        php -= d;
+        document.getElementById('msg').innerText = "敵の攻撃！ " + d + "ダメージ！";
+        document.getElementById('p-area').classList.add('shake');
+        setTimeout(()=>document.getElementById('p-area').classList.remove('shake'), 200);
+        if(php <= 0) {
+            alert("敗北...");
+            resetGame();
+        }
+        updateUI();
+    }
+
+    function resetGame() {
+        mode = "W"; busy = false;
+        php = pmx; ehp = 0; emx = 0;
+        document.getElementById('p-name').innerText = "READY";
+        document.getElementById('p-sym').innerText = "?";
+        document.getElementById('e-name').innerText = "???";
+        document.getElementById('e-sym').innerText = "?";
         document.getElementById('msg').innerText = "武器をスキャンしてください";
-        setBattleBtns(true);
-        switchCamera('P').then(() => { rebuildScanButton("SCAN WEAPON"); });
+        document.getElementById('scan-btn').disabled = false;
+        document.getElementById('atk-btn').disabled = true;
+        cam('W');
+        updateUI();
     }
 
     function updateUI() {
-        document.getElementById('p-lv').innerText = lv;
-        document.getElementById('p-hp-cur').innerText = Math.max(0, Math.floor(php));
-        document.getElementById('p-hp-max').innerText = pMax;
-        document.getElementById('p-fill').style.width = (php/pMax*100) + "%";
-        document.getElementById('e-hp-cur').innerText = Math.max(0, Math.floor(ehp));
-        document.getElementById('e-hp-max').innerText = eMax;
-        document.getElementById('e-fill').style.width = (eMax>0 ? (ehp/eMax*100) : 0) + "%";
-        document.getElementById('exp-fill').style.width = exp + "%";
+        document.getElementById('php').innerText = Math.max(0, php);
+        document.getElementById('ehp').innerText = Math.max(0, ehp);
+        document.getElementById('p-bar').style.width = (php/pmx*100) + "%";
+        document.getElementById('e-bar').style.width = emx>0 ? (ehp/emx*100) + "%" : "0%";
     }
 
-    function updateCardUI(side, rare, elem, sym, name) {
-        document.getElementById(`${side}-rare`).innerText = rare;
-        document.getElementById(`${side}-elem`).innerText = elem;
-        document.getElementById(`${side}-sym`).innerText = sym;
-        document.getElementById(`${side}-sym`).style.color = "#fff";
-        document.getElementById(`${side}-name`).innerText = name;
+    function showLib() {
+        const g = document.getElementById('lib-grid');
+        g.innerHTML = "";
+        const all = [...lib.W, ...lib.M];
+        all.forEach(name => {
+            const s = document.createElement('div');
+            s.className = "lib-slot found";
+            s.innerText = name;
+            g.appendChild(s);
+        });
+        document.getElementById('lib-ui').style.display = 'flex';
     }
+    function hideLib() { document.getElementById('lib-ui').style.display = 'none'; }
 
-    function resetCardUI(side) {
-        document.getElementById(`${side}-rare`).innerText = "-";
-        document.getElementById(`${side}-elem`).innerText = "";
-        document.getElementById(`${side}-sym`).innerText = "?";
-        document.getElementById(`${side}-sym`).style.color = "#333";
-        document.getElementById(`${side}-name`).innerText = side==='p'?"READY":"???";
-    }
-
-    function setBattleBtns(dis) { ["atk-btn","mag-btn","esc-btn"].forEach(id=>document.getElementById(id).disabled=dis); }
-    function handleEscape() { startGame(); }
-    
     window.onload = init;
 </script>
 </body>
