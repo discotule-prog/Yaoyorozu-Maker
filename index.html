@@ -3,37 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER 4.36 - REVERTED</title>
+    <title>MYTH SCANNER v4.36 STABLE</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
     <style>
         :root { --p-color: #00f2ff; --e-color: #ff3c00; }
         body { font-family: 'DotGothic16', sans-serif; background: #000; color: #fff; margin: 0; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
-        #header { height: 40px; background: #222; display: flex; align-items: center; justify-content: center; border-bottom: 2px solid #444; }
-        .char-area { height: 32%; display: flex; border-bottom: 1px solid #333; padding: 10px; box-sizing: border-box; }
+        
+        /* Layout */
+        #header { height: 44px; background: #222; display: flex; align-items: center; justify-content: center; border-bottom: 2px solid #444; flex-shrink: 0; }
+        .char-area { height: 30%; display: flex; border-bottom: 1px solid #333; padding: 10px; box-sizing: border-box; flex-shrink: 0; }
+        #mid-ui { flex: 1; background: #111; border-top: 2px solid #444; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 5px; }
+
+        /* Camera */
         .cam-part { width: 35%; display: flex; justify-content: center; align-items: center; }
-        .cam-frame { width: 90px; height: 90px; border: 2px solid #333; background: #111; overflow: hidden; position: relative; border-radius: 8px; }
+        .cam-frame { width: 90px; height: 90px; border: 2px solid #333; background: #111; overflow: hidden; position: relative; border-radius: 8px; box-sizing: border-box; }
         video { width: 100%; height: 100%; object-fit: cover; display: none; }
         .cam-active { border: 2px solid #0f0; box-shadow: 0 0 10px #0f0; }
         .cam-active video { display: block; }
+
+        /* UI Components */
         .info-part { width: 65%; display: flex; flex-direction: column; padding-left: 10px; justify-content: center; }
-        .visual-card { width: 100%; height: 80px; border: 2px solid #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #111; position: relative; }
-        .stat-text { font-size: 0.7rem; color: #ccc; margin-top: 5px; }
-        .bar-bg { width: 100%; height: 10px; background: #222; border: 1px solid #666; margin-top: 5px; }
-        .bar-fill { height: 100%; width: 0%; transition: width 0.3s; }
-        #mid-ui { flex-grow: 1; background: #111; border-top: 2px solid #444; display: flex; flex-direction: column; align-items: center; padding: 5px; }
-        #msg { font-size: 0.8rem; color: #0f0; height: 45px; text-align: center; display: flex; align-items: center; }
-        .btn-row { display: flex; gap: 5px; width: 95%; margin-bottom: 5px; }
-        button { flex: 1; height: 40px; font-family: 'DotGothic16'; background: #444; color: #fff; border: 2px solid #fff; cursor: pointer; }
-        button:disabled { opacity: 0.3; }
+        .visual-card { width: 100%; height: 75px; border: 2px solid #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #111; position: relative; }
+        .bar-bg { width: 100%; height: 10px; background: #222; border: 1px solid #666; margin-top: 5px; position: relative; }
+        .bar-fill { height: 100%; width: 0%; transition: width 0.3s ease-out; }
+        
+        #msg { font-size: 0.85rem; color: #0f0; height: 50px; text-align: center; display: flex; align-items: center; justify-content: center; width: 90%; }
+        .btn-row { display: flex; gap: 8px; width: 90%; margin-bottom: 8px; }
+        button { flex: 1; height: 44px; font-family: 'DotGothic16'; background: #333; color: #fff; border: 2px solid #fff; cursor: pointer; font-size: 0.8rem; }
+        button:active { background: #666; }
+        button:disabled { opacity: 0.2; cursor: default; }
+
         .shake { animation: s 0.2s; }
         @keyframes s { 0%,100%{transform:translateX(0)} 50%{transform:translateX(5px)} }
     </style>
 </head>
 <body>
 
-<div id="header"><div style="font-size: 0.8rem;">MYTH SCANNER v4.36</div></div>
+<div id="header"><div style="font-size: 0.9rem; letter-spacing: 2px;">MYTH SCANNER v4.36</div></div>
 
 <div class="char-area" id="p-area">
     <div class="cam-part"><div class="cam-frame" id="pf"><video id="pv" autoplay playsinline muted></video></div></div>
@@ -42,19 +50,19 @@
             <div id="p-sym" style="font-size:3rem;">?</div>
             <div id="p-name" style="font-size:0.6rem; position:absolute; bottom:2px;">READY</div>
         </div>
-        <div class="stat-text">LV:1 HP:<span id="php">1000</span></div>
+        <div style="font-size:0.7rem; margin-top:8px;">HP: <span id="php">1000</span> / 1000</div>
         <div class="bar-bg"><div id="p-bar" class="bar-fill" style="background:var(--p-color); width:100%;"></div></div>
     </div>
 </div>
 
 <div id="mid-ui">
-    <div id="msg">AI BOOTING...</div>
+    <div id="msg">AI SYSTEM BOOTING...</div>
     <div class="btn-row">
-        <button id="scan-btn" onclick="doScan()" style="background:#0044cc;">SCAN</button>
-        <button id="atk-btn" onclick="doAtk()" disabled style="background:#880000;">ATTACK</button>
+        <button id="scan-btn" onclick="doScan()" style="background:#0044cc; border-color:#00f2ff;">SCAN</button>
+        <button id="atk-btn" onclick="doAtk()" disabled style="background:#880000; border-color:#ff3c00;">ATTACK</button>
     </div>
     <div class="btn-row">
-        <button onclick="resetGame()" style="font-size:0.6rem; height: 30px;">RESET GAME</button>
+        <button onclick="resetGame()" style="font-size:0.6rem; height: 30px; border:1px solid #666;">SYSTEM RESET</button>
     </div>
 </div>
 
@@ -63,16 +71,16 @@
     <div class="info-part">
         <div class="visual-card">
             <div id="e-sym" style="font-size:3rem;">?</div>
-            <div id="e-name" style="font-size:0.6rem; position:absolute; bottom:2px;">???</div>
+            <div id="e-name" style="font-size:0.6rem; position:absolute; bottom:2px;">UNKNOWN</div>
         </div>
-        <div class="stat-text">HP:<span id="ehp">0</span></div>
+        <div style="font-size:0.7rem; margin-top:8px;">HP: <span id="ehp">0</span></div>
         <div class="bar-bg"><div id="e-bar" class="bar-fill" style="background:var(--e-color);"></div></div>
     </div>
 </div>
 
 <script>
-    const W_DB = ["短剣","長剣","斧","杖","弓","槍","槌","刀","鞭","盾"];
-    const M_DB = ["スライム","ゴブリン","ドラキー","ゾンビ","オーク","ゴーレム","竜","魔王"];
+    const W_DB = ["短剣","長剣","大斧","魔導杖","強弓","十文字槍","鉄球","名刀"];
+    const M_DB = ["スライム","影の眷属","石像鬼","骸骨騎士","蛮族オーク","火炎竜","機甲兵"];
     
     let net, mode="W", stream, busy=false;
     let php=1000, pmx=1000, patk=0;
@@ -80,99 +88,120 @@
 
     async function init() {
         try {
+            document.getElementById('msg').innerText = "LOADING AI MODEL...";
             net = await mobilenet.load();
             resetGame();
-        } catch(e) { document.getElementById('msg').innerText = "AI LOAD ERROR"; }
+        } catch(e) { 
+            document.getElementById('msg').innerText = "AI BOOT ERROR. PLEASE REFRESH.";
+        }
     }
 
     async function cam(t) {
         if(stream) {
-            stream.getTracks().forEach(s=>s.stop());
+            stream.getTracks().forEach(s => s.stop());
             stream = null;
         }
-        document.querySelectorAll('video').forEach(v=>{v.pause(); v.srcObject=null;});
-        document.querySelectorAll('.cam-frame').forEach(f=>f.classList.remove('cam-active'));
-        if(t==='OFF') return;
+        document.querySelectorAll('video').forEach(v => { v.pause(); v.srcObject = null; });
+        document.querySelectorAll('.cam-frame').forEach(f => f.classList.remove('cam-active'));
+        
+        if(t === 'OFF') return;
+
         try {
-            stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
-            const id = t==='W'?'pv':'ev';
-            const f = t==='W'?'pf':'ef';
-            document.getElementById(id).srcObject = stream;
-            document.getElementById(f).classList.add('cam-active');
-        } catch(e) { document.getElementById('msg').innerText = "CAMERA ERROR"; }
+            stream = await navigator.mediaDevices.getUserMedia({video: {facingMode: "environment"}});
+            const targetVid = t === 'W' ? 'pv' : 'ev';
+            const targetFrame = t === 'W' ? 'pf' : 'ef';
+            const vEl = document.getElementById(targetVid);
+            vEl.srcObject = stream;
+            document.getElementById(targetFrame).classList.add('cam-active');
+        } catch(e) {
+            document.getElementById('msg').innerText = "CAMERA ACCESS DENIED.";
+        }
     }
 
     async function doScan() {
         if(busy) return;
         busy = true;
-        document.getElementById('scan-btn').disabled = true;
-        document.getElementById('msg').innerText = "SCANNING...";
+        const scanBtn = document.getElementById('scan-btn');
+        scanBtn.disabled = true;
+        document.getElementById('msg').innerText = "ANALYZING TARGET...";
 
         try {
-            const v = mode==="W"?document.getElementById('pv'):document.getElementById('ev');
-            const res = await net.classify(v);
-            const id = Math.floor(res[0].probability * 100);
-            const name = res[0].className.split(',')[0].toUpperCase();
+            const videoEl = mode === "W" ? document.getElementById('pv') : document.getElementById('ev');
+            const result = await net.classify(videoEl);
+            const probId = Math.floor(result[0].probability * 100);
+            const rawName = result[0].className.split(',')[0].toUpperCase();
 
-            if(mode==="W") {
-                const wName = name + "の" + W_DB[id % W_DB.length];
-                patk = 100 + id;
+            if(mode === "W") {
+                const wName = rawName + "の" + W_DB[probId % W_DB.length];
+                patk = 100 + probId;
                 document.getElementById('p-name').innerText = wName;
                 document.getElementById('p-sym').innerText = "⚔️";
                 
                 mode = "M";
-                document.getElementById('msg').innerText = "武器装備完了！敵を探せ！";
+                document.getElementById('msg').innerText = "WEAPON EQUIPPED.\nFIND AN ENEMY.";
                 await cam('OFF');
-                setTimeout(()=> {
+                setTimeout(() => {
                     cam('M');
-                    document.getElementById('scan-btn').disabled = false;
+                    scanBtn.disabled = false;
                     busy = false;
-                }, 1000);
+                }, 1200);
             } else {
-                const mName = name + "の" + M_DB[id % M_DB.length];
-                emx = 500 + (id * 10); ehp = emx; eatk = 50 + id;
+                const mName = rawName + "の" + M_DB[probId % M_DB.length];
+                emx = 500 + (probId * 15); ehp = emx; eatk = 50 + probId;
                 document.getElementById('e-name').innerText = mName;
                 document.getElementById('e-sym').innerText = "👾";
 
-                document.getElementById('msg').innerText = mName + "が現れた！";
-                document.getElementById('scan-btn').disabled = true;
+                document.getElementById('msg').innerText = mName + " DETECTED!";
                 document.getElementById('atk-btn').disabled = false;
                 await cam('OFF');
                 busy = false;
             }
-        } catch(e) { busy=false; document.getElementById('scan-btn').disabled=false; }
+        } catch(e) {
+            busy = false;
+            scanBtn.disabled = false;
+            document.getElementById('msg').innerText = "SCAN FAILED. TRY AGAIN.";
+        }
         updateUI();
     }
 
     function doAtk() {
-        const d = Math.floor(patk * (0.8 + Math.random()*0.4));
-        ehp -= d;
-        document.getElementById('msg').innerText = d + "のダメージ！";
+        const dmg = Math.floor(patk * (0.8 + Math.random() * 0.4));
+        ehp -= dmg;
+        document.getElementById('msg').innerText = `DEALT ${dmg} DAMAGE!`;
         document.getElementById('e-area').classList.add('shake');
-        setTimeout(()=>document.getElementById('e-area').classList.remove('shake'), 200);
-        if(ehp <= 0) {
-            alert("勝利！武器が破損した！");
-            resetGame();
-        } else {
-            document.getElementById('atk-btn').disabled = true;
-            setTimeout(eTurn, 800);
-        }
-        updateUI();
+        
+        const atkBtn = document.getElementById('atk-btn');
+        atkBtn.disabled = true;
+
+        setTimeout(() => {
+            document.getElementById('e-area').classList.remove('shake');
+            if(ehp <= 0) {
+                alert("VICTORY! TARGET DESTROYED.");
+                resetGame();
+            } else {
+                setTimeout(enemyTurn, 800);
+            }
+            updateUI();
+        }, 300);
     }
 
-    function eTurn() {
-        const d = Math.floor(eatk * (0.8 + Math.random()*0.4));
-        php -= d;
-        document.getElementById('msg').innerText = "敵の攻撃！ " + d + "ダメージ！";
+    function enemyTurn() {
+        const dmg = Math.floor(eatk * (0.8 + Math.random() * 0.4));
+        php -= dmg;
+        document.getElementById('msg').innerText = `ENEMY ATTACKS!\nTAKE ${dmg} DAMAGE.`;
         document.getElementById('p-area').classList.add('shake');
-        setTimeout(()=>document.getElementById('p-area').classList.remove('shake'), 200);
-        if(php <= 0) {
-            alert("敗北...");
-            resetGame();
-        } else {
-            document.getElementById('atk-btn').disabled = false;
-        }
-        updateUI();
+        
+        setTimeout(() => {
+            document.getElementById('p-area').classList.remove('shake');
+            if(php <= 0) {
+                alert("GAME OVER...");
+                resetGame();
+            } else {
+                document.getElementById('atk-btn').disabled = false;
+                document.getElementById('msg').innerText = "YOUR TURN.";
+            }
+            updateUI();
+        }, 300);
     }
 
     function resetGame() {
@@ -180,9 +209,9 @@
         php = pmx; ehp = 0; emx = 0;
         document.getElementById('p-name').innerText = "READY";
         document.getElementById('p-sym').innerText = "?";
-        document.getElementById('e-name').innerText = "???";
+        document.getElementById('e-name').innerText = "UNKNOWN";
         document.getElementById('e-sym').innerText = "?";
-        document.getElementById('msg').innerText = "武器をスキャンしてください";
+        document.getElementById('msg').innerText = "SCAN A WEAPON TO START.";
         document.getElementById('scan-btn').disabled = false;
         document.getElementById('atk-btn').disabled = true;
         cam('W');
@@ -192,8 +221,8 @@
     function updateUI() {
         document.getElementById('php').innerText = Math.max(0, Math.floor(php));
         document.getElementById('ehp').innerText = Math.max(0, Math.floor(ehp));
-        document.getElementById('p-bar').style.width = (php/pmx*100) + "%";
-        document.getElementById('e-bar').style.width = emx>0 ? (ehp/emx*100) + "%" : "0%";
+        document.getElementById('p-bar').style.width = (php / pmx * 100) + "%";
+        document.getElementById('e-bar').style.width = emx > 0 ? (ehp / emx * 100) + "%" : "0%";
     }
 
     window.onload = init;
