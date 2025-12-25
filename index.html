@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER 4.8</title>
+    <title>MYTH SCANNER 4.9</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
@@ -31,7 +31,7 @@
         button { flex: 1; height: 38px; font-family: 'DotGothic16'; border: 2px solid #fff; color: #fff; background: #444; font-size: 0.65rem; cursor: pointer; }
         button:disabled { opacity: 0.25; cursor: default; }
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 100; display: none; flex-direction: column; align-items: center; padding: 15px; box-sizing: border-box; }
-        .lib-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; max-height: 60vh; overflow-y: auto; padding: 10px; box-sizing: border-box; border: 1px solid #444; }
+        .lib-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; max-height: 55vh; overflow-y: auto; padding: 10px; box-sizing: border-box; border: 1px solid #444; }
         .lib-slot { min-height: 60px; background: #222; border: 1px solid #444; border-radius: 4px; display: flex; align-items: center; justify-content: center; padding: 4px; text-align: center; }
         .slot-content { font-size: 0.55rem; color: #555; }
         .lib-slot.found { border-color: var(--p-color); background: #333; }
@@ -43,6 +43,7 @@
         .lib-tabs { display: flex; width: 95%; gap: 5px; margin-bottom: 10px; }
         .lib-tabs button { height: 30px; font-size: 0.5rem; background: #333; }
         .lib-tabs button.active { background: var(--main-blue); border-color: var(--p-color); }
+        #lib-counter { font-size: 0.8rem; color: var(--gold); margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -58,7 +59,7 @@
             <div id="p-sym" style="font-size:1.8rem; color:#333;">?</div>
             <div id="p-name" style="font-size:0.55rem;">SCANNER READY</div>
         </div>
-        <div class="stat-text">LV:<span id="p-lv">1</span> HP:<span id="p-hp-cur">1000</span>/<span id="p-hp-max">1000</span><br>ATK:<span id="p-atk-val">0</span> DEF:<span id="p-def-val">0</span></div>
+        <div class="stat-text">LV:<span id="p-lv">1</span> HP:<span id="p-hp-cur">1000</span>/<span id="p-lv-hp">1000</span><br>ATK:<span id="p-atk-val">0</span> DEF:<span id="p-def-val">0</span></div>
         <div class="bar-container"><div class="bar-bg"><div id="p-fill" class="bar-fill" style="background:var(--p-color); width:100%"></div></div></div>
         <div class="bar-container">
             <div style="display:flex; justify-content:space-between; font-size:0.5rem; color:var(--exp-color);"><span>EXP</span><span id="exp-text">0 / 30</span></div>
@@ -99,6 +100,7 @@
 
 <div id="lib-overlay" class="overlay">
     <h2>COLLECTION</h2>
+    <div id="lib-counter">FOUND: 0 / 0</div>
     <div class="lib-tabs">
         <button id="tab-W" onclick="renderLib('W')" class="active">WEAPON</button>
         <button id="tab-M" onclick="renderLib('M')">MONSTER</button>
@@ -222,32 +224,32 @@
         save(); updateUI();
     }
 
-    // --- COLLECTION (固定・復旧) ---
     function openLibrary() {
         document.getElementById('lib-overlay').style.display = 'flex';
         renderLib('W');
     }
 
     function renderLib(type) {
-        // タブの見た目更新
         document.querySelectorAll('.lib-tabs button').forEach(b => b.classList.remove('active'));
         document.getElementById('tab-' + type).classList.add('active');
-
         const grid = document.getElementById('lib-grid');
         grid.innerHTML = "";
         
-        // 元の全データベースを参照して所持状況を確認
         const masterDB = { 'W': DB_WEAPON, 'M': DB_MONSTER, 'I': DB_ITEM }[type];
         const offset = { 'W': 0, 'M': 100, 'I': 200 }[type];
-
+        
+        let foundCount = 0;
         masterDB.forEach((name, i) => {
             const globalId = i + offset;
             const isFound = library[type][globalId] !== undefined;
+            if(isFound) foundCount++;
             const slot = document.createElement('div');
             slot.className = "lib-slot" + (isFound ? " found" : "");
             slot.innerHTML = `<div class="slot-content">${isFound ? name : 'No.' + globalId}</div>`;
             grid.appendChild(slot);
         });
+        
+        document.getElementById('lib-counter').innerText = `FOUND: ${foundCount} / ${masterDB.length}`;
     }
 
     function useItem(itm, idx) {
@@ -282,7 +284,7 @@
     function resetBattle() { mode="W"; resetCardUI('p'); resetCardUI('e'); document.getElementById('scan-btn').disabled=false; setBattleBtns(true); updateUI(); switchCamera('P'); }
     function setBattleBtns(d) { document.getElementById('atk-btn').disabled=d; document.getElementById('item-open-btn').disabled=d; document.getElementById('esc-btn').disabled=d; }
     function updateUI() {
-        document.getElementById('p-lv').innerText=lv; document.getElementById('p-hp-cur').innerText=Math.floor(php); document.getElementById('p-hp-max').innerText=pMax;
+        document.getElementById('p-lv').innerText=lv; document.getElementById('p-hp-cur').innerText=Math.floor(php); document.getElementById('p-lv-hp').innerText=pMax;
         document.getElementById('p-atk-val').innerText=Math.floor(patk); document.getElementById('p-def-val').innerText=Math.floor(pdef);
         document.getElementById('p-fill').style.width=(php/pMax*100)+"%";
         document.getElementById('e-hp-cur').innerText=Math.floor(ehp); document.getElementById('e-hp-max').innerText=eMax;
