@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER 5.2</title>
+    <title>MYTH SCANNER 5.3</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
@@ -160,7 +160,6 @@
     const ELEMENTS = { "🔥": "🌿", "🌿": "⚡", "⚡": "💧", "💧": "🔥" };
     const MAGIC_INFO = { H: { n: "ヒール", s: "✨", e: "" }, F: { n: "ファイア", s: "🔥", e: "🔥" }, W: { n: "アクア", s: "💧", e: "💧" }, L: { n: "サンダー", s: "⚡", e: "⚡" }, G: { n: "リーフ", s: "🌿", e: "🌿" } };
 
-    // Player State
     let lv=1, exp=0, php=1000, pMax=1000, patk=0, pdef=0, pelem="", inventory=[], skillPoints=0, magicLv={H:1,F:0,W:0,L:0,G:0};
     let net, mode="W", ehp=0, eMax=0, eatk=0, edef=0, eelem="", stream=null, canUseMagic=true;
     let library = JSON.parse(localStorage.getItem('myth_v5_lib')) || { W: {}, M: {}, I: {} };
@@ -190,20 +189,26 @@
 
     async function handleScan() {
         const vid = mode==="W" ? document.getElementById('pv') : document.getElementById('ev');
-        let id; try { const r = await net.classify(vid); id = Math.floor(r[0].probability * 100); } catch (e) { id = Math.floor(Math.random() * 100); }
+        let id, aiLabel = "UNKNOWN"; 
+        try { 
+            const r = await net.classify(vid); 
+            aiLabel = r[0].className.split(',')[0].toUpperCase();
+            id = Math.floor(r[0].probability * 100); 
+        } catch (e) { id = Math.floor(Math.random() * 100); }
+        
         const rare = id >= 90 ? "LEGEND" : id >= 50 ? "ELITE" : "NORMAL";
         if(mode==="W") {
             pelem = ["🔥", "💧", "⚡", "🌿"][id % 4]; patk = Math.floor(120 * (1 + (lv*0.1))); pdef = Math.floor(60 * (1 + (lv*0.1)));
-            const name = DB_WEAPON[id % DB_WEAPON.length];
-            updateCardUI('p', "⚔️", name, pelem, rare);
-            library.W[id] = {t:name, e:pelem, r:rare}; mode="M"; switchCamera('E');
+            const fullName = `${aiLabel}の${DB_WEAPON[id % DB_WEAPON.length]}`;
+            updateCardUI('p', "⚔️", fullName, pelem, rare);
+            library.W[id] = {t:fullName, e:pelem, r:rare}; mode="M"; switchCamera('E');
             document.getElementById('msg').innerText = `装備完了！次はモンスターだ！`;
         } else {
             eelem = ["🔥", "💧", "⚡", "🌿"][id % 4]; eMax = Math.floor(700 * (1 + (lv*0.1))); ehp = eMax; 
             eatk = Math.floor(80 * (1 + (lv*0.1))); edef = Math.floor(40 * (1 + (lv*0.1)));
-            const name = DB_MONSTER[id % DB_MONSTER.length];
-            updateCardUI('e', "👾", name, eelem, rare);
-            library.M[id+100] = {t:name, e:eelem, r:rare};
+            const fullName = `${aiLabel}の${DB_MONSTER[id % DB_MONSTER.length]}`;
+            updateCardUI('e', "👾", fullName, eelem, rare);
+            library.M[id+100] = {t:fullName, e:eelem, r:rare};
             switchCamera('OFF'); setBattleBtns(false); document.getElementById('scan-btn').disabled = true;
             document.getElementById('msg').innerText = "バトル開始！";
         }
@@ -211,9 +216,12 @@
     }
 
     function openMagicMenu() {
-        const list = document.getElementById('magic-list'); list.innerHTML = "";
+        const list = document.getElementById('magic-list'); 
+        list.innerHTML = "";
+        let hasMagic = false;
         Object.keys(magicLv).forEach(k => {
             if(magicLv[k] > 0) {
+                hasMagic = true;
                 const m = MAGIC_INFO[k];
                 const btn = document.createElement('button');
                 btn.style.cssText = "width:90%; background:#331144; color:#fff; padding:12px; margin:5px; height:auto; border:2px solid var(--magic-purple);";
@@ -222,6 +230,9 @@
                 list.appendChild(btn);
             }
         });
+        if(!hasMagic) {
+            list.innerHTML = "<p>習得している魔法がありません</p>";
+        }
         document.getElementById('magic-overlay').style.display = 'flex';
     }
 
@@ -295,7 +306,7 @@
         const grid = document.getElementById('lib-grid'); grid.innerHTML = "";
         const dataSrc = {W:DB_WEAPON, M:DB_MONSTER, I:DB_ITEM}[type];
         const offset = {W:0, M:100, I:200}[type];
-        dataSrc.forEach((name, i) => {
+        dataSrc.forEach((_, i) => {
             const gid = offset + i; const data = library[type][gid];
             const slot = document.createElement('div'); slot.className = "lib-slot" + (data?" found":"");
             slot.innerText = data ? data.t : "No." + gid;
