@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER 5.7</title>
+    <title>MYTH SCANNER 5.8</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
@@ -143,7 +143,15 @@
     const DB_MONSTER = ["スライム","ゴブリン","スケルトン","野良犬","巨大クモ","ウィスプ","ゾンビ","オーク","デスナイト","ケルベロス","キマイラ","ミミック","デーモン","ゴーレム","ヒュドラ","クラーケン","フェニックス","古龍","魔王サタン"];
     const DB_ITEM = ["薬草","ポーション","秘薬","聖杯","勇気の証","魔石","竜の鱗","火炎玉","水晶玉"];
     const ELEMENTS = { "🔥": "🌿", "🌿": "⚡", "⚡": "💧", "💧": "🔥" };
-    const MAGIC_INFO = { H: { n: "ヒール", s: "✨", e: "" }, F: { n: "ファイア", s: "🔥", e: "🔥" }, W: { n: "アクア", s: "💧", e: "💧" }, L: { n: "サンダー", s: "⚡", e: "⚡" }, G: { n: "リーフ", s: "🌿", e: "🌿" } };
+    
+    // 魔法の名前を英語表記に変更
+    const MAGIC_INFO = { 
+        H: { n: "HEAL", s: "✨", e: "" }, 
+        F: { n: "FIRE", s: "🔥", e: "🔥" }, 
+        W: { n: "AQUA", s: "💧", e: "💧" }, 
+        L: { n: "ELEC", s: "⚡", e: "⚡" }, 
+        G: { n: "LEAF", s: "🌿", e: "🌿" } 
+    };
 
     let lv=1, exp=0, php=1000, pMax=1000, patk=0, pdef=0, pelem="", inventory=[], skillPoints=0, magicLv={H:1,F:0,W:0,L:0,G:0};
     let net, mode="W", ehp=0, eMax=0, eatk=0, edef=0, eelem="", stream=null, canUseMagic=true;
@@ -347,20 +355,17 @@
     }
 
     function resetBattle() { 
-        // 状態のリセット
         mode="W"; 
         ehp=0; eMax=0;
-        patk=0; pdef=0; eatk=0; edef=0; // ステータスを数値で0にリセット
+        patk=0; pdef=0; eatk=0; edef=0; 
         pelem=""; eelem=""; 
         canUseMagic=true; 
 
-        // UI表示のリセット
         document.getElementById('msg').innerText = "武器をスキャンしてください";
         document.getElementById('scan-btn').disabled=false; 
         setBattleBtns(true); 
         switchCamera('P'); 
         
-        // カード表示のリセット
         document.getElementById('p-sym').innerText="?"; 
         document.getElementById('p-sym').className="q-mark"; 
         document.getElementById('p-name').innerText="SCANNER READY";
@@ -373,7 +378,7 @@
         document.getElementById('e-rare').innerText="-";
         document.getElementById('e-elem').innerText="";
         
-        updateUI(); // 数値表示を0にする
+        updateUI(); 
     }
 
     function setBattleBtns(d) { document.getElementById('atk-btn').disabled=d; document.getElementById('magic-btn').disabled=d||!canUseMagic; document.getElementById('esc-btn').disabled=d; document.getElementById('item-open-btn').disabled=d; }
