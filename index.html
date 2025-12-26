@@ -3,20 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER 5.4</title>
+    <title>MYTH SCANNER 5.5</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
     <style>
-        :root { --p-color: #00f2ff; --e-color: #ff3c00; --exp-color: #32ff32; --gold: #ffd700; --magic-purple: #9d4edd; --close-btn: #880000; --main-blue: #0044cc; }
+        :root { --p-color: #00f2ff; --e-color: #ff3c00; --exp-color: #32ff32; --gold: #ffd700; --magic-purple: #9d4edd; --close-btn: #880000; --main-blue: #0044cc; --reset-red: #cc0000; }
         body { font-family: 'DotGothic16', sans-serif; background: #000; color: #fff; margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-        #header { height: 40px; background: #222; display: flex; justify-content: center; align-items: center; border-bottom: 2px solid #444; flex-shrink: 0; }
-        .head-btn { width: 45%; font-size: 0.6rem; height: 26px; border: 1px solid #fff; color: #fff; cursor: pointer; margin: 0 4px; }
+        #header { height: 40px; background: #222; display: flex; justify-content: space-around; align-items: center; border-bottom: 2px solid #444; flex-shrink: 0; padding: 0 5px; }
+        .head-btn { flex: 1; font-size: 0.55rem; height: 26px; border: 1px solid #fff; color: #fff; cursor: pointer; margin: 0 2px; white-space: nowrap; }
+        
         .char-area { height: 30%; display: flex; border-bottom: 1px solid #333; padding: 10px; box-sizing: border-box; }
         .cam-part { width: 35%; display: flex; align-items: center; justify-content: center; }
         .cam-frame { width: 90px; height: 90px; border: 2px solid #555; background: #111; overflow: hidden; position: relative; border-radius: 8px; }
         video { width: 100%; height: 100%; object-fit: cover; display: none; }
         .cam-active video { display: block !important; border-color: #0f0; }
+        
         .info-part { width: 65%; display: flex; flex-direction: column; padding-left: 10px; justify-content: center; }
         .visual-card { width: 100%; height: 75px; border: 2px solid #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #111; position: relative; border-radius: 4px; overflow: hidden; }
         .stat-text { font-size: 0.65rem; color: #ccc; margin-top: 2px; line-height: 1.2; }
@@ -25,11 +27,13 @@
         .bar-fill { height: 100%; width: 0%; transition: width 0.4s ease-out; }
         .rarity-tag { position: absolute; top: 2px; right: 2px; font-size: 0.5rem; padding: 1px 3px; background: #fff; color: #000; font-weight: bold; }
         .elem-tag { position: absolute; top: 2px; left: 2px; font-size: 0.7rem; }
+        
         #mid-ui { height: 155px; background: #111; border-top: 2px solid #444; display: flex; flex-direction: column; align-items: center; padding: 5px; flex-shrink: 0; justify-content: center; }
         #msg { font-size: 0.75rem; color: #0f0; height: 40px; text-align: center; display: flex; align-items: center; padding: 0 10px; line-height: 1.2; white-space: pre-wrap; }
         .btn-row { display: flex; gap: 6px; width: 95%; justify-content: center; margin-bottom: 6px; }
         button { flex: 1; height: 38px; font-family: 'DotGothic16'; border: 2px solid #fff; color: #fff; background: #444; font-size: 0.65rem; cursor: pointer; }
         button:disabled { opacity: 0.25; cursor: default; }
+
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 100; display: none; flex-direction: column; align-items: center; padding: 15px; box-sizing: border-box; }
         .ov-btn-red { background: var(--close-btn) !important; width: 95% !important; margin-top: 15px; flex:none; height:40px; border:none; color:#fff; }
         .skill-item { width: 95%; background: #222; border: 1px solid #444; padding: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box; }
@@ -39,12 +43,13 @@
         #detail-pop { position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#111; border:2px solid var(--p-color); padding:20px; z-index:200; width:75%; display:none; border-radius:12px; }
         .det-row { display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding: 8px 0; font-size: 0.8rem; }
         .shake { animation: s 0.2s; } @keyframes s { 0%,100%{transform:translateX(0)} 25%{transform:translateX(5px)} 75%{transform:translateX(-5px)} }
-        .q-mark { font-size: 1.8rem; color: #333; animation: blink 2s infinite; } @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+        .q-mark { font-size: 1.8rem; color: #333; animation: blink 2s infinite; }
     </style>
 </head>
 <body>
 
 <div id="header">
+    <button onclick="if(confirm('全てのデータをリセットしますか？')){localStorage.clear();location.reload();}" class="head-btn" style="background:var(--reset-red);">RESET</button>
     <button onclick="openLibrary()" class="head-btn" style="background:#555;">COLLECTION</button>
     <button id="skill-menu-btn" onclick="openSkillMenu()" class="head-btn" style="background:var(--magic-purple);">SKILL UP (0)</button>
 </div>
@@ -160,7 +165,8 @@
             lv=saved.lv; exp=saved.exp || 0; pMax=saved.pMax; magicLv=saved.magicLv; skillPoints=saved.skillPoints;
             php = pMax;
         } else {
-            exp = 0; // 初回起動は必ず0
+            lv=1; exp=0; pMax=1000; php=1000; skillPoints=0; 
+            magicLv={H:1,F:0,W:0,L:0,G:0};
         }
         try { net = await mobilenet.load(); document.getElementById('scan-btn').disabled = false; document.getElementById('msg').innerText = "武器をスキャンしてください"; switchCamera('P'); }
         catch (e) { document.getElementById('msg').innerText = "AI ERROR"; }
@@ -215,7 +221,7 @@
                 list.appendChild(btn);
             }
         });
-        if(count === 0) list.innerHTML = "<p>魔法を習得していません</p>";
+        if(count === 0) list.innerHTML = "<p style='color:#ccc;margin-top:20px;'>魔法を習得していません</p>";
         document.getElementById('magic-overlay').style.display = 'flex';
     }
 
@@ -272,15 +278,14 @@
             const upBtn = document.createElement('button');
             upBtn.innerText = curLv === 0 ? "習得" : (curLv >= 5 ? "MAX" : "強化");
             upBtn.style.width = "75px"; upBtn.disabled = (skillPoints <= 0 || curLv >= 5);
-            upBtn.onclick = () => { skillPoints--; magicLv[k]++; save(); renderSkillList(); updateUI(); };
+            upBtn.onclick = (e) => { e.stopPropagation(); skillPoints--; magicLv[k]++; save(); renderSkillList(); updateUI(); };
             div.appendChild(upBtn); list.appendChild(div);
         });
     }
 
     function renderLib(type) {
         const grid = document.getElementById('lib-grid'); grid.innerHTML = "";
-        const max = type==='W' ? 100 : type==='M' ? 100 : 100;
-        const offset = type==='W' ? 0 : type==='M' ? 100 : 200;
+        const max = 100; const offset = type==='W' ? 0 : type==='M' ? 100 : 200;
         for(let i=0; i<max; i++){
             const gid = offset + i; const data = library[type][gid];
             const slot = document.createElement('div'); slot.className = "lib-slot" + (data?" found":"");
