@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER 5.5</title>
+    <title>MYTH SCANNER 5.6</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
@@ -12,13 +12,11 @@
         body { font-family: 'DotGothic16', sans-serif; background: #000; color: #fff; margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         #header { height: 40px; background: #222; display: flex; justify-content: space-around; align-items: center; border-bottom: 2px solid #444; flex-shrink: 0; padding: 0 5px; }
         .head-btn { flex: 1; font-size: 0.55rem; height: 26px; border: 1px solid #fff; color: #fff; cursor: pointer; margin: 0 2px; white-space: nowrap; }
-        
         .char-area { height: 30%; display: flex; border-bottom: 1px solid #333; padding: 10px; box-sizing: border-box; }
         .cam-part { width: 35%; display: flex; align-items: center; justify-content: center; }
         .cam-frame { width: 90px; height: 90px; border: 2px solid #555; background: #111; overflow: hidden; position: relative; border-radius: 8px; }
         video { width: 100%; height: 100%; object-fit: cover; display: none; }
         .cam-active video { display: block !important; border-color: #0f0; }
-        
         .info-part { width: 65%; display: flex; flex-direction: column; padding-left: 10px; justify-content: center; }
         .visual-card { width: 100%; height: 75px; border: 2px solid #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #111; position: relative; border-radius: 4px; overflow: hidden; }
         .stat-text { font-size: 0.65rem; color: #ccc; margin-top: 2px; line-height: 1.2; }
@@ -27,13 +25,11 @@
         .bar-fill { height: 100%; width: 0%; transition: width 0.4s ease-out; }
         .rarity-tag { position: absolute; top: 2px; right: 2px; font-size: 0.5rem; padding: 1px 3px; background: #fff; color: #000; font-weight: bold; }
         .elem-tag { position: absolute; top: 2px; left: 2px; font-size: 0.7rem; }
-        
         #mid-ui { height: 155px; background: #111; border-top: 2px solid #444; display: flex; flex-direction: column; align-items: center; padding: 5px; flex-shrink: 0; justify-content: center; }
         #msg { font-size: 0.75rem; color: #0f0; height: 40px; text-align: center; display: flex; align-items: center; padding: 0 10px; line-height: 1.2; white-space: pre-wrap; }
         .btn-row { display: flex; gap: 6px; width: 95%; justify-content: center; margin-bottom: 6px; }
         button { flex: 1; height: 38px; font-family: 'DotGothic16'; border: 2px solid #fff; color: #fff; background: #444; font-size: 0.65rem; cursor: pointer; }
         button:disabled { opacity: 0.25; cursor: default; }
-
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 100; display: none; flex-direction: column; align-items: center; padding: 15px; box-sizing: border-box; }
         .ov-btn-red { background: var(--close-btn) !important; width: 95% !important; margin-top: 15px; flex:none; height:40px; border:none; color:#fff; }
         .skill-item { width: 95%; background: #222; border: 1px solid #444; padding: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box; }
@@ -104,14 +100,12 @@
     <div id="magic-list" style="width:100%; display:flex; flex-direction:column; align-items:center;"></div>
     <button class="ov-btn-red" onclick="document.getElementById('magic-overlay').style.display='none'">CLOSE</button>
 </div>
-
 <div id="skill-overlay" class="overlay">
     <h2 style="color:var(--gold);">SKILL CUSTOMIZE</h2>
     <div id="skill-points-display" style="color:#fff; margin-bottom:15px; font-size:1.1rem;">POINTS: 0</div>
     <div id="skill-list" style="width:100%; display:flex; flex-direction:column; align-items:center;"></div>
     <button class="ov-btn-red" onclick="document.getElementById('skill-overlay').style.display='none'">CLOSE</button>
 </div>
-
 <div id="lib-overlay" class="overlay">
     <h2>COLLECTION</h2>
     <div style="display:flex; gap:5px; margin-bottom:5px;">
@@ -122,26 +116,22 @@
     <div id="lib-grid" class="lib-grid"></div>
     <button class="ov-btn-red" onclick="document.getElementById('lib-overlay').style.display='none'">CLOSE</button>
 </div>
-
 <div id="detail-pop">
     <h3 id="det-name" style="color:var(--p-color); margin-top:0;">NAME</h3>
     <div class="det-row"><span style="color:#aaa;">RARE</span><span id="det-rare"></span></div>
     <div class="det-row"><span id="det-sub-label" style="color:#aaa;">TYPE</span><span id="det-sub-value"></span></div>
     <button class="ov-btn-red" onclick="document.getElementById('detail-pop').style.display='none'">CLOSE</button>
 </div>
-
 <div id="item-overlay" class="overlay">
     <h2>BAG</h2>
     <div id="item-list" style="width:100%; display:flex; flex-direction:column; align-items:center;"></div>
     <button class="ov-btn-red" onclick="document.getElementById('item-overlay').style.display='none'">CLOSE</button>
 </div>
-
 <div id="res-screen" class="overlay" style="justify-content:center;">
     <h1 id="res-title" style="font-size:3rem; margin:0;"></h1>
     <div id="res-stats" style="background:#222; padding:15px; border:2px solid #fff; margin:10px 0; width:85%; font-size:0.75rem; text-align:center;"></div>
     <button style="background:var(--main-blue); width:95%; height:40px; border:none; color:#fff;" onclick="closeResult()">CONTINUE</button>
 </div>
-
 <div id="bonus-overlay" class="overlay">
     <h2 style="color:var(--gold);">ITEM SCAN</h2>
     <div class="cam-frame" style="width:150px; height:150px;"><video id="bv" autoplay playsinline muted></video></div>
@@ -190,15 +180,20 @@
         let id, aiLabel = "UNKNOWN"; 
         try { const r = await net.classify(vid); aiLabel = r[0].className.split(',')[0].toUpperCase(); id = Math.floor(r[0].probability * 100); } catch (e) { id = Math.floor(Math.random() * 100); }
         const rare = id >= 90 ? "LEGEND" : id >= 50 ? "ELITE" : "NORMAL";
+        
         if(mode==="W") {
-            pelem = ["🔥", "💧", "⚡", "🌿"][id % 4]; patk = Math.floor(120 * (1 + (lv*0.1))); pdef = Math.floor(60 * (1 + (lv*0.1)));
+            pelem = ["🔥", "💧", "⚡", "🌿"][id % 4]; 
+            patk = Math.floor(120 * (1 + (lv*0.1))); 
+            pdef = Math.floor(60 * (1 + (lv*0.1)));
             const dbName = DB_WEAPON[id % DB_WEAPON.length];
             updateCardUI('p', "⚔️", `${aiLabel}の${dbName}`, pelem, rare);
             library.W[id] = {t:dbName, e:pelem, r:rare}; mode="M"; switchCamera('E');
             document.getElementById('msg').innerText = `装備完了！次はモンスターだ！`;
         } else {
-            eelem = ["🔥", "💧", "⚡", "🌿"][id % 4]; eMax = Math.floor(700 * (1 + (lv*0.1))); ehp = eMax; 
-            eatk = Math.floor(80 * (1 + (lv*0.1))); edef = Math.floor(40 * (1 + (lv*0.1)));
+            eelem = ["🔥", "💧", "⚡", "🌿"][id % 4]; 
+            eMax = Math.floor(700 * (1 + (lv*0.1))); ehp = eMax; 
+            eatk = Math.floor(80 * (1 + (lv*0.1))); 
+            edef = Math.floor(40 * (1 + (lv*0.1)));
             const dbName = DB_MONSTER[id % DB_MONSTER.length];
             updateCardUI('e', "👾", `${aiLabel}の${dbName}`, eelem, rare);
             library.M[id+100] = {t:dbName, e:eelem, r:rare};
@@ -305,28 +300,62 @@
     }
 
     function save() { localStorage.setItem('myth_v5_save', JSON.stringify({lv, exp, pMax, magicLv, skillPoints})); localStorage.setItem('myth_v5_lib', JSON.stringify(library)); }
+    
     function updateUI() {
-        document.getElementById('p-lv').innerText=lv; document.getElementById('p-hp-cur').innerText=Math.floor(php); document.getElementById('p-hp-max').innerText=pMax;
+        document.getElementById('p-lv').innerText=lv; 
+        document.getElementById('p-hp-cur').innerText=Math.floor(php); 
+        document.getElementById('p-hp-max').innerText=pMax;
+        document.getElementById('p-atk-val').innerText=patk;
+        document.getElementById('p-def-val').innerText=pdef;
         document.getElementById('p-fill').style.width=(php/pMax*100)+"%";
-        document.getElementById('e-hp-cur').innerText=Math.max(0,Math.floor(ehp)); document.getElementById('e-hp-max').innerText=eMax;
+        
+        document.getElementById('e-hp-cur').innerText=Math.max(0,Math.floor(ehp)); 
+        document.getElementById('e-hp-max').innerText=eMax;
+        document.getElementById('e-atk-val').innerText=eatk;
+        document.getElementById('e-def-val').innerText=edef;
         document.getElementById('e-fill').style.width=(eMax>0?(ehp/eMax*100):0)+"%";
+        
         document.getElementById('skill-menu-btn').innerText=`SKILL UP (${skillPoints})`;
         let n = 30*lv; document.getElementById('exp-text').innerText=`${exp}/${n}`; document.getElementById('exp-fill').style.width=(exp/n*100)+"%";
     }
+
     function updateCardUI(s, sym, name, elem, rare) { 
-        document.getElementById(`${s}-name`).innerText=name; document.getElementById(`${s}-elem`).innerText=elem; document.getElementById(`${s}-rare`).innerText=rare;
+        document.getElementById(`${s}-name`).innerText=name; 
+        document.getElementById(`${s}-elem`).innerText=elem; 
+        document.getElementById(`${s}-rare`).innerText=rare;
         const sy=document.getElementById(`${s}-sym`); sy.innerText=sym; sy.className=""; sy.style.fontSize="2.2rem";
     }
+
     function finish(win) {
         document.getElementById('res-screen').style.display='flex'; const res = document.getElementById('res-stats');
-        if(win) { exp += 20; let m = "EXP 20 獲得！"; if(exp >= 30*lv){ lv++; exp=0; pMax+=100; php=pMax; if(lv%2===0)skillPoints++; m=`LEVEL UP TO ${lv}!<br>SKILL POINT GET!`; } res.innerHTML = m; }
+        if(win) { 
+            exp += 20; 
+            let m = "EXP 20 獲得！"; 
+            if(exp >= 30*lv){ 
+                lv++; exp=0; pMax+=100; php=pMax; 
+                if(lv % 2 === 0) {
+                    skillPoints++; 
+                    m = `LEVEL UP TO ${lv}!<br>Skill Point GET!!`;
+                } else {
+                    m = `LEVEL UP TO ${lv}!!`;
+                }
+            } 
+            res.innerHTML = m; 
+        }
         else { php = pMax; res.innerHTML = "敗北... HPは回復した。"; }
         save(); updateUI();
     }
-    function resetBattle() { mode="W"; ehp=0; canUseMagic=true; document.getElementById('scan-btn').disabled=false; setBattleBtns(true); switchCamera('P'); updateUI(); 
-        document.getElementById('p-sym').innerText="?"; document.getElementById('p-sym').className="q-mark"; document.getElementById('p-name').innerText="SCANNER READY";
-        document.getElementById('e-sym').innerText="?"; document.getElementById('e-sym').className="q-mark"; document.getElementById('e-name').innerText="???";
+
+    function resetBattle() { 
+        mode="W"; ehp=0; eatk=0; edef=0; eMax=0; pelem=""; eelem=""; canUseMagic=true; 
+        document.getElementById('scan-btn').disabled=false; setBattleBtns(true); switchCamera('P'); 
+        document.getElementById('p-sym').innerText="?"; document.getElementById('p-sym').className="q-mark"; 
+        document.getElementById('p-name').innerText="SCANNER READY";
+        document.getElementById('e-sym').innerText="?"; document.getElementById('e-sym').className="q-mark"; 
+        document.getElementById('e-name').innerText="???";
+        updateUI(); 
     }
+
     function setBattleBtns(d) { document.getElementById('atk-btn').disabled=d; document.getElementById('magic-btn').disabled=d||!canUseMagic; document.getElementById('esc-btn').disabled=d; document.getElementById('item-open-btn').disabled=d; }
     function closeResult() { document.getElementById('res-screen').style.display='none'; resetBattle(); }
     function showBonus() { finish(true); document.getElementById('bonus-overlay').style.display='flex'; switchCamera('B'); }
