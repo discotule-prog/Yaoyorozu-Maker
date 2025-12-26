@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER 5.0 - CUSTOMIZER</title>
+    <title>MYTH SCANNER 5.1 - SKILL MASTER</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
@@ -11,9 +11,9 @@
         :root { --p-color: #00f2ff; --e-color: #ff3c00; --exp-color: #32ff32; --gold: #ffd700; --magic-purple: #9d4edd; --close-btn: #880000; --main-blue: #0044cc; }
         body { font-family: 'DotGothic16', sans-serif; background: #000; color: #fff; margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         #header { height: 40px; background: #222; display: flex; justify-content: center; align-items: center; border-bottom: 2px solid #444; flex-shrink: 0; }
-        .lib-btn { width: 45%; font-size: 0.6rem; height: 24px; background: #555; border: 1px solid #fff; color: #fff; cursor: pointer; margin: 0 2px; }
+        .head-btn { width: 45%; font-size: 0.6rem; height: 26px; border: 1px solid #fff; color: #fff; cursor: pointer; margin: 0 4px; }
         
-        .char-area { height: 30%; display: flex; border-bottom: 1px solid #333; padding: 10px; box-sizing: border-box; transition: background 0.3s; }
+        .char-area { height: 30%; display: flex; border-bottom: 1px solid #333; padding: 10px; box-sizing: border-box; }
         .cam-part { width: 35%; display: flex; align-items: center; justify-content: center; }
         .cam-frame { width: 90px; height: 90px; border: 2px solid #555; background: #111; overflow: hidden; position: relative; border-radius: 8px; }
         video { width: 100%; height: 100%; object-fit: cover; display: none; }
@@ -33,36 +33,23 @@
         .btn-row { display: flex; gap: 6px; width: 95%; justify-content: center; margin-bottom: 6px; }
         button { flex: 1; height: 38px; font-family: 'DotGothic16'; border: 2px solid #fff; color: #fff; background: #444; font-size: 0.65rem; cursor: pointer; }
         button:disabled { opacity: 0.25; cursor: default; }
-        .magic-btn { background: var(--magic-purple) !important; border-color: #e0aaff !important; }
+        .magic-btn { background: var(--magic-purple) !important; }
 
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 100; display: none; flex-direction: column; align-items: center; padding: 15px; box-sizing: border-box; }
-        .lib-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; max-height: 60vh; overflow-y: auto; padding: 10px; box-sizing: border-box; }
-        .lib-slot { min-height: 60px; background: #222; border: 1px solid #444; border-radius: 4px; display: flex; align-items: center; justify-content: center; padding: 4px; text-align: center; cursor: pointer; overflow: hidden; }
-        .slot-content { font-size: 0.55rem; color: #555; word-break: break-all; pointer-events: none; line-height: 1.1; }
-        .lib-slot.found { border-color: var(--p-color); background: #333; }
-        .lib-slot.found .slot-content { color: #fff; }
+        .ov-btn-red { background: var(--close-btn) !important; width: 95% !important; margin-top: 15px; flex:none; height:40px; }
         
-        .q-mark { font-size: 1.8rem; color: #333; animation: blink 2s infinite; margin-bottom: 5px; }
+        .skill-item { width: 95%; background: #222; border: 1px solid #444; padding: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box; }
         .shake { animation: s 0.2s; }
         @keyframes s { 0%,100%{transform:translateX(0)} 25%{transform:translateX(5px)} 75%{transform:translateX(-5px)} }
+        .q-mark { font-size: 1.8rem; color: #333; animation: blink 2s infinite; }
         @keyframes blink { 0%,100% {opacity:1} 50% {opacity:0.3} }
-
-        .ov-btn-red { background: var(--close-btn) !important; width: 95% !important; height: 40px !important; flex: none !important; margin-top: 15px; }
-        .ov-btn-blue { background: var(--main-blue) !important; width: 95% !important; height: 40px !important; flex: none !important; margin-top: 15px; }
-
-        #detail-pop { position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#111; border:2px solid var(--p-color); padding:20px; z-index:200; width:75%; display:none; border-radius:12px; box-shadow: 0 0 15px var(--p-color); }
-        .det-row { display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding: 8px 0; font-size: 0.8rem; }
-        .det-label { color: #aaa; }
-        .det-value { color: #fff; font-weight: bold; }
-
-        .skill-item { width: 90%; background: #222; border: 1px solid #fff; padding: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
     </style>
 </head>
 <body>
 
 <div id="header">
-    <button onclick="openLibrary()" class="lib-btn">COLLECTION</button>
-    <button onclick="openSkillMenu()" class="lib-btn" style="background:var(--magic-purple);">SKILL UP</button>
+    <button onclick="openLibrary()" class="head-btn" style="background:#555;">COLLECTION</button>
+    <button id="skill-menu-btn" onclick="openSkillMenu()" class="head-btn" style="background:var(--magic-purple);">SKILL UP (0)</button>
 </div>
 
 <div class="char-area" id="p-area">
@@ -84,7 +71,7 @@
 </div>
 
 <div id="mid-ui">
-    <div id="msg">INITIALIZING AI...</div>
+    <div id="msg">INITIALIZING...</div>
     <div class="btn-row">
         <button id="scan-btn" onclick="handleScan()" disabled style="background:#0044cc; flex: 1.5;">SCAN</button>
         <button id="atk-btn" onclick="handleAttack()" disabled style="background:#aa0000; flex: 1.5;">ATTACK</button>
@@ -112,68 +99,36 @@
 </div>
 
 <div id="magic-overlay" class="overlay">
-    <h2 style="color:var(--magic-purple);">MAGIC MENU</h2>
+    <h2 style="color:var(--magic-purple);">MAGIC SELECT</h2>
     <div id="magic-list" style="width:100%; display:flex; flex-direction:column; align-items:center;"></div>
     <button class="ov-btn-red" onclick="document.getElementById('magic-overlay').style.display='none'">CLOSE</button>
 </div>
 
 <div id="skill-overlay" class="overlay">
     <h2 style="color:var(--gold);">SKILL CUSTOMIZE</h2>
-    <div id="skill-points" style="color:#fff; margin-bottom:15px; font-size:1rem;">POINTS: 0</div>
+    <div id="skill-points-display" style="color:#fff; margin-bottom:15px; font-size:1.1rem;">POINTS: 0</div>
     <div id="skill-list" style="width:100%; display:flex; flex-direction:column; align-items:center;"></div>
     <button class="ov-btn-red" onclick="document.getElementById('skill-overlay').style.display='none'">CLOSE</button>
 </div>
 
-<div id="lib-overlay" class="overlay">
-    <h2>COLLECTION</h2>
-    <div style="display:flex; gap:5px; margin-bottom:5px;">
-        <button onclick="renderLib('W')">WEAPON</button>
-        <button onclick="renderLib('M')">MONSTER</button>
-        <button onclick="renderLib('I')">ITEM</button>
-    </div>
-    <div id="lib-count" style="font-size:0.8rem; color:var(--gold);">FOUND: 0 / 0</div>
-    <div id="lib-grid" class="lib-grid"></div>
-    <button class="ov-btn-red" onclick="document.getElementById('lib-overlay').style.display='none'">CLOSE</button>
-</div>
-
-<div id="detail-pop">
-    <h3 id="det-name" style="font-size:1.1rem; margin-top:0; color:var(--p-color); border-bottom: 2px solid #333; padding-bottom:10px;">NAME</h3>
-    <div class="det-row">
-        <span class="det-label">RARE</span>
-        <span class="det-value" id="det-rare">-</span>
-    </div>
-    <div class="det-row">
-        <span class="det-label" id="det-sub-label">ELEMENT</span>
-        <span class="det-value" id="det-sub-value">-</span>
-    </div>
-    <button onclick="document.getElementById('detail-pop').style.display='none'" class="ov-btn-red">CLOSE</button>
-</div>
-
-<div id="item-overlay" class="overlay">
-    <h2>BAG</h2>
-    <div id="item-list" style="width:100%; display:flex; flex-direction:column; align-items:center;"></div>
-    <button class="ov-btn-red" onclick="document.getElementById('item-overlay').style.display='none'">CLOSE</button>
-</div>
-
 <div id="res-screen" class="overlay" style="justify-content:center;">
     <h1 id="res-title" style="font-size:3rem; margin:0;"></h1>
-    <div id="res-stats" style="background:#222; padding:15px; border:2px solid #fff; margin:10px 0; width:85%; font-size:0.75rem; line-height:1.6; text-align:center;"></div>
-    <button class="ov-btn-blue" onclick="closeResult()">CONTINUE</button>
+    <div id="res-stats" style="background:#222; padding:15px; border:2px solid #fff; margin:10px 0; width:85%; font-size:0.75rem; text-align:center;"></div>
+    <button class="ov-btn-blue" style="background:var(--main-blue); width:95%; height:40px; border:none; color:#fff;" onclick="closeResult()">CONTINUE</button>
 </div>
 
 <div id="bonus-overlay" class="overlay">
     <h2 style="color:var(--gold);">ITEM SCAN</h2>
     <div class="cam-frame" style="width:150px; height:150px;"><video id="bv" autoplay playsinline muted></video></div>
-    <button id="bonus-get-btn" class="ov-btn-blue" onclick="getBonusItem()">GET ITEM</button>
+    <button class="ov-btn-blue" style="background:var(--main-blue); width:95%; height:40px; border:none; color:#fff; margin-top:20px;" onclick="getBonusItem()">GET ITEM</button>
 </div>
 
 <script>
-    const DB_WEAPON = ["錆びた短剣","棒切れ","鉄のヤスリ","練習用の剣","皮のムチ","石の礫","粗末な弓","鉄の棒","薪割り斧","穴の空いた盾","ブロンズナイフ","鉄の爪","ランス","警棒","木刀","石のメイス","投げナイフ","鉄の針","兵士の剣","古いハルバード","鋼鉄の長剣","処刑人の斧","銀のレイピア","剛弓","漆黒の短刀","熟練の戦槌","猛獣の牙","抜刀斎の刀","暗殺者の針","閃光のダガー","守護者の大盾","スナイパーライフル","騎士のランス","十字槍","三節棍","フランベルジュ","魔法の杖","三叉矛","黄金の槌","カトラス","バスターソード","ミスリルの小太刀","凍結の魔弓","爆炎の斧","稲妻の刺剣","竜殺しの太刀","幻影の双剣","岩断ちの巨斧","精霊の杖","破邪の弓","守護神の槍","毒蛇の尾","吸血の牙","星屑のメイス","震動のハンマー","蒼天の剣","烈風の鎌","断罪の鎖","賢者の辞典","深海のマント","フレイムタン","ミョルニル","トライデント","ガイアハンマー","円月刀","クレイモア","巨人の鉄球","フレイル","細剣","魔槍","聖騎士の盾","黒金の棍棒","呪いの呪符","煉獄の鎌","極光の矢","神速のダガー","不壊の籠手","飛龍の魔笛","混沌の杖","虚空の鏡","魔剣グラム","聖剣エクスカリバー","竜槍ゲイボルグ","聖槍ロンギヌス","天羽々斬","村正","神弓アルテミス","モーニングスター","アロンダイト","デュランダル","妖刀正宗","霊刀七支刀","魔導書アルマデル","破滅の爪","絶影","究極神剣ゼノス","時空貫通神槍","真理の魔導核","天地崩壊の終槌","黙示録の神盾","終焉を断つ神剣"];
-    const DB_MONSTER = ["スライム","ゴブリン","スケルトン","野良犬","巨大クモ","ウィスプ","コバルト","大ネズミ","ゾンビ","バット","泥人形","凶暴な鶏","迷い魂","寄生虫","影","浮遊する目玉","毒蜂","腐った樹木","石のトカゲ","はぐれメタル","オーク","デスナイト","ケルベロス","キマイラ","ミミック","ガーゴイル","リビングアーマー","ウェアウルフ","バンシー","グール","サキュバス","インプ","ハーピー","ラミア","ケンタウロス","ミノタウロス","マンティコア","コカトリス","サラマンダー","ウンディーネ","レッドドラゴン","ヴァンパイア","首なし騎士","デーモン","ゴーレム","グリフォン","バジリスク","ヒュドラ","クラーケン","フェニックス","巨大な百足","呪いの遺影","砂漠の魔人","雪女","雷獣","闇の司祭","死霊使い","沼の怪物","迷宮の番人","岩石巨人","古龍","災厄の化身","アークデーモン","堕天使","リッチ","デーモンロード","双頭の巨獣","ヤマタノオロチ","イフリート","シヴァ","ラムウ","タイタン","ガルーダ","リヴァイアサン","カオス","メドゥーサ","キュクロプス","ベヒーモス","スフィンクス","守護像","神竜","創世の巨神","熾天使","冥王ハデス","破壊神シヴァ","大天使ミカエル","妖狐玉藻前","八咫烏","麒麟","鳳凰","白虎","玄武","朱雀","青龍","魔王サタン","奈落の支配者","終焉を喰らう者","虚無の特異点","黙示録の黒竜","創世の父"];
-    const DB_ITEM = ["泥水","雑草","苔","樹液","露玉","葉っぱ","湧き水","飴玉","軟膏","薬湯","薬草","ポーション","蒸留水","お守り","粉薬","紅茶","栄養剤","ビスケット","秘薬","聖杯","砥石","爪","牙","火薬","重い石","釘","枝","インゴット","紋章","狼の血","勇気の証","硝石","矢尻","指輪","鱗","激昂の角","隕石","雷の魔石","たてがみ","狂乱のベルセルク","腐敗液","毒キノコ","針","粉末","痺れ草","蜂の針","抜け殻","毒液","腐食剤","怨念の霧","蜘蛛の糸","劇薬","瘴気","闇の雫","死神の吐息","冥界の酒","滅びの刻印","呪い符","煉獄の炎","終焉の宣告","ヤスリ","泥団子","虫食い皮","水晶","呪文","重力砂","粘着液","溶解液","破甲槌","脆化粉","亀裂石","拘束鎖","脱力霧","防壁崩し槍","虚無眼","王水","裂く爪","浸食金","魂の檻","因果の断絶","火炎玉","焔心","溶岩滴","水晶玉","氷河涙","真珠","雷電球","尾羽","帯電角","大地種","樹木記憶","森林珠","灼熱石","清流石","鳴神石","風琥珀","明星石","宵闇石","混沌珠","創世のプリズム"];
+    const DB_WEAPON = ["錆びた短剣","棒切れ","練習用の剣","皮のムチ","ブロンズナイフ","鉄の爪","ランス","木刀","兵士の剣","鋼鉄の長剣","銀のレイピア","剛弓","漆黒の短刀","守護者の大盾","魔法の杖","三叉矛","黄金の槌","ミスリルの小太刀","竜殺しの太刀","精霊の杖","聖剣エクスカリバー","魔剣グラム","村正"];
+    const DB_MONSTER = ["スライム","ゴブリン","スケルトン","野良犬","巨大クモ","ウィスプ","ゾンビ","オーク","デスナイト","ケルベロス","キマイラ","ミミック","デーモン","ゴーレム","ヒュドラ","クラーケン","フェニックス","古龍","魔王サタン"];
+    const DB_ITEM = ["薬草","ポーション","秘薬","聖杯","勇気の証","魔石","竜の鱗","火炎玉","水晶玉"];
     const ELEMENTS = { "🔥": "🌿", "🌿": "⚡", "⚡": "💧", "💧": "🔥" };
     
-    // 魔法マスター
     const MAGIC_INFO = {
         H: { n: "ヒール", s: "✨", e: "" },
         F: { n: "ファイア", s: "🔥", e: "🔥" },
@@ -182,20 +137,16 @@
         G: { n: "リーフ", s: "🌿", e: "🌿" }
     };
 
-    // プレイヤー状態
     let lv=1, exp=0, php=1000, pMax=1000, patk=0, pdefBase=50, pdef=0, pelem="", inventory=[], skillPoints=0;
-    let magicLv = { H: 1, F: 0, W: 0, L: 0, G: 0 }; // 初期ヒールのみLv1
+    let magicLv = { H: 1, F: 0, W: 0, L: 0, G: 0 }; // ヒールLv1初期装備
 
-    // 敵・バトル
-    let net, mode="W", ehp=0, eMax=0, eatk=0, edef=0, eelem="", stream=null, atkBoostMult=1, canUseMagic=true;
-    
-    // ストレージ
-    let library = JSON.parse(localStorage.getItem('myth_v5_final')) || { W: {}, M: {}, I: {} };
+    let net, mode="W", ehp=0, eMax=0, eatk=0, edef=0, eelem="", stream=null, canUseMagic=true;
+    let library = JSON.parse(localStorage.getItem('myth_lib')) || { W: {}, M: {}, I: {} };
 
     async function init() {
         const saved = JSON.parse(localStorage.getItem('myth_v5_save'));
         if(saved) {
-            lv = saved.lv; exp = saved.exp; pMax = saved.pMax; magicLv = saved.magicLv; skillPoints = saved.skillPoints;
+            lv=saved.lv; exp=saved.exp; pMax=saved.pMax; magicLv=saved.magicLv; skillPoints=saved.skillPoints;
             php = pMax;
         }
         try { net = await mobilenet.load(); document.getElementById('scan-btn').disabled = false; document.getElementById('msg').innerText = "武器をスキャンしてください"; switchCamera('P'); }
@@ -217,29 +168,19 @@
 
     async function handleScan() {
         const vid = mode==="W" ? document.getElementById('pv') : document.getElementById('ev');
-        let id, aiName = "UNKNOWN";
-        try { const r = await net.classify(vid); aiName = r[0].className.split(',')[0].toUpperCase(); id = Math.floor(r[0].probability * 100); }
-        catch (e) { id = Math.floor(Math.random() * 100); }
-        const rareLabel = id >= 95 ? "MYTH" : id >= 80 ? "LEGEND" : id >= 40 ? "ELITE" : "NORMAL";
+        let id; try { const r = await net.classify(vid); id = Math.floor(r[0].probability * 100); } catch (e) { id = Math.floor(Math.random() * 100); }
         if(mode==="W") {
-            let base = DB_WEAPON[id] || DB_WEAPON[0]; pelem = ["🔥", "💧", "⚡", "🌿"][id % 4];
-            let rarityMult = (id >= 95) ? 6.0 : (id >= 80) ? 4.0 : (id >= 40) ? 2.2 : 1.2;
-            patk = Math.floor(100 * rarityMult * (1 + (lv*0.01)));
-            pdef = Math.floor(pdefBase + (40 * rarityMult));
-            updateCardUI('p', rareLabel, "⚔️", `${aiName}の${base}`, pelem);
-            library.W[id] = {t: base, e: pelem, r: rareLabel}; mode="M"; switchCamera('E'); 
-            document.getElementById('msg').innerText = `装備完了！次はモンスターをスキャン！`;
+            pelem = ["🔥", "💧", "⚡", "🌿"][id % 4]; patk = Math.floor(120 * (1 + (lv*0.1))); pdef = Math.floor(60 * (1 + (lv*0.1)));
+            updateCardUI('p', "⚔️", DB_WEAPON[id % DB_WEAPON.length], pelem);
+            mode="M"; switchCamera('E'); document.getElementById('msg').innerText = `装備完了！次はモンスターをスキャン！`;
         } else {
-            let base = DB_MONSTER[id] || DB_MONSTER[0]; eelem = ["🔥", "💧", "⚡", "🌿"][id % 4];
-            let rarityMult = (id >= 95) ? 7.0 : (id >= 80) ? 4.5 : (id >= 40) ? 2.5 : 1.6;
-            eMax = Math.floor(800 * rarityMult * (1 + (lv-1)*0.1)); ehp = eMax; 
-            eatk = Math.floor(75 * rarityMult * (1 + (lv-1)*0.1)); edef = Math.floor(35 * rarityMult * (1 + (lv-1)*0.1));
-            updateCardUI('e', (id >= 40 ? "BOSS" : "NORMAL"), "👾", `${aiName}の${base}`, eelem);
-            library.M[id+100] = {t: base, e: eelem, r: rareLabel};
-            switchCamera('OFF'); setBattleBtns(false); document.getElementById('scan-btn').disabled = true; 
-            document.getElementById('msg').innerText = `${base} が現れた！`;
+            eelem = ["🔥", "💧", "⚡", "🌿"][id % 4]; eMax = Math.floor(700 * (1 + (lv*0.1))); ehp = eMax; 
+            eatk = Math.floor(80 * (1 + (lv*0.1))); edef = Math.floor(40 * (1 + (lv*0.1)));
+            updateCardUI('e', "👾", DB_MONSTER[id % DB_MONSTER.length], eelem);
+            switchCamera('OFF'); setBattleBtns(false); document.getElementById('scan-btn').disabled = true;
+            document.getElementById('msg').innerText = "バトル開始！";
         }
-        save(); updateUI();
+        updateUI();
     }
 
     function openMagicMenu() {
@@ -248,7 +189,7 @@
             if(magicLv[k] > 0) {
                 const m = MAGIC_INFO[k];
                 const btn = document.createElement('button');
-                btn.style.cssText = "width:90%; background:#331144; border:2px solid var(--magic-purple); color:#fff; padding:10px; margin:5px; height:auto;";
+                btn.style.cssText = "width:90%; background:#331144; color:#fff; padding:12px; margin:5px; height:auto; border:2px solid var(--magic-purple);";
                 btn.innerHTML = `<div style="font-weight:bold;">${m.n} Lv.${magicLv[k]}</div>`;
                 btn.onclick = () => castMagic(k);
                 list.appendChild(btn);
@@ -262,48 +203,28 @@
         document.getElementById('magic-overlay').style.display = 'none';
         canUseMagic = false; setBattleBtns(true);
 
-        // 詠唱失敗（10%）
         if(Math.random() < 0.1) {
-            document.getElementById('msg').innerText = "詠唱に失敗した…！\n魔法が不発に終わった！";
-            setTimeout(enemyTurn, 1200);
-            return;
+            document.getElementById('msg').innerText = "詠唱に失敗した…！";
+            setTimeout(enemyTurn, 1200); return;
         }
 
-        const mLv = magicLv[key];
-        const m = MAGIC_INFO[key];
-
+        const mLv = magicLv[key]; const m = MAGIC_INFO[key];
         if(key === 'H') {
-            // 回復魔法
             let rate = mLv === 5 ? 1.0 : mLv * 0.2;
-            let heal = Math.floor(pMax * rate);
-            php = Math.min(pMax, php + heal);
-            document.getElementById('msg').innerText = `${m.s}${m.n}！\nHPが ${heal} 回復した！`;
+            let heal = Math.floor(pMax * rate); php = Math.min(pMax, php + heal);
+            document.getElementById('msg').innerText = `${m.s}${m.n}！\nHPが ${heal} 回復！`;
         } else {
-            // 攻撃魔法
-            let baseRate = mLv * 0.15;
-            let resultDmg = 0;
-            let log = "";
-
-            if(ELEMENTS[m.e] === eelem) { // 有利
-                resultDmg = Math.floor(eMax * baseRate);
-                log = `効果は抜群だ！\n${resultDmg} のダメージ！`;
-                ehp -= resultDmg;
-            } else if(ELEMENTS[eelem] === m.e) { // 不利
-                resultDmg = Math.floor(eMax * baseRate);
-                log = `属性が合わない！\n敵が ${resultDmg} 回復した！`;
-                ehp = Math.min(eMax, ehp + resultDmg);
-            } else { // 普通
-                resultDmg = Math.floor(eMax * baseRate / 2);
-                log = `${resultDmg} のダメージを与えた！`;
-                ehp -= resultDmg;
+            let baseRate = mLv * 0.15; let dmg = 0; let log = "";
+            if(ELEMENTS[m.e] === eelem) {
+                dmg = Math.floor(eMax * baseRate); log = `効果は抜群だ！\n${dmg} ダメージ！`; ehp -= dmg;
+            } else if(ELEMENTS[eelem] === m.e) {
+                dmg = Math.floor(eMax * baseRate); log = `属性が合わない！\n敵が ${dmg} 回復した！`; ehp = Math.min(eMax, ehp + dmg);
+            } else {
+                dmg = Math.floor(eMax * baseRate / 2); log = `${dmg} ダメージ！`; ehp -= dmg;
             }
             document.getElementById('msg').innerText = `${m.s}${m.n}！\n${log}`;
         }
-        
-        updateUI();
-        setTimeout(() => {
-            if(ehp <= 0) { showBonus(); } else { enemyTurn(); }
-        }, 1200);
+        updateUI(); setTimeout(() => { if(ehp <= 0) { showBonus(); } else { enemyTurn(); } }, 1200);
     }
 
     function openSkillMenu() {
@@ -312,52 +233,37 @@
     }
 
     function renderSkillList() {
-        const list = document.getElementById('skill-list');
-        list.innerHTML = "";
-        document.getElementById('skill-points').innerText = `POINTS: ${skillPoints}`;
-        
+        const list = document.getElementById('skill-list'); list.innerHTML = "";
+        document.getElementById('skill-points-display').innerText = `POINTS: ${skillPoints}`;
         Object.keys(magicLv).forEach(k => {
-            const m = MAGIC_INFO[k];
-            const div = document.createElement('div');
-            div.className = "skill-item";
-            const curLv = magicLv[k];
+            const m = MAGIC_INFO[k]; const curLv = magicLv[k];
+            const div = document.createElement('div'); div.className = "skill-item";
             div.innerHTML = `<div>${m.n} (Lv.${curLv})</div>`;
-            
             const upBtn = document.createElement('button');
             upBtn.innerText = curLv === 0 ? "習得" : "強化";
-            upBtn.style.width = "60px";
-            upBtn.disabled = (skillPoints <= 0 || curLv >= 5);
-            upBtn.onclick = () => {
-                skillPoints--;
-                magicLv[k]++;
-                save();
-                renderSkillList();
-            };
-            div.appendChild(upBtn);
-            list.appendChild(div);
+            upBtn.style.width = "65px"; upBtn.disabled = (skillPoints <= 0 || curLv >= 5);
+            upBtn.onclick = () => { skillPoints--; magicLv[k]++; save(); renderSkillList(); updateUI(); };
+            div.appendChild(upBtn); list.appendChild(div);
         });
     }
 
     function handleAttack() {
         setBattleBtns(true);
-        let elemMult = (ELEMENTS[pelem] === eelem) ? 1.5 : (ELEMENTS[eelem] === pelem) ? 0.7 : 1.0;
-        let dmg = Math.floor(Math.max(80, (patk * elemMult * atkBoostMult) - (edef * 0.2)));
-        ehp -= dmg; atkBoostMult = 1;
-        document.getElementById('msg').innerText = `💥 ${dmg} ダメージを与えた！`;
+        let dmg = Math.floor(Math.max(50, (patk * (ELEMENTS[pelem]===eelem?1.5:1)) - (edef*0.2)));
+        ehp -= dmg; document.getElementById('msg').innerText = `💥 ${dmg} ダメージ！`;
         document.getElementById('e-area').classList.add('shake');
         updateUI();
         setTimeout(() => {
             document.getElementById('e-area').classList.remove('shake');
-            if(ehp <= 0) { setTimeout(showBonus, 800); } else { enemyTurn(); }
+            if(ehp <= 0) { showBonus(); } else { enemyTurn(); }
         }, 1000);
     }
 
     function enemyTurn() {
-        document.getElementById('msg').innerText = "敵のターン！";
+        document.getElementById('msg').innerText = "敵の攻撃！";
         setTimeout(() => {
-            let dmg = Math.floor(Math.max(60, (eatk - (pdef * 0.2))));
-            php -= dmg;
-            document.getElementById('msg').innerText = `⚠️ ${dmg} ダメージを受けた！`;
+            let dmg = Math.floor(Math.max(40, eatk - (pdef*0.2))); php -= dmg;
+            document.getElementById('msg').innerText = `⚠️ ${dmg} ダメージ！`;
             document.getElementById('p-area').classList.add('shake'); updateUI();
             setTimeout(() => {
                 document.getElementById('p-area').classList.remove('shake');
@@ -370,55 +276,42 @@
         document.getElementById('res-screen').style.display='flex';
         const resSts = document.getElementById('res-stats');
         if(win) {
-            php = Math.min(pMax, php + Math.floor(pMax * 0.5));
-            document.getElementById('res-title').innerText = "WIN!";
-            exp += 20; 
-            let levelUpMsg = "";
-            if(exp >= 30 * lv) { 
+            exp += 20; let msg = "EXP 20 獲得！";
+            if(exp >= 30 * lv) {
                 lv++; exp=0; pMax += 100; php = pMax;
-                if(lv % 2 === 0) { skillPoints++; levelUpMsg = "<br><span style='color:var(--gold)'>SKILL POINT GET!</span>"; }
-                levelUpMsg = `LEVEL UP TO ${lv}! HP RECOVERED!${levelUpMsg}`;
-            } else { levelUpMsg = "EXP GAINED. HP RECOVERED."; }
-            resSts.innerHTML = levelUpMsg;
+                if(lv % 2 === 0) { skillPoints++; msg += "<br>SKILL POINT GET!"; }
+                msg = `LEVEL UP TO ${lv}!<br>` + msg;
+            }
+            resSts.innerHTML = msg;
         } else {
-            php = pMax; 
-            document.getElementById('res-title').innerText = "LOSE...";
-            resSts.innerHTML = "力尽きたが、光に包まれた…<br><span style='color:var(--p-color)'>HP FULL RECOVERY!</span>";
+            php = pMax; resSts.innerHTML = "敗北したがHPが回復した...";
         }
         save(); updateUI();
     }
 
     function save() {
         localStorage.setItem('myth_v5_save', JSON.stringify({lv, exp, pMax, magicLv, skillPoints}));
-        localStorage.setItem('myth_v4_final', JSON.stringify(library));
     }
 
-    function setBattleBtns(disabled) {
-        document.getElementById('atk-btn').disabled = disabled;
-        document.getElementById('magic-btn').disabled = disabled || !canUseMagic;
-        document.getElementById('esc-btn').disabled = disabled;
-        document.getElementById('item-open-btn').disabled = disabled;
+    function updateUI() {
+        document.getElementById('p-lv').innerText=lv; document.getElementById('p-hp-cur').innerText=Math.floor(php); document.getElementById('p-hp-max').innerText=pMax;
+        document.getElementById('p-fill').style.width=(php/pMax*100)+"%";
+        document.getElementById('e-hp-cur').innerText=Math.max(0,Math.floor(ehp)); document.getElementById('e-hp-max').innerText=eMax;
+        document.getElementById('e-fill').style.width=(eMax>0?(ehp/eMax*100):0)+"%";
+        document.getElementById('skill-menu-btn').innerText=`SKILL UP (${skillPoints})`;
+        let next = 30*lv; document.getElementById('exp-text').innerText=`${exp}/${next}`; document.getElementById('exp-fill').style.width=(exp/next*100)+"%";
     }
-    function updateUI() { 
-        document.getElementById('p-lv').innerText=lv; document.getElementById('p-hp-cur').innerText=Math.floor(php); document.getElementById('p-hp-max').innerText=pMax; 
-        document.getElementById('p-atk-val').innerText=Math.floor(patk); document.getElementById('p-def-val').innerText=Math.floor(pdef);
-        document.getElementById('p-fill').style.width=(php/pMax*100)+"%"; 
-        document.getElementById('e-hp-cur').innerText=Math.floor(ehp); document.getElementById('e-hp-max').innerText=eMax; 
-        document.getElementById('e-atk-val').innerText=Math.floor(eatk); document.getElementById('e-def-val').innerText=Math.floor(edef);
-        document.getElementById('e-fill').style.width=(eMax>0?(ehp/eMax*100):0)+"%"; 
-        document.getElementById('bag-status').innerText=`BAG: ${inventory.length}/5`; 
-        let next = 30 * lv; document.getElementById('exp-text').innerText = `${exp} / ${next}`; document.getElementById('exp-fill').style.width = (exp / next * 100) + "%";
+
+    function setBattleBtns(d) { document.getElementById('atk-btn').disabled=d; document.getElementById('magic-btn').disabled=d||!canUseMagic; document.getElementById('esc-btn').disabled=d; document.getElementById('item-open-btn').disabled=d; }
+    function updateCardUI(s, sym, name, elem) { 
+        document.getElementById(`${s}-name`).innerText=name; document.getElementById(`${s}-elem`).innerText=elem; 
+        const sy=document.getElementById(`${s}-sym`); sy.innerText=sym; sy.className=""; sy.style.fontSize="2.2rem";
     }
-    function handleEscape() { if(Math.random()<0.6){resetBattle();}else{enemyTurn();} }
-    function resetBattle() { mode="W"; ehp=0; canUseMagic=true; document.getElementById('scan-btn').disabled=false; setBattleBtns(true); resetCardUI('p'); resetCardUI('e'); updateUI(); switchCamera('P'); }
-    function resetCardUI(side) { document.getElementById(`${side}-rare`).innerText="-"; document.getElementById(`${side}-name`).innerText=side==='p'?"SCANNER READY":"???"; document.getElementById(`${side}-elem`).innerText=""; const s=document.getElementById(`${side}-sym`); s.innerText="?"; s.className="q-mark"; }
-    function updateCardUI(side, rare, sym, name, elem) { document.getElementById(`${side}-rare`).innerText=rare; document.getElementById(`${side}-name`).innerText=name; document.getElementById(`${side}-elem`).innerText=elem; const s=document.getElementById(`${side}-sym`); s.innerText=sym; s.className=""; s.style.fontSize="2.2rem"; }
-    function showBonus() { finish(true); document.getElementById('bonus-overlay').style.display='flex'; switchCamera('B'); }
-    async function getBonusItem() { let id=Math.floor(Math.random()*100); let name=DB_ITEM[id]; library.I[id+200]={t:name, r:"-勇具-"}; if(inventory.length<5) inventory.push({n:name, id:id}); save(); switchCamera('OFF'); document.getElementById('bonus-overlay').style.display='none'; }
+    function handleEscape() { resetBattle(); }
+    function resetBattle() { mode="W"; ehp=0; canUseMagic=true; document.getElementById('scan-btn').disabled=false; setBattleBtns(true); switchCamera('P'); updateUI(); }
     function closeResult() { document.getElementById('res-screen').style.display='none'; resetBattle(); }
-    function openLibrary() { document.getElementById('lib-overlay').style.display='flex'; renderLib('W'); }
-    function renderLib(type) { const grid=document.getElementById('lib-grid'); grid.innerHTML=""; const dataSrc={W:DB_WEAPON, M:DB_MONSTER, I:DB_ITEM}[type]; const offset={W:0,M:100,I:200}[type]; for(let i=0;i<dataSrc.length;i++){ const gid=offset+i; const data=library[type][gid]; const slot=document.createElement('div'); slot.className="lib-slot"+(data?" found":""); slot.innerHTML=`<div class="slot-content">${data?data.t:'No.'+gid}</div>`; grid.appendChild(slot); } }
-    function openItemMenu() { const list=document.getElementById('item-list'); list.innerHTML=""; inventory.forEach((itm,i)=>{ const b=document.createElement('button'); b.style.cssText="width:90%;margin-bottom:10px;padding:12px;background:#008844;color:#fff;"; b.innerText=itm.n; b.onclick=()=>{ let h=Math.floor(pMax*0.3); php=Math.min(pMax,php+h); inventory.splice(i,1); document.getElementById('item-overlay').style.display='none'; updateUI(); }; list.appendChild(b); }); document.getElementById('item-overlay').style.display='flex'; }
+    function showBonus() { finish(true); document.getElementById('bonus-overlay').style.display='flex'; switchCamera('B'); }
+    function getBonusItem() { if(inventory.length<5) inventory.push({n:DB_ITEM[Math.floor(Math.random()*DB_ITEM.length)]}); document.getElementById('bonus-overlay').style.display='none'; resetBattle(); }
     window.onload = init;
 </script>
 </body>
