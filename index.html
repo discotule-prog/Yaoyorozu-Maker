@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER 5.6</title>
+    <title>MYTH SCANNER 5.7</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
@@ -347,13 +347,33 @@
     }
 
     function resetBattle() { 
-        mode="W"; ehp=0; eatk=0; edef=0; eMax=0; pelem=""; eelem=""; canUseMagic=true; 
-        document.getElementById('scan-btn').disabled=false; setBattleBtns(true); switchCamera('P'); 
-        document.getElementById('p-sym').innerText="?"; document.getElementById('p-sym').className="q-mark"; 
+        // 状態のリセット
+        mode="W"; 
+        ehp=0; eMax=0;
+        patk=0; pdef=0; eatk=0; edef=0; // ステータスを数値で0にリセット
+        pelem=""; eelem=""; 
+        canUseMagic=true; 
+
+        // UI表示のリセット
+        document.getElementById('msg').innerText = "武器をスキャンしてください";
+        document.getElementById('scan-btn').disabled=false; 
+        setBattleBtns(true); 
+        switchCamera('P'); 
+        
+        // カード表示のリセット
+        document.getElementById('p-sym').innerText="?"; 
+        document.getElementById('p-sym').className="q-mark"; 
         document.getElementById('p-name').innerText="SCANNER READY";
-        document.getElementById('e-sym').innerText="?"; document.getElementById('e-sym').className="q-mark"; 
+        document.getElementById('p-rare').innerText="-";
+        document.getElementById('p-elem').innerText="";
+        
+        document.getElementById('e-sym').innerText="?"; 
+        document.getElementById('e-sym').className="q-mark"; 
         document.getElementById('e-name').innerText="???";
-        updateUI(); 
+        document.getElementById('e-rare').innerText="-";
+        document.getElementById('e-elem').innerText="";
+        
+        updateUI(); // 数値表示を0にする
     }
 
     function setBattleBtns(d) { document.getElementById('atk-btn').disabled=d; document.getElementById('magic-btn').disabled=d||!canUseMagic; document.getElementById('esc-btn').disabled=d; document.getElementById('item-open-btn').disabled=d; }
