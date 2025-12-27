@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER 5.9</title>
+    <title>MYTH SCANNER 6.0</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
@@ -144,7 +144,7 @@
     const DB_ITEM = ["薬草","ポーション","秘薬","聖杯","勇気の証","魔石","竜の鱗","火炎玉","水晶玉"];
     const ELEMENTS = { "🔥": "🌿", "🌿": "⚡", "⚡": "💧", "💧": "🔥" };
     
-    // 魔法情報を更新（BRAKとWEAKを追加）
+    // 魔法情報を更新（SEALとBRAVを追加）
     const MAGIC_INFO = { 
         H: { n: "HEAL", s: "✨", e: "" }, 
         F: { n: "FIRE", s: "🔥", e: "🔥" }, 
@@ -152,11 +152,13 @@
         L: { n: "ELEC", s: "⚡", e: "⚡" }, 
         G: { n: "LEAF", s: "🌿", e: "🌿" },
         B: { n: "BRAK", s: "🛡️⬇️", e: "" },
-        K: { n: "WEAK", s: "⚔️⬇️", e: "" }
+        K: { n: "WEAK", s: "⚔️⬇️", e: "" },
+        S: { n: "SEAL", s: "🛡️⬆️", e: "" },
+        R: { n: "BRAV", s: "⚔️⬆️", e: "" }
     };
 
-    // 初期魔法レベル（H以外は0）
-    let lv=1, exp=0, php=1000, pMax=1000, patk=0, pdef=0, pelem="", inventory=[], skillPoints=0, magicLv={H:1,F:0,W:0,L:0,G:0,B:0,K:0};
+    let lv=1, exp=0, php=1000, pMax=1000, patk=0, pdef=0, pelem="", inventory=[], skillPoints=0;
+    let magicLv={H:1,F:0,W:0,L:0,G:0,B:0,K:0,S:0,R:0};
     let net, mode="W", ehp=0, eMax=0, eatk=0, edef=0, eelem="", stream=null, canUseMagic=true;
     let library = JSON.parse(localStorage.getItem('myth_v5_lib')) || { W: {}, M: {}, I: {} };
 
@@ -165,12 +167,11 @@
         if(saved) {
             lv=saved.lv; exp=saved.exp || 0; pMax=saved.pMax; magicLv=saved.magicLv; skillPoints=saved.skillPoints;
             php = pMax;
-            // 未定義の魔法があれば追加（旧セーブデータ互換用）
-            if(magicLv.B === undefined) magicLv.B = 0;
-            if(magicLv.K === undefined) magicLv.K = 0;
+            // 未定義の魔法があれば初期化（互換性）
+            Object.keys(MAGIC_INFO).forEach(k => { if(magicLv[k] === undefined) magicLv[k] = 0; });
         } else {
             lv=1; exp=0; pMax=1000; php=1000; skillPoints=0; 
-            magicLv={H:1,F:0,W:0,L:0,G:0,B:0,K:0};
+            magicLv={H:1,F:0,W:0,L:0,G:0,B:0,K:0,S:0,R:0};
         }
         try { net = await mobilenet.load(); document.getElementById('scan-btn').disabled = false; document.getElementById('msg').innerText = "武器をスキャンしてください"; switchCamera('P'); }
         catch (e) { document.getElementById('msg').innerText = "AI ERROR"; }
@@ -241,20 +242,23 @@
         if(Math.random() < 0.1) { document.getElementById('msg').innerText = "詠唱に失敗した…！"; setTimeout(enemyTurn, 1200); return; }
         
         const mLv = magicLv[key]; const m = MAGIC_INFO[key];
+        const rates = [0, 0.1, 0.2, 0.3, 0.5, 0.75]; // 上昇・低下率の共通配列
         
         if(key === 'H') {
             let heal = Math.floor(pMax * (mLv === 5 ? 1.0 : mLv * 0.2)); php = Math.min(pMax, php + heal);
             document.getElementById('msg').innerText = `${m.s}${m.n}！\nHPが ${heal} 回復！`;
-        } else if(key === 'B') { // BRAK: 防御低下
-            const rates = [0, 0.1, 0.2, 0.3, 0.5, 0.75];
-            const rate = rates[mLv];
-            edef = Math.floor(edef * (1 - rate));
-            document.getElementById('msg').innerText = `${m.s}${m.n}！\n敵の防御力を ${rate*100}% ダウンさせた！`;
-        } else if(key === 'K') { // WEAK: 攻撃低下
-            const rates = [0, 0.1, 0.2, 0.3, 0.5, 0.75];
-            const rate = rates[mLv];
-            eatk = Math.floor(eatk * (1 - rate));
-            document.getElementById('msg').innerText = `${m.s}${m.n}！\n敵の攻撃力を ${rate*100}% ダウンさせた！`;
+        } else if(key === 'B') {
+            edef = Math.floor(edef * (1 - rates[mLv]));
+            document.getElementById('msg').innerText = `${m.s}${m.n}！\n敵の防御力を ${rates[mLv]*100}% ダウンさせた！`;
+        } else if(key === 'K') {
+            eatk = Math.floor(eatk * (1 - rates[mLv]));
+            document.getElementById('msg').innerText = `${m.s}${m.n}！\n敵の攻撃力を ${rates[mLv]*100}% ダウンさせた！`;
+        } else if(key === 'S') { // SEAL: Player防御上昇
+            pdef = Math.floor(pdef * (1 + rates[mLv]));
+            document.getElementById('msg').innerText = `${m.s}${m.n}！\n防御力が ${rates[mLv]*100}% アップした！`;
+        } else if(key === 'R') { // BRAV: Player攻撃上昇
+            patk = Math.floor(patk * (1 + rates[mLv]));
+            document.getElementById('msg').innerText = `${m.s}${m.n}！\n攻撃力が ${rates[mLv]*100}% アップした！`;
         } else {
             let base = mLv * 0.15; let dmg = 0;
             if(ELEMENTS[m.e] === eelem) { dmg = Math.floor(eMax * base); ehp -= dmg; document.getElementById('msg').innerText = `${m.s}${m.n}！\n効果は抜群だ！ ${dmg} ダメージ！`; }
@@ -373,29 +377,14 @@
     }
 
     function resetBattle() { 
-        mode="W"; 
-        ehp=0; eMax=0;
-        patk=0; pdef=0; eatk=0; edef=0; 
-        pelem=""; eelem=""; 
-        canUseMagic=true; 
-
+        mode="W"; ehp=0; eMax=0; patk=0; pdef=0; eatk=0; edef=0; pelem=""; eelem=""; canUseMagic=true; 
         document.getElementById('msg').innerText = "武器をスキャンしてください";
         document.getElementById('scan-btn').disabled=false; 
-        setBattleBtns(true); 
-        switchCamera('P'); 
-        
-        document.getElementById('p-sym').innerText="?"; 
-        document.getElementById('p-sym').className="q-mark"; 
-        document.getElementById('p-name').innerText="SCANNER READY";
-        document.getElementById('p-rare').innerText="-";
-        document.getElementById('p-elem').innerText="";
-        
-        document.getElementById('e-sym').innerText="?"; 
-        document.getElementById('e-sym').className="q-mark"; 
-        document.getElementById('e-name').innerText="???";
-        document.getElementById('e-rare').innerText="-";
-        document.getElementById('e-elem').innerText="";
-        
+        setBattleBtns(true); switchCamera('P'); 
+        document.getElementById('p-sym').innerText="?"; document.getElementById('p-sym').className="q-mark"; 
+        document.getElementById('p-name').innerText="SCANNER READY"; document.getElementById('p-rare').innerText="-"; document.getElementById('p-elem').innerText="";
+        document.getElementById('e-sym').innerText="?"; document.getElementById('e-sym').className="q-mark"; 
+        document.getElementById('e-name').innerText="???"; document.getElementById('e-rare').innerText="-"; document.getElementById('e-elem').innerText="";
         updateUI(); 
     }
 
