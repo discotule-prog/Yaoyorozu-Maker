@@ -1,439 +1,172 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER 6.1</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
-    <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
-    <style>
-        :root { --p-color: #00f2ff; --e-color: #ff3c00; --exp-color: #32ff32; --gold: #ffd700; --magic-purple: #9d4edd; --close-btn: #880000; --main-blue: #0044cc; --reset-red: #cc0000; }
-        body { font-family: 'DotGothic16', sans-serif; background: #000; color: #fff; margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-        #header { height: 40px; background: #222; display: flex; justify-content: space-around; align-items: center; border-bottom: 2px solid #444; flex-shrink: 0; padding: 0 5px; }
-        .head-btn { flex: 1; font-size: 0.55rem; height: 26px; border: 1px solid #fff; color: #fff; cursor: pointer; margin: 0 2px; white-space: nowrap; }
-        .char-area { height: 30%; display: flex; border-bottom: 1px solid #333; padding: 10px; box-sizing: border-box; }
-        .cam-part { width: 35%; display: flex; align-items: center; justify-content: center; }
-        .cam-frame { width: 90px; height: 90px; border: 2px solid #555; background: #111; overflow: hidden; position: relative; border-radius: 8px; }
-        video { width: 100%; height: 100%; object-fit: cover; display: none; }
-        .cam-active video { display: block !important; border-color: #0f0; }
-        .info-part { width: 65%; display: flex; flex-direction: column; padding-left: 10px; justify-content: center; }
-        .visual-card { width: 100%; height: 75px; border: 2px solid #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #111; position: relative; border-radius: 4px; overflow: hidden; }
-        .stat-text { font-size: 0.65rem; color: #ccc; margin-top: 2px; line-height: 1.2; }
-        .bar-container { width: 100%; margin-top: 4px; }
-        .bar-bg { width: 100%; height: 8px; background: #222; border: 1px solid #666; position: relative; overflow: hidden; }
-        .bar-fill { height: 100%; width: 0%; transition: width 0.4s ease-out; }
-        .rarity-tag { position: absolute; top: 2px; right: 2px; font-size: 0.5rem; padding: 1px 3px; background: #fff; color: #000; font-weight: bold; }
-        .elem-tag { position: absolute; top: 2px; left: 2px; font-size: 0.7rem; }
-        #mid-ui { height: 155px; background: #111; border-top: 2px solid #444; display: flex; flex-direction: column; align-items: center; padding: 5px; flex-shrink: 0; justify-content: center; }
-        #msg { font-size: 0.75rem; color: #0f0; height: 40px; text-align: center; display: flex; align-items: center; padding: 0 10px; line-height: 1.2; white-space: pre-wrap; }
-        .btn-row { display: flex; gap: 6px; width: 95%; justify-content: center; margin-bottom: 6px; }
-        button { flex: 1; height: 38px; font-family: 'DotGothic16'; border: 2px solid #fff; color: #fff; background: #444; font-size: 0.65rem; cursor: pointer; }
-        button:disabled { opacity: 0.25; cursor: default; }
-        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 100; display: none; flex-direction: column; align-items: center; padding: 15px; box-sizing: border-box; }
-        .ov-btn-red { background: var(--close-btn) !important; width: 95% !important; margin-top: 15px; flex:none; height:40px; border:none; color:#fff; }
-        .skill-item { width: 95%; background: #222; border: 1px solid #444; padding: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box; }
-        .lib-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; max-height: 60vh; overflow-y: auto; padding: 10px; }
-        .lib-slot { min-height: 60px; background: #222; border: 1px solid #444; display: flex; align-items: center; justify-content: center; padding: 4px; text-align: center; font-size: 0.55rem; cursor: pointer; }
-        .lib-slot.found { border-color: var(--p-color); background: #333; color: #fff; }
-        #detail-pop { position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#111; border:2px solid var(--p-color); padding:20px; z-index:200; width:75%; display:none; border-radius:12px; }
-        .det-row { display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding: 8px 0; font-size: 0.8rem; }
-        .shake { animation: s 0.2s; } @keyframes s { 0%,100%{transform:translateX(0)} 25%{transform:translateX(5px)} 75%{transform:translateX(-5px)} }
-        .q-mark { font-size: 1.8rem; color: #333; animation: blink 2s infinite; }
-    </style>
-</head>
-<body>
+// ==========================================
+// アイテムデータベース (No.200 - No.299)
+// ==========================================
+const DB_ITEM = {
+    // --- 回復系 (200-219) ---
+    200: { name: "非常食", rare: "NORMAL", type: "heal_fix", val: 50 },
+    201: { name: "干し肉", rare: "NORMAL", type: "heal_fix", val: 80 },
+    202: { name: "おにぎり", rare: "NORMAL", type: "heal_fix", val: 100 },
+    203: { name: "サンドイッチ", rare: "NORMAL", type: "heal_fix", val: 120 },
+    204: { name: "エナジーバー", rare: "NORMAL", type: "heal_fix", val: 150 },
+    205: { name: "スポーツドリンク", rare: "NORMAL", type: "heal_fix", val: 180 },
+    206: { name: "チョコレート", rare: "NORMAL", type: "heal_fix", val: 200 },
+    207: { name: "漢方薬", rare: "NORMAL", type: "heal_fix", val: 250 },
+    208: { name: "特製お弁当", rare: "NORMAL", type: "heal_fix", val: 300 },
+    209: { name: "謎のキノコ", rare: "NORMAL", type: "heal_fix", val: 400 },
+    210: { name: "ポーション", rare: "ELITE", type: "heal_fix", val: 600 },
+    211: { name: "ハイポーション", rare: "ELITE", type: "heal_fix", val: 1000 },
+    212: { name: "救急キット", rare: "ELITE", type: "heal_fix", val: 1500 },
+    213: { name: "万能薬", rare: "ELITE", type: "heal_fix", val: 2500 },
+    214: { name: "癒やしの香水", rare: "ELITE", type: "heal_per", val: 0.3 }, // 30%回復
+    215: { name: "生命の粉塵", rare: "ELITE", type: "heal_per", val: 0.5 }, // 50%回復
+    216: { name: "エリクサー", rare: "LEGEND", type: "heal_per", val: 1.0 }, // 全回復
+    217: { name: "不死鳥の尾", rare: "LEGEND", type: "heal_per", val: 1.0 },
+    218: { name: "聖水", rare: "LEGEND", type: "heal_per", val: 1.0 },
+    219: { name: "神様の雫", rare: "LEGEND", type: "heal_per", val: 1.0 },
 
-<div id="header">
-    <button onclick="if(confirm('全てのデータをリセットしますか？')){localStorage.clear();location.reload();}" class="head-btn" style="background:var(--reset-red);">RESET</button>
-    <button onclick="openLibrary()" class="head-btn" style="background:#555;">COLLECTION</button>
-    <button id="skill-menu-btn" onclick="openSkillMenu()" class="head-btn" style="background:var(--magic-purple);">SKILL UP (0)</button>
-</div>
+    // --- 攻撃系 (220-239: 火/水/雷/草 各Lv1-5) ---
+    220: { name: "火の粉", rare: "NORMAL", type: "dmg", elem: "🔥", val: 50 },
+    221: { name: "火炎瓶", rare: "NORMAL", type: "dmg", elem: "🔥", val: 100 },
+    222: { name: "火炎放射器", rare: "NORMAL", type: "dmg", elem: "🔥", val: 200 },
+    223: { name: "プロミネンス", rare: "ELITE", type: "dmg", elem: "🔥", val: 500 },
+    224: { name: "太陽の輝き", rare: "LEGEND", type: "dmg", elem: "🔥", val: 1200 },
+    225: { name: "水鉄砲", rare: "NORMAL", type: "dmg", elem: "💧", val: 50 },
+    226: { name: "スプリンクラー", rare: "NORMAL", type: "dmg", elem: "💧", val: 100 },
+    227: { name: "激流ポンプ", rare: "NORMAL", type: "dmg", elem: "💧", val: 200 },
+    228: { name: "大瀑布", rare: "ELITE", type: "dmg", elem: "💧", val: 500 },
+    229: { name: "氷河の一撃", rare: "LEGEND", type: "dmg", elem: "💧", val: 1200 },
+    230: { name: "静電気の弾", rare: "NORMAL", type: "dmg", elem: "⚡", val: 50 },
+    231: { name: "スタンガン", rare: "NORMAL", type: "dmg", elem: "⚡", val: 100 },
+    232: { name: "発電機", rare: "NORMAL", type: "dmg", elem: "⚡", val: 200 },
+    233: { name: "落雷の杖", rare: "ELITE", type: "dmg", elem: "⚡", val: 500 },
+    234: { name: "神の裁き", rare: "LEGEND", type: "dmg", elem: "⚡", val: 1200 },
+    235: { name: "トゲ付きの種", rare: "NORMAL", type: "dmg", elem: "🌿", val: 50 },
+    236: { name: "巻き付く蔦", rare: "NORMAL", type: "dmg", elem: "🌿", val: 100 },
+    237: { name: "鋭い葉っぱ", rare: "NORMAL", type: "dmg", elem: "🌿", val: 200 },
+    238: { name: "大森林の怒り", rare: "ELITE", type: "dmg", elem: "🌿", val: 500 },
+    239: { name: "世界樹の審判", rare: "LEGEND", type: "dmg", elem: "🌿", val: 1200 },
 
-<div class="char-area" id="p-area">
-    <div class="cam-part"><div class="cam-frame"><video id="pv" autoplay playsinline muted></video></div></div>
-    <div class="info-part">
-        <div id="p-card" class="visual-card">
-            <div id="p-rare" class="rarity-tag">-</div>
-            <div id="p-elem" class="elem-tag"></div>
-            <div id="p-sym" class="q-mark">?</div>
-            <div id="p-name" style="font-size:0.55rem; text-align:center;">SCANNER READY</div>
-        </div>
-        <div class="stat-text">LV:<span id="p-lv">1</span> HP:<span id="p-hp-cur">1000</span>/<span id="p-hp-max">1000</span><br>ATK:<span id="p-atk-val">0</span> DEF:<span id="p-def-val">0</span></div>
-        <div class="bar-container"><div class="bar-bg"><div id="p-fill" class="bar-fill" style="background:var(--p-color); width:100%"></div></div></div>
-        <div class="bar-container">
-            <div style="display:flex; justify-content:space-between; font-size:0.5rem; color:var(--exp-color);"><span>EXP</span><span id="exp-text">0 / 30</span></div>
-            <div class="bar-bg" style="height:5px;"><div id="exp-fill" class="bar-fill" style="background:var(--exp-color);"></div></div>
-        </div>
-    </div>
-</div>
+    // --- バフ・デバフ・特殊系 (240-279) ---
+    240: { name: "コンピュータウイルス", rare: "NORMAL", type: "e_debuff", stat: "atk", val: 0.8 },
+    250: { name: "やる気注入器", rare: "NORMAL", type: "p_buff", stat: "atk", val: 1.2 },
+    260: { name: "煙玉", rare: "NORMAL", type: "escape" },
+    261: { name: "幸運の磁石", rare: "ELITE", type: "exp_boost" },
+    265: { name: "不思議な砂時計", rare: "LEGEND", type: "extra_turn" },
+    266: { name: "火のお守り", rare: "ELITE", type: "change_pelem", elem: "🔥" },
+    267: { name: "水のお守り", rare: "ELITE", type: "change_pelem", elem: "💧" },
+    268: { name: "雷のお守り", rare: "ELITE", type: "change_pelem", elem: "⚡" },
+    269: { name: "虹のかけら", rare: "LEGEND", type: "auto_weak" },
+    270: { name: "発火燃料", rare: "ELITE", type: "field", elem: "🔥" },
+    271: { name: "雨雲発生機", rare: "ELITE", type: "field", elem: "💧" },
+    272: { name: "磁場発生装置", rare: "ELITE", type: "field", elem: "⚡" },
+    273: { name: "超成長促進剤", rare: "ELITE", type: "field", elem: "🌿" },
+    274: { name: "毒針", rare: "NORMAL", type: "inst_death", rate: 0.1 },
+    275: { name: "ギャンブルのサイコロ", rare: "ELITE", type: "gamble" },
+    276: { name: "ペンキ", rare: "NORMAL", type: "paint" },
+    277: { name: "覚悟のススメ", rare: "ELITE", type: "atk_focus" },
+    278: { name: "亀の甲羅", rare: "ELITE", type: "def_focus" },
+    279: { name: "罠", rare: "NORMAL", type: "trap" },
 
-<div id="mid-ui">
-    <div id="msg">INITIALIZING...</div>
-    <div class="btn-row">
-        <button id="scan-btn" onclick="handleScan()" disabled style="background:#0044cc; flex: 1.5;">SCAN</button>
-        <button id="atk-btn" onclick="handleAttack()" disabled style="background:#aa0000; flex: 1.5;">ATTACK</button>
-    </div>
-    <div class="btn-row">
-        <button id="magic-btn" onclick="openMagicMenu()" disabled style="background:var(--magic-purple);">MAGIC</button>
-        <button id="item-open-btn" onclick="openItemMenu()" disabled style="background:#008844;">ITEM</button>
-        <button id="esc-btn" onclick="handleEscape()" disabled style="background:#555;">ESCAPE</button>
-    </div>
-</div>
+    // --- コレクション系 (280-297) ---
+    280: { name: "古びたランプ", rare: "LEGEND", type: "none" },
+    281: { name: "何かの神様の像", rare: "LEGEND", type: "none" },
+    282: { name: "誰かの日記", rare: "LEGEND", type: "none" },
+    283: { name: "海賊の銀貨", rare: "LEGEND", type: "none" },
+    284: { name: "書けない万年筆", rare: "LEGEND", type: "none" },
+    285: { name: "東洋の水墨画", rare: "LEGEND", type: "none" },
+    286: { name: "裸の王様の服", rare: "LEGEND", type: "none" },
+    287: { name: "相対性理論原本", rare: "LEGEND", type: "none" },
+    288: { name: "限りなく真円に近い石", rare: "LEGEND", type: "none" },
+    289: { name: "円周率最後の数字", rare: "LEGEND", type: "none" },
+    290: { name: "誰も知らない物語", rare: "LEGEND", type: "none" },
+    291: { name: "漢の浪漫", rare: "LEGEND", type: "none" },
+    292: { name: "古代のデジタル時計", rare: "LEGEND", type: "none" },
+    293: { name: "偽典", rare: "LEGEND", type: "none" },
+    294: { name: "サンタの髭", rare: "LEGEND", type: "none" },
+    295: { name: "サンタの髭（本物）", rare: "LEGEND", type: "none" },
+    296: { name: "天使の輪っか", rare: "LEGEND", type: "none" },
+    297: { name: "竜のフン", rare: "LEGEND", type: "none" },
 
-<div class="char-area" id="e-area">
-    <div class="cam-part"><div class="cam-frame"><video id="ev" autoplay playsinline muted></video></div></div>
-    <div class="info-part">
-        <div id="e-card" class="visual-card">
-            <div id="e-rare" class="rarity-tag">-</div>
-            <div id="e-elem" class="elem-tag"></div>
-            <div id="e-sym" class="q-mark">?</div>
-            <div id="e-name" style="font-size:0.55rem; text-align:center;">???</div>
-        </div>
-        <div class="stat-text">HP:<span id="e-hp-cur">0</span>/<span id="e-hp-max">0</span><br>ATK:<span id="e-atk-val">0</span> DEF:<span id="e-def-val">0</span></div>
-        <div class="bar-container"><div class="bar-bg"><div id="e-fill" class="bar-fill" style="background:var(--e-color);"></div></div></div>
-    </div>
-</div>
+    // --- ラスト (298-299) ---
+    298: { name: "石", rare: "NORMAL", type: "stone" },
+    299: { name: "聖書", rare: "LEGEND", type: "bible" }
+};
 
-<div id="magic-overlay" class="overlay">
-    <h2 style="color:var(--magic-purple);">MAGIC SELECT</h2>
-    <div id="magic-list" style="width:100%; display:flex; flex-direction:column; align-items:center;"></div>
-    <button class="ov-btn-red" onclick="document.getElementById('magic-overlay').style.display='none'">CLOSE</button>
-</div>
-<div id="skill-overlay" class="overlay">
-    <h2 style="color:var(--gold);">SKILL CUSTOMIZE</h2>
-    <div id="skill-points-display" style="color:#fff; margin-bottom:15px; font-size:1.1rem;">POINTS: 0</div>
-    <div id="skill-list" style="width:100%; display:flex; flex-direction:column; align-items:center; max-height: 60vh; overflow-y: auto;"></div>
-    <button class="ov-btn-red" onclick="document.getElementById('skill-overlay').style.display='none'">CLOSE</button>
-</div>
-<div id="lib-overlay" class="overlay">
-    <h2>COLLECTION</h2>
-    <div style="display:flex; gap:5px; margin-bottom:5px;">
-        <button onclick="renderLib('W')">WEAPON</button>
-        <button onclick="renderLib('M')">MONSTER</button>
-        <button onclick="renderLib('I')">ITEM</button>
-    </div>
-    <div id="lib-grid" class="lib-grid"></div>
-    <button class="ov-btn-red" onclick="document.getElementById('lib-overlay').style.display='none'">CLOSE</button>
-</div>
-<div id="detail-pop">
-    <h3 id="det-name" style="color:var(--p-color); margin-top:0;">NAME</h3>
-    <div class="det-row"><span style="color:#aaa;">RARE</span><span id="det-rare"></span></div>
-    <div class="det-row"><span id="det-sub-label" style="color:#aaa;">TYPE</span><span id="det-sub-value"></span></div>
-    <button class="ov-btn-red" onclick="document.getElementById('detail-pop').style.display='none'">CLOSE</button>
-</div>
-<div id="item-overlay" class="overlay">
-    <h2>BAG</h2>
-    <div id="item-list" style="width:100%; display:flex; flex-direction:column; align-items:center;"></div>
-    <button class="ov-btn-red" onclick="document.getElementById('item-overlay').style.display='none'">CLOSE</button>
-</div>
-<div id="res-screen" class="overlay" style="justify-content:center;">
-    <h1 id="res-title" style="font-size:3rem; margin:0;"></h1>
-    <div id="res-stats" style="background:#222; padding:15px; border:2px solid #fff; margin:10px 0; width:85%; font-size:0.75rem; text-align:center;"></div>
-    <button style="background:var(--main-blue); width:95%; height:40px; border:none; color:#fff;" onclick="closeResult()">CONTINUE</button>
-</div>
-<div id="bonus-overlay" class="overlay">
-    <h2 style="color:var(--gold);">ITEM SCAN</h2>
-    <div class="cam-frame" style="width:150px; height:150px;"><video id="bv" autoplay playsinline muted></video></div>
-    <button style="background:var(--main-blue); width:95%; height:40px; border:none; color:#fff; margin-top:20px;" onclick="getBonusItem()">GET ITEM</button>
-</div>
+// ==========================================
+// アイテム使用処理
+// ==========================================
+function useItem(id, index) {
+    const item = DB_ITEM[id];
+    let msg = "";
+    let skipEnemyTurn = false;
 
-<script>
-    const DB_WEAPON = ["錆びた短剣","棒切れ","練習用の剣","皮のムチ","ブロンズナイフ","鉄の爪","ランス","木刀","兵士の剣","鋼鉄の長剣","銀のレイピア","剛弓","漆黒の短刀","守護者の大盾","魔法の杖","三叉矛","黄金の槌","ミスリルの小太刀","竜殺しの太刀","精霊の杖","聖剣エクスカリバー","魔剣グラム"];
-    const DB_MONSTER = ["スライム","ゴブリン","スケルトン","野良犬","巨大クモ","ウィスプ","ゾンビ","オーク","デスナイト","ケルベロス","キマイラ","ミミック","デーモン","ゴーレム","ヒュドラ","クラーケン","フェニックス","古龍","魔王サタン"];
-    
-    // アイテム名 No.200 - 209 (回復系)
-    const DB_ITEM = [
-        "非常食", "パン", "缶詰", "新鮮野菜", "旬の野菜", 
-        "果実", "高級果実", "骨付き肉", "骨付き肉（大）", "携帯フルコース"
-    ];
-
-    const ELEMENTS = { "🔥": "🌿", "🌿": "⚡", "⚡": "💧", "💧": "🔥" };
-    const MAGIC_INFO = { 
-        H: { n: "HEAL", s: "✨", e: "" }, 
-        F: { n: "FIRE", s: "🔥", e: "🔥" }, 
-        W: { n: "AQUA", s: "💧", e: "💧" }, 
-        L: { n: "ELEC", s: "⚡", e: "⚡" }, 
-        G: { n: "LEAF", s: "🌿", e: "🌿" },
-        B: { n: "BRAK", s: "🛡️⬇️", e: "" },
-        K: { n: "WEAK", s: "⚔️⬇️", e: "" },
-        S: { n: "SEAL", s: "🛡️⬆️", e: "" },
-        R: { n: "BRAV", s: "⚔️⬆️", e: "" }
-    };
-
-    let lv=1, exp=0, php=1000, pMax=1000, patk=0, pdef=0, pelem="", inventory=[], skillPoints=0;
-    let magicLv={H:1,F:0,W:0,L:0,G:0,B:0,K:0,S:0,R:0};
-    let net, mode="W", ehp=0, eMax=0, eatk=0, edef=0, eelem="", stream=null, canUseMagic=true;
-    let library = JSON.parse(localStorage.getItem('myth_v5_lib')) || { W: {}, M: {}, I: {} };
-
-    async function init() {
-        const saved = JSON.parse(localStorage.getItem('myth_v5_save'));
-        if(saved) {
-            lv=saved.lv; exp=saved.exp || 0; pMax=saved.pMax; magicLv=saved.magicLv; skillPoints=saved.skillPoints;
-            php = pMax;
-            Object.keys(MAGIC_INFO).forEach(k => { if(magicLv[k] === undefined) magicLv[k] = 0; });
-        } else {
-            lv=1; exp=0; pMax=1000; php=1000; skillPoints=0; 
-            magicLv={H:1,F:0,W:0,L:0,G:0,B:0,K:0,S:0,R:0};
-        }
-        try { net = await mobilenet.load(); document.getElementById('scan-btn').disabled = false; document.getElementById('msg').innerText = "武器をスキャンしてください"; switchCamera('P'); }
-        catch (e) { document.getElementById('msg').innerText = "AI ERROR"; }
-        updateUI();
+    switch (item.type) {
+        case "heal_fix":
+            php = Math.min(pmax, php + item.val);
+            msg = `${item.name}でHPが ${item.val} 回復した！`;
+            break;
+        case "heal_per":
+            let hVal = Math.floor(pmax * item.val);
+            php = Math.min(pmax, php + hVal);
+            msg = `${item.name}でHPが全快した！`;
+            break;
+        case "dmg":
+            let d = item.val;
+            if (ELEMENTS[item.elem] === eelem) d *= 2;
+            ehp -= d;
+            msg = `${item.name}を使用！ ${item.elem}属性の ${d} ダメージ！`;
+            break;
+        case "auto_weak":
+            for (let s in ELEMENTS) if (ELEMENTS[s] === eelem) pelem = s;
+            msg = `虹の輝きが敵の弱点を突く！属性が ${pelem} に変化！`;
+            break;
+        case "field":
+            fieldEffect = item.elem; fieldTimer = 3;
+            msg = `${item.name}により、${item.elem}属性が強化される環境になった！`;
+            break;
+        case "inst_death":
+            if (Math.random() < item.rate) { ehp = 0; msg = "毒針が急所に的中！敵は力尽きた！"; }
+            else { msg = "しかし、効果がなかった…"; }
+            break;
+        case "gamble":
+            if (Math.random() < 0.5) { ehp = Math.floor(ehp / 2); msg = "成功！敵のHPを半分にした！"; }
+            else { php = Math.floor(php / 2); msg = "失敗！自分のHPが半分になった！"; }
+            break;
+        case "paint":
+            const others = ["🔥", "💧", "⚡", "🌿"].filter(e => e !== eelem);
+            eelem = others[Math.floor(Math.random() * others.length)];
+            msg = `ペンキをぶっかけた！敵が ${eelem} 属性に染まった！`;
+            break;
+        case "atk_focus":
+            patk += pdef; pdef = 0; msg = "守りを捨て、全力を攻撃に転換した！";
+            break;
+        case "def_focus":
+            pdef += patk; patk = 0; msg = "攻めを捨て、全力を防御に転換した！";
+            break;
+        case "trap":
+            trapTimer = 3; msg = "罠を仕掛けた！敵の動きを封じるチャンス！";
+            break;
+        case "stone":
+            if (Math.random() < 0.01) { ehp = 0; msg = "石が奇跡的に急所に的中！敵は即死した！"; }
+            else { ehp -= 10; msg = "石を投げた。10ダメージ。"; }
+            break;
+        case "bible":
+            php = pmax; ehp = 1; msg = "聖なる光があなたを癒やし、敵を無力化した！";
+            break;
+        case "none":
+            msg = `${item.name}を掲げたが、何も起きなかった！`;
+            break;
+        case "escape":
+            msg = "煙玉を投げた！";
+            setTimeout(showScan, 1000); return;
+        default:
+            msg = `${item.name}を使ったが、まだ実装されていない！`;
     }
 
-    async function switchCamera(target) {
-        if(stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
-        if(target === 'OFF') { document.querySelectorAll('.cam-frame').forEach(f=>f.classList.remove('cam-active')); return; }
-        const vId = {P:'pv', E:'ev', B:'bv'}[target];
-        try {
-            stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
-            document.getElementById(vId).srcObject = stream;
-            document.querySelectorAll('.cam-frame').forEach(f=>f.classList.remove('cam-active'));
-            document.getElementById(vId).parentElement.classList.add('cam-active');
-        } catch(e) { console.error(e); }
-    }
-
-    async function handleScan() {
-        const vid = mode==="W" ? document.getElementById('pv') : document.getElementById('ev');
-        let id, aiLabel = "UNKNOWN"; 
-        try { const r = await net.classify(vid); aiLabel = r[0].className.split(',')[0].toUpperCase(); id = Math.floor(r[0].probability * 100); } catch (e) { id = Math.floor(Math.random() * 100); }
-        const rare = id >= 90 ? "LEGEND" : id >= 50 ? "ELITE" : "NORMAL";
-        
-        if(mode==="W") {
-            pelem = ["🔥", "💧", "⚡", "🌿"][id % 4]; 
-            patk = Math.floor(120 * (1 + (lv*0.1))); 
-            pdef = Math.floor(60 * (1 + (lv*0.1)));
-            const dbName = DB_WEAPON[id % DB_WEAPON.length];
-            updateCardUI('p', "⚔️", `${aiLabel}の${dbName}`, pelem, rare);
-            library.W[id] = {t:dbName, e:pelem, r:rare}; mode="M"; switchCamera('E');
-            document.getElementById('msg').innerText = `装備完了！次はモンスターだ！`;
-        } else {
-            eelem = ["🔥", "💧", "⚡", "🌿"][id % 4]; 
-            eMax = Math.floor(700 * (1 + (lv*0.1))); ehp = eMax; 
-            eatk = Math.floor(80 * (1 + (lv*0.1))); 
-            edef = Math.floor(40 * (1 + (lv*0.1)));
-            const dbName = DB_MONSTER[id % DB_MONSTER.length];
-            updateCardUI('e', "👾", `${aiLabel}の${dbName}`, eelem, rare);
-            library.M[id+100] = {t:dbName, e:eelem, r:rare};
-            switchCamera('OFF'); setBattleBtns(false); document.getElementById('scan-btn').disabled = true;
-            document.getElementById('msg').innerText = "バトル開始！";
-        }
-        save(); updateUI();
-    }
-
-    function openMagicMenu() {
-        const list = document.getElementById('magic-list'); list.innerHTML = "";
-        let count = 0;
-        Object.keys(magicLv).forEach(k => {
-            if(magicLv[k] > 0) {
-                count++; const m = MAGIC_INFO[k];
-                const btn = document.createElement('button');
-                btn.style.cssText = "width:90%; background:#331144; color:#fff; padding:12px; margin:5px; height:auto; border:2px solid var(--magic-purple); flex:none;";
-                btn.innerHTML = `<div style="font-weight:bold;">${m.n} Lv.${magicLv[k]}</div>`;
-                btn.onclick = () => castMagic(k);
-                list.appendChild(btn);
-            }
-        });
-        if(count === 0) list.innerHTML = "<p style='color:#ccc;margin-top:20px;'>魔法を習得していません</p>";
-        document.getElementById('magic-overlay').style.display = 'flex';
-    }
-
-    function castMagic(key) {
-        document.getElementById('magic-overlay').style.display = 'none';
-        if(!canUseMagic) return;
-        canUseMagic = false; setBattleBtns(true);
-        if(Math.random() < 0.1) { document.getElementById('msg').innerText = "詠唱に失敗した…！"; setTimeout(enemyTurn, 1200); return; }
-        
-        const mLv = magicLv[key]; const m = MAGIC_INFO[key];
-        const rates = [0, 0.1, 0.2, 0.3, 0.5, 0.75];
-        
-        if(key === 'H') {
-            let heal = Math.floor(pMax * (mLv === 5 ? 1.0 : mLv * 0.2)); php = Math.min(pMax, php + heal);
-            document.getElementById('msg').innerText = `${m.s}${m.n}！\nHPが ${heal} 回復！`;
-        } else if(key === 'B') {
-            edef = Math.floor(edef * (1 - rates[mLv]));
-            document.getElementById('msg').innerText = `${m.s}${m.n}！\n敵の防御力を ${rates[mLv]*100}% ダウンさせた！`;
-        } else if(key === 'K') {
-            eatk = Math.floor(eatk * (1 - rates[mLv]));
-            document.getElementById('msg').innerText = `${m.s}${m.n}！\n敵の攻撃力を ${rates[mLv]*100}% ダウンさせた！`;
-        } else if(key === 'S') {
-            pdef = Math.floor(pdef * (1 + rates[mLv]));
-            document.getElementById('msg').innerText = `${m.s}${m.n}！\n防御力が ${rates[mLv]*100}% アップした！`;
-        } else if(key === 'R') {
-            patk = Math.floor(patk * (1 + rates[mLv]));
-            document.getElementById('msg').innerText = `${m.s}${m.n}！\n攻撃力が ${rates[mLv]*100}% アップした！`;
-        } else {
-            let base = mLv * 0.15; let dmg = 0;
-            if(ELEMENTS[m.e] === eelem) { dmg = Math.floor(eMax * base); ehp -= dmg; document.getElementById('msg').innerText = `${m.s}${m.n}！\n効果は抜群だ！ ${dmg} ダメージ！`; }
-            else if(ELEMENTS[eelem] === m.e) { dmg = Math.floor(eMax * base); ehp = Math.min(eMax, ehp + dmg); document.getElementById('msg').innerText = `${m.s}${m.n}！\n不利属性だ！敵が ${dmg} 回復！`; }
-            else { dmg = Math.floor(eMax * base / 2); ehp -= dmg; document.getElementById('msg').innerText = `${m.s}${m.n}！\n${dmg} ダメージ！`; }
-        }
-        updateUI(); setTimeout(() => { if(ehp <= 0) showBonus(); else enemyTurn(); }, 1200);
-    }
-
-    function handleAttack() {
-        setBattleBtns(true);
-        let dmg = Math.floor(Math.max(50, (patk * (ELEMENTS[pelem]===eelem?1.5:1)) - (edef*0.2)));
-        ehp -= dmg; document.getElementById('msg').innerText = `💥 ${dmg} ダメージ！`;
-        document.getElementById('e-area').classList.add('shake'); updateUI();
-        setTimeout(() => { document.getElementById('e-area').classList.remove('shake'); if(ehp <= 0) showBonus(); else enemyTurn(); }, 1000);
-    }
-
-    function enemyTurn() {
-        document.getElementById('msg').innerText = "敵の攻撃！";
-        setTimeout(() => {
-            let dmg = Math.floor(Math.max(40, eatk - (pdef*0.2))); php -= dmg;
-            document.getElementById('msg').innerText = `⚠️ ${dmg} ダメージを受けた！`;
-            document.getElementById('p-area').classList.add('shake'); updateUI();
-            setTimeout(() => { document.getElementById('p-area').classList.remove('shake'); if(php <= 0) finish(false); else { document.getElementById('msg').innerText = "あなたのターン"; setBattleBtns(false); } }, 1000);
-        }, 1000);
-    }
-
-    function handleEscape() {
-        setBattleBtns(true);
-        if(Math.random() < 0.8) { document.getElementById('msg').innerText = "逃走成功！"; setTimeout(resetBattle, 1200); }
-        else { document.getElementById('msg').innerText = "逃走失敗…！"; setTimeout(enemyTurn, 1200); }
-    }
-
-    function openSkillMenu() { document.getElementById('skill-overlay').style.display='flex'; renderSkillList(); }
-    function renderSkillList() {
-        const list = document.getElementById('skill-list'); list.innerHTML = "";
-        document.getElementById('skill-points-display').innerText = `POINTS: ${skillPoints}`;
-        Object.keys(magicLv).forEach(k => {
-            const m = MAGIC_INFO[k]; const curLv = magicLv[k];
-            const div = document.createElement('div'); div.className = "skill-item";
-            div.innerHTML = `<div>${m.n} (Lv.${curLv})</div>`;
-            const upBtn = document.createElement('button');
-            upBtn.innerText = curLv === 0 ? "習得" : (curLv >= 5 ? "MAX" : "強化");
-            upBtn.style.width = "75px"; upBtn.disabled = (skillPoints <= 0 || curLv >= 5);
-            upBtn.onclick = (e) => { e.stopPropagation(); skillPoints--; magicLv[k]++; save(); renderSkillList(); updateUI(); };
-            div.appendChild(upBtn); list.appendChild(div);
-        });
-    }
-
-    function renderLib(type) {
-        const grid = document.getElementById('lib-grid'); grid.innerHTML = "";
-        const max = type === 'I' ? DB_ITEM.length : 100;
-        const offset = type==='W' ? 0 : type==='M' ? 100 : 200;
-        for(let i=0; i<max; i++){
-            const gid = offset + i; const data = library[type][gid];
-            const slot = document.createElement('div'); slot.className = "lib-slot" + (data?" found":"");
-            slot.innerText = data ? data.t : "No." + gid;
-            if(data) slot.onclick = () => showPop(type, data);
-            grid.appendChild(slot);
-        }
-    }
-
-    function showPop(type, data) {
-        document.getElementById('det-name').innerText = data.t;
-        document.getElementById('det-rare').innerText = data.r || "NORMAL";
-        const subL = document.getElementById('det-sub-label'); const subV = document.getElementById('det-sub-value');
-        if(type === 'I') { subL.innerText = "TYPE"; subV.innerText = "RECOVERY"; }
-        else { subL.innerText = "ELEMENT"; subV.innerText = data.e; }
-        document.getElementById('detail-pop').style.display = 'block';
-    }
-
-    function save() { localStorage.setItem('myth_v5_save', JSON.stringify({lv, exp, pMax, magicLv, skillPoints})); localStorage.setItem('myth_v5_lib', JSON.stringify(library)); }
-    
-    function updateUI() {
-        document.getElementById('p-lv').innerText=lv; 
-        document.getElementById('p-hp-cur').innerText=Math.floor(php); 
-        document.getElementById('p-hp-max').innerText=pMax;
-        document.getElementById('p-atk-val').innerText=patk;
-        document.getElementById('p-def-val').innerText=pdef;
-        document.getElementById('p-fill').style.width=(php/pMax*100)+"%";
-        document.getElementById('e-hp-cur').innerText=Math.max(0,Math.floor(ehp)); 
-        document.getElementById('e-hp-max').innerText=eMax;
-        document.getElementById('e-atk-val').innerText=eatk;
-        document.getElementById('e-def-val').innerText=edef;
-        document.getElementById('e-fill').style.width=(eMax>0?(ehp/eMax*100):0)+"%";
-        document.getElementById('skill-menu-btn').innerText=`SKILL UP (${skillPoints})`;
-        let n = 30*lv; document.getElementById('exp-text').innerText=`${exp}/${n}`; document.getElementById('exp-fill').style.width=(exp/n*100)+"%";
-    }
-
-    function updateCardUI(s, sym, name, elem, rare) { 
-        document.getElementById(`${s}-name`).innerText=name; 
-        document.getElementById(`${s}-elem`).innerText=elem; 
-        document.getElementById(`${s}-rare`).innerText=rare;
-        const sy=document.getElementById(`${s}-sym`); sy.innerText=sym; sy.className=""; sy.style.fontSize="2.2rem";
-    }
-
-    function finish(win) {
-        document.getElementById('res-screen').style.display='flex'; const res = document.getElementById('res-stats');
-        if(win) { 
-            exp += 20; 
-            let m = "EXP 20 獲得！"; 
-            if(exp >= 30*lv){ 
-                lv++; exp=0; pMax+=100; php=pMax; 
-                if(lv % 2 === 0) { skillPoints++; m = `LEVEL UP TO ${lv}!<br>Skill Point GET!!`; } else { m = `LEVEL UP TO ${lv}!!`; }
-            } 
-            res.innerHTML = m; 
-        }
-        else { php = pMax; res.innerHTML = "敗北... HPは回復した。"; }
-        save(); updateUI();
-    }
-
-    function resetBattle() { 
-        mode="W"; ehp=0; eMax=0; patk=0; pdef=0; eatk=0; edef=0; pelem=""; eelem=""; canUseMagic=true; 
-        document.getElementById('msg').innerText = "武器をスキャンしてください";
-        document.getElementById('scan-btn').disabled=false; 
-        setBattleBtns(true); switchCamera('P'); 
-        document.getElementById('p-sym').innerText="?"; document.getElementById('p-sym').className="q-mark"; 
-        document.getElementById('p-name').innerText="SCANNER READY"; document.getElementById('p-rare').innerText="-"; document.getElementById('p-elem').innerText="";
-        document.getElementById('e-sym').innerText="?"; document.getElementById('e-sym').className="q-mark"; 
-        document.getElementById('e-name').innerText="???"; document.getElementById('e-rare').innerText="-"; document.getElementById('e-elem').innerText="";
-        updateUI(); 
-    }
-
-    function setBattleBtns(d) { document.getElementById('atk-btn').disabled=d; document.getElementById('magic-btn').disabled=d||!canUseMagic; document.getElementById('esc-btn').disabled=d; document.getElementById('item-open-btn').disabled=d; }
-    function closeResult() { document.getElementById('res-screen').style.display='none'; resetBattle(); }
-    function showBonus() { finish(true); document.getElementById('bonus-overlay').style.display='flex'; switchCamera('B'); }
-    
-    // アイテム獲得時にIDを保存するように変更
-    function getBonusItem() { 
-        let id = Math.floor(Math.random() * DB_ITEM.length); 
-        const name = DB_ITEM[id]; 
-        const gid = 200 + id; 
-        library.I[gid] = {t: name, r: "NORMAL"}; 
-        if(inventory.length < 5) inventory.push({n: name, id: id}); 
-        document.getElementById('bonus-overlay').style.display = 'none'; 
-        resetBattle(); save(); 
-    }
-
-    function openLibrary() { document.getElementById('lib-overlay').style.display='flex'; renderLib('W'); }
-
-    // アイテム効果を個別化
-    function openItemMenu() { 
-        const list = document.getElementById('item-list'); 
-        list.innerHTML = ""; 
-        inventory.forEach((itm, i) => { 
-            const b = document.createElement('button'); 
-            b.style.cssText = "width:90%;margin-bottom:10px;padding:12px;background:#008844;color:#fff;flex:none;"; 
-            b.innerText = itm.n; 
-            b.onclick = () => { 
-                useItem(itm.id, i);
-                document.getElementById('item-overlay').style.display = 'none'; 
-                updateUI(); 
-            }; 
-            list.appendChild(b); 
-        }); 
-        document.getElementById('item-overlay').style.display = 'flex'; 
-    }
-
-    function useItem(itemId, inventoryIndex) {
-        let healAmount = 0;
-        // ID 0-9 (200-209相当) は固定値回復
-        if (itemId >= 0 && itemId <= 9) {
-            healAmount = (itemId + 1) * 100;
-            php = Math.min(pMax, php + healAmount);
-            document.getElementById('msg').innerText = `${DB_ITEM[itemId]}を使用！\nHPが ${healAmount} 回復した！`;
-        }
-        
-        inventory.splice(inventoryIndex, 1);
-        save();
-    }
-
-    window.onload = init;
-</script>
-</body>
-</html>
+    // UI更新とターン移行
+    document.getElementById('msg').innerText = msg;
+    inventory.splice(index, 1);
+    updateUI();
+    if (ehp <= 0) setTimeout(showBonus, 1200);
+    else setTimeout(enemyTurn, 1200);
+}
