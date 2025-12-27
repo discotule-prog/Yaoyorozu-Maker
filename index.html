@@ -2,149 +2,122 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>AI Scan Adventure - Full System</title>
+    <title>AI Scan Adventure</title>
     <style>
-        body { background: #111; color: #eee; font-family: sans-serif; text-align: center; margin: 0; }
-        #game-container { max-width: 500px; margin: auto; padding: 20px; border: 2px solid #333; }
-        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-        .stat-box { background: #222; padding: 10px; border-radius: 5px; border: 1px solid #444; }
-        #msg { height: 80px; background: #000; padding: 10px; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; border: 1px inset #333; }
-        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        button { padding: 15px; font-weight: bold; cursor: pointer; background: #444; color: white; border: none; border-radius: 5px; }
-        button:disabled { opacity: 0.5; cursor: not-allowed; }
-        .item-btn { background: #2c3e50; }
-        .attack-btn { background: #c0392b; }
-        .legend { color: #ffd700; text-shadow: 0 0 5px #aa8800; }
-        .elite { color: #00f2ff; text-shadow: 0 0 5px #0088ff; }
+        body { background: #111; color: white; font-family: sans-serif; text-align: center; }
+        #msg { height: 100px; padding: 20px; font-size: 1.2rem; background: #222; margin: 10px auto; max-width: 600px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+        .stat-container { display: flex; justify-content: center; gap: 20px; margin: 20px; }
+        .stat-box { background: #333; padding: 15px; border-radius: 10px; width: 200px; }
+        .btn-group { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; max-width: 600px; margin: auto; }
+        button { padding: 15px 25px; font-size: 1rem; cursor: pointer; border: none; border-radius: 5px; background: #444; color: white; }
+        button:hover { background: #555; }
+        .item-list { display: none; background: #222; padding: 20px; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); border: 2px solid #555; max-height: 80vh; overflow-y: auto; width: 80%; }
+        .rare-legend { color: #ffd700; font-weight: bold; }
+        .rare-elite { color: #00f2ff; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<div id="game-container">
-    <h2>AI Scan Adventure</h2>
-    
-    <div class="stat-grid">
+    <div id="msg">モンスターをスキャンしてください</div>
+
+    <div class="stat-container">
         <div class="stat-box">
-            <div>Player <span id="p-elem">🔥</span></div>
-            <div>HP: <span id="p-hp">500</span> / <span id="p-max">500</span></div>
-            <div>ATK: <span id="p-atk">100</span> | DEF: <span id="p-def">50</span></div>
+            <h3>Player <span id="p-pelem">🔥</span></h3>
+            <p>HP: <span id="p-php">500</span> / <span id="p-pmax">500</span></p>
+            <p>ATK: <span id="p-patk">100</span> | DEF: <span id="p-pdef">50</span></p>
         </div>
         <div class="stat-box">
-            <div>Enemy <span id="e-elem">🌿</span></div>
-            <div>HP: <span id="e-hp">---</span></div>
-            <div id="e-name">スキャン待機中</div>
+            <h3>Enemy <span id="e-eelem">---</span></h3>
+            <p id="e-name">???</p>
+            <p>HP: <span id="e-ehp">---</span></p>
         </div>
     </div>
 
-    <div id="msg">モンスターをスキャンしてバトル開始！</div>
-
-    <div id="actions" class="btn-grid">
-        <button onclick="startBattleScan()" id="btn-scan">モンスターをスキャン</button>
-        <button onclick="openInventory()" id="btn-item" disabled>アイテム</button>
-        <button onclick="playerAttack()" id="btn-attack" disabled>攻撃</button>
-        <button onclick="weaponScan()" id="btn-weapon" disabled>武器スキャン</button>
+    <div class="btn-group">
+        <button onclick="scanMonster()">モンスタースキャン</button>
+        <button onclick="scanWeapon()">武器スキャン</button>
+        <button onclick="playerAttack()" id="atk-btn" disabled>攻撃</button>
+        <button onclick="toggleItems()" id="item-btn" disabled>アイテム</button>
     </div>
 
-    <div id="inventory-list" style="display:none; margin-top:20px; border-top:1px solid #444; padding-top:10px;">
+    <div id="item-window" class="item-list">
         <h3>所持アイテム</h3>
         <div id="items-container"></div>
-        <button onclick="closeInventory()" style="margin-top:10px; background:#666;">戻る</button>
+        <button onclick="toggleItems()" style="margin-top:20px;">閉じる</button>
     </div>
-</div>
 
 <script>
-// ==========================================
-// 1. データベース設定
-// ==========================================
+// --- ゲーム変数 ---
+let php = 500, pmax = 500, patk = 100, pdef = 50, pelem = "🔥";
+let ehp = 0, emax = 0, eatk = 0, eelem = "🌿", ename = "";
+let inventory = [200, 274, 299]; // 初期アイテム
+let fieldEffect = null, fieldTimer = 0, trapTimer = 0;
+const ELEMENTS = { "🔥": "🌿", "💧": "🔥", "⚡": "💧", "🌿": "⚡" };
 
-// アイテムDB (No.200 - 299)
+// --- 100種類のアイテムDB (代表的なものを抜粋、構造は全種共通) ---
 const DB_ITEM = {
-    // 回復 (200-219)
-    200: { name: "非常食", rare: "NORMAL", type: "heal_fix", val: 50 },
-    210: { name: "ポーション", rare: "ELITE", type: "heal_fix", val: 600 },
+    200: { name: "非常食", rare: "NORMAL", type: "heal", val: 50 },
+    210: { name: "ポーション", rare: "ELITE", type: "heal", val: 600 },
     216: { name: "エリクサー", rare: "LEGEND", type: "heal_per", val: 1.0 },
-    219: { name: "神様の雫", rare: "LEGEND", type: "heal_per", val: 1.0 },
-    // 攻撃 (220-239)
     220: { name: "火の粉", rare: "NORMAL", type: "dmg", elem: "🔥", val: 50 },
     224: { name: "太陽の輝き", rare: "LEGEND", type: "dmg", elem: "🔥", val: 1200 },
-    234: { name: "神の裁き", rare: "LEGEND", type: "dmg", elem: "⚡", val: 1200 },
-    // 特殊 (260-279)
     260: { name: "煙玉", rare: "NORMAL", type: "escape" },
-    265: { name: "不思議な砂時計", rare: "LEGEND", type: "extra_turn" },
+    265: { name: "不思議な砂時計", rare: "LEGEND", type: "extra" },
     269: { name: "虹のかけら", rare: "LEGEND", type: "auto_weak" },
     270: { name: "発火燃料", rare: "ELITE", type: "field", elem: "🔥" },
+    271: { name: "雨雲発生機", rare: "ELITE", type: "field", elem: "💧" },
+    272: { name: "磁場発生装置", rare: "ELITE", type: "field", elem: "⚡" },
+    273: { name: "超成長促進剤", rare: "ELITE", type: "field", elem: "🌿" },
     274: { name: "毒針", rare: "NORMAL", type: "inst_death", rate: 0.1 },
     275: { name: "ギャンブルのサイコロ", rare: "ELITE", type: "gamble" },
     276: { name: "ペンキ", rare: "NORMAL", type: "paint" },
     277: { name: "覚悟のススメ", rare: "ELITE", type: "atk_focus" },
     278: { name: "亀の甲羅", rare: "ELITE", type: "def_focus" },
     279: { name: "罠", rare: "NORMAL", type: "trap" },
-    // コレクション (280-297)
     280: { name: "古びたランプ", rare: "LEGEND", type: "none" },
     291: { name: "漢の浪漫", rare: "LEGEND", type: "none" },
-    297: { name: "竜のフン", rare: "LEGEND", type: "none" },
-    // ラスト
     298: { name: "石", rare: "NORMAL", type: "stone" },
     299: { name: "聖書", rare: "LEGEND", type: "bible" }
 };
-// ※実際には200-299の全データをここに流し込みます。
+// (※200-297の全データが同様の形式でここに入ります)
 
-// ==========================================
-// 2. ゲーム変数
-// ==========================================
-let php = 500, pmax = 500, patk = 100, pdef = 50, pelem = "🔥";
-let ehp = 0, emax = 0, eatk = 0, eelem = "🌿", ename = "";
-let inventory = [200, 274, 299]; // 初期アイテム
-let fieldEffect = null, fieldTimer = 0, trapTimer = 0;
-
-const ELEMENTS = { "🔥": "🌿", "💧": "🔥", "⚡": "💧", "🌿": "⚡" };
-
-// ==========================================
-// 3. バトル・スキャンロジック
-// ==========================================
-
+// --- バトルロジック ---
 function updateUI() {
-    document.getElementById('p-hp').innerText = php;
-    document.getElementById('p-max').innerText = pmax;
-    document.getElementById('p-atk').innerText = patk;
-    document.getElementById('p-def').innerText = pdef;
-    document.getElementById('p-elem').innerText = pelem;
-    document.getElementById('e-hp').innerText = ehp > 0 ? ehp : "---";
-    document.getElementById('e-elem').innerText = eelem;
-    document.getElementById('e-name').innerText = ename || "スキャン待機中";
+    document.getElementById('p-php').innerText = php;
+    document.getElementById('p-pmax').innerText = pmax;
+    document.getElementById('p-patk').innerText = patk;
+    document.getElementById('p-pdef').innerText = pdef;
+    document.getElementById('p-pelem').innerText = pelem;
+    document.getElementById('e-ehp').innerText = ehp > 0 ? ehp : "---";
+    document.getElementById('e-eelem').innerText = eelem;
+    document.getElementById('e-name').innerText = ename || "???";
 }
 
-// モンスター生成（仮）
-function startBattleScan() {
-    // 本来はここでAIカメラ起動
-    ename = "スキャンされた野良スライム";
+function scanMonster() {
+    ename = "AIが見つけたモンスター";
     ehp = 300; emax = 300; eatk = 40; eelem = "🌿";
-    document.getElementById('msg').innerText = `${ename}が現れた！`;
-    document.getElementById('btn-scan').disabled = true;
-    document.getElementById('btn-attack').disabled = false;
-    document.getElementById('btn-item').disabled = false;
-    document.getElementById('btn-weapon').disabled = false;
+    document.getElementById('msg').innerText = ename + " が現れた！";
+    document.getElementById('atk-btn').disabled = false;
+    document.getElementById('item-btn').disabled = false;
     updateUI();
 }
 
-// プレイヤーの攻撃
+function scanWeapon() {
+    patk += 20;
+    document.getElementById('msg').innerText = "武器をスキャンした！攻撃力が上がった！";
+    updateUI();
+}
+
 function playerAttack() {
-    let dmg = Math.max(10, patk);
-    if (ELEMENTS[pelem] === eelem) {
-        dmg = Math.floor(dmg * 1.5);
-        document.getElementById('msg').innerText = "効果は抜群だ！";
-    }
+    let dmg = patk;
+    if (ELEMENTS[pelem] === eelem) dmg = Math.floor(dmg * 1.5);
     ehp -= dmg;
+    document.getElementById('msg').innerText = "プレイヤーの攻撃！ " + dmg + " ダメージ！";
     updateUI();
-    if (ehp <= 0) {
-        document.getElementById('msg').innerText += `\n${ename}を倒した！`;
-        setTimeout(winBattle, 1200);
-    } else {
-        setTimeout(enemyTurn, 800);
-    }
+    if (ehp <= 0) setTimeout(winBattle, 1000);
+    else setTimeout(enemyTurn, 1000);
 }
 
-// 敵のターン
 function enemyTurn() {
     if (trapTimer > 0) {
         trapTimer--;
@@ -155,63 +128,61 @@ function enemyTurn() {
     }
     let dmg = Math.max(5, eatk - pdef);
     php -= dmg;
-    document.getElementById('msg').innerText = `${ename}の攻撃！ ${dmg} のダメージ！`;
+    document.getElementById('msg').innerText = ename + " の攻撃！ " + dmg + " ダメージ！";
     updateUI();
     if (php <= 0) alert("敗北しました...");
 }
 
-// アイテム使用
-function useItem(id, index) {
-    const item = DB_ITEM[id];
-    let msg = "";
-    
-    // アイテムロジック（ここをDBの内容に合わせ拡張）
-    if (item.type === "heal_fix") { php = Math.min(pmax, php + item.val); msg = `${item.name}で回復！`; }
-    else if (item.type === "inst_death") { 
-        if(Math.random() < item.rate) { ehp = 0; msg = "毒針が急所に的中！"; } else { msg = "効果がなかった..."; }
-    }
-    else if (item.type === "bible") { php = pmax; ehp = 1; msg = "聖書の奇跡！"; }
-    else if (item.type === "none") { msg = "しかし、何も起きなかった！"; }
-    
-    document.getElementById('msg').innerText = msg;
-    inventory.splice(index, 1);
-    closeInventory();
-    updateUI();
-    if (ehp <= 0) setTimeout(winBattle, 1200);
-    else setTimeout(enemyTurn, 1200);
-}
-
-// 勝利処理 -> アイテムスキャンへ
 function winBattle() {
-    document.getElementById('msg').innerText = "戦闘勝利！アイテムをスキャン中...";
-    // ここでAIスキャンを実行
-    const rewards = [210, 275, 298, 299, 280]; // ランダムに選出
-    const drop = rewards[Math.floor(Math.random() * rewards.length)];
-    inventory.push(drop);
-    alert(`${DB_ITEM[drop].name} を獲得した！`);
-    location.reload(); // リセットして次へ（仮）
+    document.getElementById('msg').innerText = "勝利！報酬アイテムをスキャンします...";
+    const rewardId = 200 + Math.floor(Math.random() * 100);
+    inventory.push(rewardId);
+    alert(DB_ITEM[rewardId].name + " を手に入れた！");
+    // 初期状態に戻す
+    ehp = 0; ename = "";
+    document.getElementById('atk-btn').disabled = true;
+    updateUI();
 }
 
-// インベントリ管理
-function openInventory() {
-    const container = document.getElementById('items-container');
-    container.innerHTML = "";
-    inventory.forEach((id, index) => {
-        const item = DB_ITEM[id];
-        const btn = document.createElement('button');
-        btn.className = "item-btn " + item.rare.toLowerCase();
-        btn.innerText = `[${item.rare}] ${item.name}`;
-        btn.onclick = () => useItem(id, index);
-        container.appendChild(btn);
-    });
-    document.getElementById('inventory-list').style.display = 'block';
+// --- アイテム使用システム ---
+function toggleItems() {
+    const win = document.getElementById('item-window');
+    win.style.display = win.style.display === 'block' ? 'none' : 'block';
+    if (win.style.display === 'block') {
+        const container = document.getElementById('items-container');
+        container.innerHTML = "";
+        inventory.forEach((id, index) => {
+            const it = DB_ITEM[id];
+            const b = document.createElement('button');
+            b.style.margin = "5px";
+            b.className = it.rare === "LEGEND" ? "rare-legend" : (it.rare === "ELITE" ? "rare-elite" : "");
+            b.innerText = it.name;
+            b.onclick = () => useItem(id, index);
+            container.appendChild(b);
+        });
+    }
 }
 
-function closeInventory() {
-    document.getElementById('inventory-list').style.display = 'none';
-}
+function useItem(id, index) {
+    const it = DB_ITEM[id];
+    let m = it.name + " を使用！ ";
 
-updateUI();
+    if (it.type === "heal") php = Math.min(pmax, php + it.val);
+    else if (it.type === "heal_per") php = pmax;
+    else if (it.type === "inst_death") {
+        if (Math.random() < it.rate) { ehp = 0; m += "敵を即死させた！"; }
+        else m += "効果がなかった...";
+    }
+    else if (it.type === "bible") { php = pmax; ehp = 1; m += "奇跡が起きた！"; }
+    else if (it.type === "none") m += "しかし何も起きなかった。";
+    
+    document.getElementById('msg').innerText = m;
+    inventory.splice(index, 1);
+    toggleItems();
+    updateUI();
+    if (ehp <= 0) setTimeout(winBattle, 1000);
+    else setTimeout(enemyTurn, 1000);
+}
 </script>
 </body>
 </html>
