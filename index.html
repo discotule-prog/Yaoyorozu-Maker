@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER 5.8</title>
+    <title>MYTH SCANNER 5.9</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
@@ -103,7 +103,7 @@
 <div id="skill-overlay" class="overlay">
     <h2 style="color:var(--gold);">SKILL CUSTOMIZE</h2>
     <div id="skill-points-display" style="color:#fff; margin-bottom:15px; font-size:1.1rem;">POINTS: 0</div>
-    <div id="skill-list" style="width:100%; display:flex; flex-direction:column; align-items:center;"></div>
+    <div id="skill-list" style="width:100%; display:flex; flex-direction:column; align-items:center; max-height: 60vh; overflow-y: auto;"></div>
     <button class="ov-btn-red" onclick="document.getElementById('skill-overlay').style.display='none'">CLOSE</button>
 </div>
 <div id="lib-overlay" class="overlay">
@@ -144,16 +144,19 @@
     const DB_ITEM = ["薬草","ポーション","秘薬","聖杯","勇気の証","魔石","竜の鱗","火炎玉","水晶玉"];
     const ELEMENTS = { "🔥": "🌿", "🌿": "⚡", "⚡": "💧", "💧": "🔥" };
     
-    // 魔法の名前を英語表記に変更
+    // 魔法情報を更新（BRAKとWEAKを追加）
     const MAGIC_INFO = { 
         H: { n: "HEAL", s: "✨", e: "" }, 
         F: { n: "FIRE", s: "🔥", e: "🔥" }, 
         W: { n: "AQUA", s: "💧", e: "💧" }, 
         L: { n: "ELEC", s: "⚡", e: "⚡" }, 
-        G: { n: "LEAF", s: "🌿", e: "🌿" } 
+        G: { n: "LEAF", s: "🌿", e: "🌿" },
+        B: { n: "BRAK", s: "🛡️⬇️", e: "" },
+        K: { n: "WEAK", s: "⚔️⬇️", e: "" }
     };
 
-    let lv=1, exp=0, php=1000, pMax=1000, patk=0, pdef=0, pelem="", inventory=[], skillPoints=0, magicLv={H:1,F:0,W:0,L:0,G:0};
+    // 初期魔法レベル（H以外は0）
+    let lv=1, exp=0, php=1000, pMax=1000, patk=0, pdef=0, pelem="", inventory=[], skillPoints=0, magicLv={H:1,F:0,W:0,L:0,G:0,B:0,K:0};
     let net, mode="W", ehp=0, eMax=0, eatk=0, edef=0, eelem="", stream=null, canUseMagic=true;
     let library = JSON.parse(localStorage.getItem('myth_v5_lib')) || { W: {}, M: {}, I: {} };
 
@@ -162,9 +165,12 @@
         if(saved) {
             lv=saved.lv; exp=saved.exp || 0; pMax=saved.pMax; magicLv=saved.magicLv; skillPoints=saved.skillPoints;
             php = pMax;
+            // 未定義の魔法があれば追加（旧セーブデータ互換用）
+            if(magicLv.B === undefined) magicLv.B = 0;
+            if(magicLv.K === undefined) magicLv.K = 0;
         } else {
             lv=1; exp=0; pMax=1000; php=1000; skillPoints=0; 
-            magicLv={H:1,F:0,W:0,L:0,G:0};
+            magicLv={H:1,F:0,W:0,L:0,G:0,B:0,K:0};
         }
         try { net = await mobilenet.load(); document.getElementById('scan-btn').disabled = false; document.getElementById('msg').innerText = "武器をスキャンしてください"; switchCamera('P'); }
         catch (e) { document.getElementById('msg').innerText = "AI ERROR"; }
@@ -233,10 +239,22 @@
         if(!canUseMagic) return;
         canUseMagic = false; setBattleBtns(true);
         if(Math.random() < 0.1) { document.getElementById('msg').innerText = "詠唱に失敗した…！"; setTimeout(enemyTurn, 1200); return; }
+        
         const mLv = magicLv[key]; const m = MAGIC_INFO[key];
+        
         if(key === 'H') {
             let heal = Math.floor(pMax * (mLv === 5 ? 1.0 : mLv * 0.2)); php = Math.min(pMax, php + heal);
             document.getElementById('msg').innerText = `${m.s}${m.n}！\nHPが ${heal} 回復！`;
+        } else if(key === 'B') { // BRAK: 防御低下
+            const rates = [0, 0.1, 0.2, 0.3, 0.5, 0.75];
+            const rate = rates[mLv];
+            edef = Math.floor(edef * (1 - rate));
+            document.getElementById('msg').innerText = `${m.s}${m.n}！\n敵の防御力を ${rate*100}% ダウンさせた！`;
+        } else if(key === 'K') { // WEAK: 攻撃低下
+            const rates = [0, 0.1, 0.2, 0.3, 0.5, 0.75];
+            const rate = rates[mLv];
+            eatk = Math.floor(eatk * (1 - rate));
+            document.getElementById('msg').innerText = `${m.s}${m.n}！\n敵の攻撃力を ${rate*100}% ダウンさせた！`;
         } else {
             let base = mLv * 0.15; let dmg = 0;
             if(ELEMENTS[m.e] === eelem) { dmg = Math.floor(eMax * base); ehp -= dmg; document.getElementById('msg').innerText = `${m.s}${m.n}！\n効果は抜群だ！ ${dmg} ダメージ！`; }
