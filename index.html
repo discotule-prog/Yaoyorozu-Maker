@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER 6.0</title>
+    <title>MYTH SCANNER 6.1</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
@@ -141,10 +141,14 @@
 <script>
     const DB_WEAPON = ["錆びた短剣","棒切れ","練習用の剣","皮のムチ","ブロンズナイフ","鉄の爪","ランス","木刀","兵士の剣","鋼鉄の長剣","銀のレイピア","剛弓","漆黒の短刀","守護者の大盾","魔法の杖","三叉矛","黄金の槌","ミスリルの小太刀","竜殺しの太刀","精霊の杖","聖剣エクスカリバー","魔剣グラム"];
     const DB_MONSTER = ["スライム","ゴブリン","スケルトン","野良犬","巨大クモ","ウィスプ","ゾンビ","オーク","デスナイト","ケルベロス","キマイラ","ミミック","デーモン","ゴーレム","ヒュドラ","クラーケン","フェニックス","古龍","魔王サタン"];
-    const DB_ITEM = ["薬草","ポーション","秘薬","聖杯","勇気の証","魔石","竜の鱗","火炎玉","水晶玉"];
-    const ELEMENTS = { "🔥": "🌿", "🌿": "⚡", "⚡": "💧", "💧": "🔥" };
     
-    // 魔法情報を更新（SEALとBRAVを追加）
+    // アイテム名 No.200 - 209 (回復系)
+    const DB_ITEM = [
+        "非常食", "パン", "缶詰", "新鮮野菜", "旬の野菜", 
+        "果実", "高級果実", "骨付き肉", "骨付き肉（大）", "携帯フルコース"
+    ];
+
+    const ELEMENTS = { "🔥": "🌿", "🌿": "⚡", "⚡": "💧", "💧": "🔥" };
     const MAGIC_INFO = { 
         H: { n: "HEAL", s: "✨", e: "" }, 
         F: { n: "FIRE", s: "🔥", e: "🔥" }, 
@@ -167,7 +171,6 @@
         if(saved) {
             lv=saved.lv; exp=saved.exp || 0; pMax=saved.pMax; magicLv=saved.magicLv; skillPoints=saved.skillPoints;
             php = pMax;
-            // 未定義の魔法があれば初期化（互換性）
             Object.keys(MAGIC_INFO).forEach(k => { if(magicLv[k] === undefined) magicLv[k] = 0; });
         } else {
             lv=1; exp=0; pMax=1000; php=1000; skillPoints=0; 
@@ -242,7 +245,7 @@
         if(Math.random() < 0.1) { document.getElementById('msg').innerText = "詠唱に失敗した…！"; setTimeout(enemyTurn, 1200); return; }
         
         const mLv = magicLv[key]; const m = MAGIC_INFO[key];
-        const rates = [0, 0.1, 0.2, 0.3, 0.5, 0.75]; // 上昇・低下率の共通配列
+        const rates = [0, 0.1, 0.2, 0.3, 0.5, 0.75];
         
         if(key === 'H') {
             let heal = Math.floor(pMax * (mLv === 5 ? 1.0 : mLv * 0.2)); php = Math.min(pMax, php + heal);
@@ -253,10 +256,10 @@
         } else if(key === 'K') {
             eatk = Math.floor(eatk * (1 - rates[mLv]));
             document.getElementById('msg').innerText = `${m.s}${m.n}！\n敵の攻撃力を ${rates[mLv]*100}% ダウンさせた！`;
-        } else if(key === 'S') { // SEAL: Player防御上昇
+        } else if(key === 'S') {
             pdef = Math.floor(pdef * (1 + rates[mLv]));
             document.getElementById('msg').innerText = `${m.s}${m.n}！\n防御力が ${rates[mLv]*100}% アップした！`;
-        } else if(key === 'R') { // BRAV: Player攻撃上昇
+        } else if(key === 'R') {
             patk = Math.floor(patk * (1 + rates[mLv]));
             document.getElementById('msg').innerText = `${m.s}${m.n}！\n攻撃力が ${rates[mLv]*100}% アップした！`;
         } else {
@@ -310,7 +313,8 @@
 
     function renderLib(type) {
         const grid = document.getElementById('lib-grid'); grid.innerHTML = "";
-        const max = 100; const offset = type==='W' ? 0 : type==='M' ? 100 : 200;
+        const max = type === 'I' ? DB_ITEM.length : 100;
+        const offset = type==='W' ? 0 : type==='M' ? 100 : 200;
         for(let i=0; i<max; i++){
             const gid = offset + i; const data = library[type][gid];
             const slot = document.createElement('div'); slot.className = "lib-slot" + (data?" found":"");
@@ -324,7 +328,7 @@
         document.getElementById('det-name').innerText = data.t;
         document.getElementById('det-rare').innerText = data.r || "NORMAL";
         const subL = document.getElementById('det-sub-label'); const subV = document.getElementById('det-sub-value');
-        if(type === 'I') { subL.innerText = "EFFECT"; subV.innerText = "HP RECOVERY"; }
+        if(type === 'I') { subL.innerText = "TYPE"; subV.innerText = "RECOVERY"; }
         else { subL.innerText = "ELEMENT"; subV.innerText = data.e; }
         document.getElementById('detail-pop').style.display = 'block';
     }
@@ -338,13 +342,11 @@
         document.getElementById('p-atk-val').innerText=patk;
         document.getElementById('p-def-val').innerText=pdef;
         document.getElementById('p-fill').style.width=(php/pMax*100)+"%";
-        
         document.getElementById('e-hp-cur').innerText=Math.max(0,Math.floor(ehp)); 
         document.getElementById('e-hp-max').innerText=eMax;
         document.getElementById('e-atk-val').innerText=eatk;
         document.getElementById('e-def-val').innerText=edef;
         document.getElementById('e-fill').style.width=(eMax>0?(ehp/eMax*100):0)+"%";
-        
         document.getElementById('skill-menu-btn').innerText=`SKILL UP (${skillPoints})`;
         let n = 30*lv; document.getElementById('exp-text').innerText=`${exp}/${n}`; document.getElementById('exp-fill').style.width=(exp/n*100)+"%";
     }
@@ -363,12 +365,7 @@
             let m = "EXP 20 獲得！"; 
             if(exp >= 30*lv){ 
                 lv++; exp=0; pMax+=100; php=pMax; 
-                if(lv % 2 === 0) {
-                    skillPoints++; 
-                    m = `LEVEL UP TO ${lv}!<br>Skill Point GET!!`;
-                } else {
-                    m = `LEVEL UP TO ${lv}!!`;
-                }
+                if(lv % 2 === 0) { skillPoints++; m = `LEVEL UP TO ${lv}!<br>Skill Point GET!!`; } else { m = `LEVEL UP TO ${lv}!!`; }
             } 
             res.innerHTML = m; 
         }
@@ -391,9 +388,51 @@
     function setBattleBtns(d) { document.getElementById('atk-btn').disabled=d; document.getElementById('magic-btn').disabled=d||!canUseMagic; document.getElementById('esc-btn').disabled=d; document.getElementById('item-open-btn').disabled=d; }
     function closeResult() { document.getElementById('res-screen').style.display='none'; resetBattle(); }
     function showBonus() { finish(true); document.getElementById('bonus-overlay').style.display='flex'; switchCamera('B'); }
-    function getBonusItem() { let id=Math.floor(Math.random()*9); const name=DB_ITEM[id]; library.I[id+200]={t:name, r:"NORMAL"}; if(inventory.length<5) inventory.push({n:name}); document.getElementById('bonus-overlay').style.display='none'; resetBattle(); save(); }
+    
+    // アイテム獲得時にIDを保存するように変更
+    function getBonusItem() { 
+        let id = Math.floor(Math.random() * DB_ITEM.length); 
+        const name = DB_ITEM[id]; 
+        const gid = 200 + id; 
+        library.I[gid] = {t: name, r: "NORMAL"}; 
+        if(inventory.length < 5) inventory.push({n: name, id: id}); 
+        document.getElementById('bonus-overlay').style.display = 'none'; 
+        resetBattle(); save(); 
+    }
+
     function openLibrary() { document.getElementById('lib-overlay').style.display='flex'; renderLib('W'); }
-    function openItemMenu() { const list=document.getElementById('item-list'); list.innerHTML=""; inventory.forEach((itm,i)=>{ const b=document.createElement('button'); b.style.cssText="width:90%;margin-bottom:10px;padding:12px;background:#008844;color:#fff;flex:none;"; b.innerText=itm.n; b.onclick=()=>{ php=Math.min(pMax,php+Math.floor(pMax*0.3)); inventory.splice(i,1); document.getElementById('item-overlay').style.display='none'; updateUI(); }; list.appendChild(b); }); document.getElementById('item-overlay').style.display='flex'; }
+
+    // アイテム効果を個別化
+    function openItemMenu() { 
+        const list = document.getElementById('item-list'); 
+        list.innerHTML = ""; 
+        inventory.forEach((itm, i) => { 
+            const b = document.createElement('button'); 
+            b.style.cssText = "width:90%;margin-bottom:10px;padding:12px;background:#008844;color:#fff;flex:none;"; 
+            b.innerText = itm.n; 
+            b.onclick = () => { 
+                useItem(itm.id, i);
+                document.getElementById('item-overlay').style.display = 'none'; 
+                updateUI(); 
+            }; 
+            list.appendChild(b); 
+        }); 
+        document.getElementById('item-overlay').style.display = 'flex'; 
+    }
+
+    function useItem(itemId, inventoryIndex) {
+        let healAmount = 0;
+        // ID 0-9 (200-209相当) は固定値回復
+        if (itemId >= 0 && itemId <= 9) {
+            healAmount = (itemId + 1) * 100;
+            php = Math.min(pMax, php + healAmount);
+            document.getElementById('msg').innerText = `${DB_ITEM[itemId]}を使用！\nHPが ${healAmount} 回復した！`;
+        }
+        
+        inventory.splice(inventoryIndex, 1);
+        save();
+    }
+
     window.onload = init;
 </script>
 </body>
