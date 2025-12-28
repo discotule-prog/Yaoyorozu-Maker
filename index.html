@@ -3,55 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER 6.2 - FIXED</title>
+    <title>MYTH SCANNER 6.3 - FULL FIXED</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
     <style>
         :root { --p-color: #00f2ff; --e-color: #ff3c00; --exp-color: #32ff32; --gold: #ffd700; --magic-purple: #9d4edd; --close-btn: #880000; --main-blue: #0044cc; --reset-red: #cc0000; }
         body { font-family: 'DotGothic16', sans-serif; background: #000; color: #fff; margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-        
         #header { height: 40px; background: #222; display: flex; justify-content: space-around; align-items: center; border-bottom: 2px solid #444; flex-shrink: 0; padding: 0 5px; }
         .head-btn { flex: 1; font-size: 0.55rem; height: 26px; border: 1px solid #fff; color: #fff; cursor: pointer; margin: 0 2px; white-space: nowrap; }
-        
         .char-area { height: 30%; display: flex; border-bottom: 1px solid #333; padding: 10px; box-sizing: border-box; }
         .cam-part { width: 35%; display: flex; align-items: center; justify-content: center; }
         .cam-frame { width: 90px; height: 90px; border: 2px solid #555; background: #111; overflow: hidden; position: relative; border-radius: 8px; }
         video { width: 100%; height: 100%; object-fit: cover; display: none; }
         .cam-active video { display: block !important; border-color: #0f0; }
-        
         .info-part { width: 65%; display: flex; flex-direction: column; padding-left: 10px; justify-content: center; }
         .visual-card { width: 100%; height: 75px; border: 2px solid #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #111; position: relative; border-radius: 4px; overflow: hidden; }
         .stat-text { font-size: 0.65rem; color: #ccc; margin-top: 2px; line-height: 1.2; }
-        
         .bar-container { width: 100%; margin-top: 4px; }
         .bar-bg { width: 100%; height: 8px; background: #222; border: 1px solid #666; position: relative; overflow: hidden; }
         .bar-fill { height: 100%; width: 0%; transition: width 0.4s ease-out; }
         .rarity-tag { position: absolute; top: 2px; right: 2px; font-size: 0.5rem; padding: 1px 3px; background: #fff; color: #000; font-weight: bold; }
         .elem-tag { position: absolute; top: 2px; left: 2px; font-size: 0.7rem; }
-        
         #mid-ui { height: 155px; background: #111; border-top: 2px solid #444; display: flex; flex-direction: column; align-items: center; padding: 5px; flex-shrink: 0; justify-content: center; }
         #msg { font-size: 0.75rem; color: #0f0; height: 40px; text-align: center; display: flex; align-items: center; padding: 0 10px; line-height: 1.2; white-space: pre-wrap; }
         .btn-row { display: flex; gap: 6px; width: 95%; justify-content: center; margin-bottom: 6px; }
-        
         button { flex: 1; height: 38px; font-family: 'DotGothic16'; border: 2px solid #fff; color: #fff; background: #444; font-size: 0.65rem; cursor: pointer; }
         button:disabled { opacity: 0.25; cursor: default; }
-
-        /* --- OVERLAYS FIX --- */
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 100; display: none; flex-direction: column; align-items: center; padding: 10px 15px; box-sizing: border-box; overflow-y: auto; }
         .ov-content-wrapper { width: 100%; display: flex; flex-direction: column; align-items: center; min-height: min-content; padding-bottom: 20px; }
-        .ov-btn-red { background: var(--close-btn) !important; width: 95% !important; margin-top: 15px; flex:none; height:40px; border:none; color:#fff; flex-shrink: 0; }
-        
-        /* SKILL ITEM - COMPACT 1 COLUMN */
+        .ov-btn-red { background: var(--close-btn) !important; width: 95% !important; margin-top: 15px; flex:none; height:40px; border:none; color:#fff; }
         #skill-list { width: 100%; display: flex; flex-direction: column; gap: 4px; }
         .skill-item { width: 100%; background: #222; border: 1px solid #444; padding: 2px 10px; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box; height: 32px; border-radius: 4px; }
         .skill-name-text { font-size: 0.6rem; color: #fff; }
         .skill-up-btn { width: 55px !important; height: 24px !important; font-size: 0.5rem !important; background: #444; padding: 0 !important; line-height: 24px; flex: none; }
-
         .lib-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; padding: 10px 0; }
         .lib-slot { min-height: 60px; background: #222; border: 1px solid #444; display: flex; align-items: center; justify-content: center; padding: 4px; text-align: center; font-size: 0.55rem; cursor: pointer; }
         .lib-slot.found { border-color: var(--p-color); background: #333; color: #fff; }
-        
         #detail-pop { position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#111; border:2px solid var(--p-color); padding:20px; z-index:200; width:75%; display:none; border-radius:12px; }
         .det-row { display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding: 8px 0; font-size: 0.8rem; }
         .shake { animation: s 0.2s; } @keyframes s { 0%,100%{transform:translateX(0)} 25%{transform:translateX(5px)} 75%{transform:translateX(-5px)} }
@@ -114,53 +102,12 @@
 </div>
 
 <div id="magic-overlay" class="overlay"><div class="ov-content-wrapper"><h2 style="color:var(--magic-purple);">MAGIC SELECT</h2><div id="magic-list" style="width:100%;"></div><button class="ov-btn-red" onclick="this.closest('.overlay').style.display='none'">CLOSE</button></div></div>
-
-<div id="skill-overlay" class="overlay">
-    <div class="ov-content-wrapper">
-        <h2 style="color:var(--gold); margin-bottom:5px;">SKILL UP</h2>
-        <div id="skill-points-display" style="color:var(--gold); margin-bottom:10px; font-size:1rem; font-weight:bold;">POINTS: 0</div>
-        <div id="skill-list"></div>
-        <button class="ov-btn-red" onclick="this.closest('.overlay').style.display='none'">CLOSE</button>
-    </div>
-</div>
-
-<div id="lib-overlay" class="overlay">
-    <div class="ov-content-wrapper">
-        <h2>COLLECTION</h2>
-        <div style="display:flex; gap:5px; margin-bottom:5px; width:95%;">
-            <button onclick="renderLib('W')">WPN</button><button onclick="renderLib('M')">MON</button><button onclick="renderLib('I')">ITM</button>
-        </div>
-        <div id="lib-grid" class="lib-grid"></div>
-        <button class="ov-btn-red" onclick="this.closest('.overlay').style.display='none'">CLOSE</button>
-    </div>
-</div>
-
-<div id="item-overlay" class="overlay">
-    <div class="ov-content-wrapper">
-        <h2>BAG</h2>
-        <div id="item-list" style="width:100%;"></div>
-        <button class="ov-btn-red" onclick="this.closest('.overlay').style.display='none'">CLOSE</button>
-    </div>
-</div>
-
-<div id="detail-pop">
-    <h3 id="det-name" style="color:var(--p-color); margin-top:0;">NAME</h3>
-    <div class="det-row"><span style="color:#aaa;">RARE</span><span id="det-rare"></span></div>
-    <div class="det-row"><span id="det-sub-label" style="color:#aaa;">TYPE</span><span id="det-sub-value"></span></div>
-    <button class="ov-btn-red" style="width:100% !important;" onclick="document.getElementById('detail-pop').style.display='none'">CLOSE</button>
-</div>
-
-<div id="res-screen" class="overlay" style="justify-content:center;">
-    <h1 id="res-title" style="font-size:3rem; margin:0;"></h1>
-    <div id="res-stats" style="background:#222; padding:15px; border:2px solid #fff; margin:10px 0; width:85%; font-size:0.75rem; text-align:center;"></div>
-    <button style="background:var(--main-blue); width:95%; height:40px; border:none; color:#fff;" onclick="closeResult()">CONTINUE</button>
-</div>
-
-<div id="bonus-overlay" class="overlay">
-    <h2 style="color:var(--gold);">ITEM SCAN</h2>
-    <div class="cam-frame" style="width:150px; height:150px;"><video id="bv" autoplay playsinline muted></video></div>
-    <button id="get-item-btn" style="background:var(--main-blue); width:95%; height:40px; border:none; color:#fff; margin-top:20px;" onclick="getBonusItem()">GET ITEM</button>
-</div>
+<div id="skill-overlay" class="overlay"><div class="ov-content-wrapper"><h2 style="color:var(--gold); margin-bottom:5px;">SKILL UP</h2><div id="skill-points-display" style="color:var(--gold); margin-bottom:10px; font-size:1rem; font-weight:bold;">POINTS: 0</div><div id="skill-list"></div><button class="ov-btn-red" onclick="this.closest('.overlay').style.display='none'">CLOSE</button></div></div>
+<div id="lib-overlay" class="overlay"><div class="ov-content-wrapper"><h2>COLLECTION</h2><div style="display:flex; gap:5px; margin-bottom:5px; width:95%;"><button onclick="renderLib('W')">WPN</button><button onclick="renderLib('M')">MON</button><button onclick="renderLib('I')">ITM</button></div><div id="lib-grid" class="lib-grid"></div><button class="ov-btn-red" onclick="this.closest('.overlay').style.display='none'">CLOSE</button></div></div>
+<div id="item-overlay" class="overlay"><div class="ov-content-wrapper"><h2>BAG</h2><div id="item-list" style="width:100%;"></div><button class="ov-btn-red" onclick="this.closest('.overlay').style.display='none'">CLOSE</button></div></div>
+<div id="detail-pop"><h3 id="det-name" style="color:var(--p-color); margin-top:0;">NAME</h3><div class="det-row"><span style="color:#aaa;">RARE</span><span id="det-rare"></span></div><div class="det-row"><span id="det-sub-label" style="color:#aaa;">TYPE</span><span id="det-sub-value"></span></div><button class="ov-btn-red" style="width:100% !important;" onclick="document.getElementById('detail-pop').style.display='none'">CLOSE</button></div>
+<div id="res-screen" class="overlay" style="justify-content:center;"><h1 id="res-title" style="font-size:3rem; margin:0;"></h1><div id="res-stats" style="background:#222; padding:15px; border:2px solid #fff; margin:10px 0; width:85%; font-size:0.75rem; text-align:center;"></div><button style="background:var(--main-blue); width:95%; height:40px; border:none; color:#fff;" onclick="closeResult()">CONTINUE</button></div>
+<div id="bonus-overlay" class="overlay"><h2 style="color:var(--gold);">ITEM SCAN</h2><div class="cam-frame" style="width:150px; height:150px;"><video id="bv" autoplay playsinline muted></video></div><button id="get-item-btn" style="background:var(--main-blue); width:95%; height:40px; border:none; color:#fff; margin-top:20px;" onclick="getBonusItem()">GET ITEM</button></div>
 
 <script>
     const DB_WEAPON = ["錆びた短剣","棒切れ","練習用の剣","皮のムチ","ブロンズナイフ","鉄の爪","ランス","木刀","兵士の剣","鋼鉄の長剣","銀のレイピア","剛弓","漆黒の短刀","守護者の大盾","魔法の杖","三叉矛","黄金の槌","ミスリルの小太刀","竜殺しの太刀","精霊の杖","聖剣エクスカリバー","魔剣グラム"];
@@ -171,26 +118,11 @@
         201: { name: "干し肉", rare: "NORMAL", type: "heal_fix", val: 80 },
         202: { name: "おにぎり", rare: "NORMAL", type: "heal_fix", val: 100 },
         203: { name: "サンドイッチ", rare: "NORMAL", type: "heal_fix", val: 120 },
-        204: { name: "エナジーバー", rare: "NORMAL", type: "heal_fix", val: 150 },
-        205: { name: "スポーツドリンク", rare: "NORMAL", type: "heal_fix", val: 180 },
-        206: { name: "チョコレート", rare: "NORMAL", type: "heal_fix", val: 200 },
-        207: { name: "漢方薬", rare: "NORMAL", type: "heal_fix", val: 250 },
-        208: { name: "特製お弁当", rare: "NORMAL", type: "heal_fix", val: 300 },
-        209: { name: "謎のキノコ", rare: "NORMAL", type: "heal_fix", val: 400 },
         210: { name: "ポーション", rare: "ELITE", type: "heal_fix", val: 600 },
-        211: { name: "ハイポーション", rare: "ELITE", type: "heal_fix", val: 1000 },
-        212: { name: "救急キット", rare: "ELITE", type: "heal_fix", val: 1500 },
-        213: { name: "万能薬", rare: "ELITE", type: "heal_fix", val: 2500 },
-        214: { name: "癒やしの香水", rare: "ELITE", type: "heal_per", val: 0.3 },
-        215: { name: "生命の粉塵", rare: "ELITE", type: "heal_per", val: 0.5 },
         216: { name: "エリクサー", rare: "LEGEND", type: "heal_per", val: 1.0 },
-        217: { name: "不死鳥の尾", rare: "LEGEND", type: "heal_per", val: 1.0 },
-        218: { name: "聖水", rare: "LEGEND", type: "heal_per", val: 1.0 },
-        219: { name: "神様の雫", rare: "LEGEND", type: "heal_per", val: 1.0 },
         220: { name: "火の粉", rare: "NORMAL", type: "dmg", elem: "🔥", val: 50 },
-        221: { name: "火炎瓶", rare: "NORMAL", type: "dmg", elem: "🔥", val: 100 },
+        221: { name: "火炎瓶", rare: "NORMAL", type: "dmg", elem: "🔥", val: 150 },
         260: { name: "煙玉", rare: "NORMAL", type: "escape" },
-        298: { name: "石", rare: "NORMAL", type: "stone", val: 10 },
         299: { name: "聖書", rare: "LEGEND", type: "bible" }
     };
 
@@ -278,14 +210,20 @@
         }, 1000);
     }
 
+    // --- ITEM FIX ---
     function useItem(gid, idx) {
         const item = DB_ITEM_FULL[gid];
         if(!item) return;
-        if(item.type === "heal_fix") php = Math.min(pMax, php + item.val);
-        else if(item.type === "escape") { resetBattle(); return; }
+        let m = `${item.name}を使用！\n`;
+        if(item.type === "heal_fix") { php = Math.min(pMax, php + item.val); m += `${item.val} 回復！`; }
+        else if(item.type === "heal_per") { php = Math.min(pMax, php + (pMax*item.val)); m += `全回復！`; }
+        else if(item.type === "dmg") { ehp -= item.val; m += `敵に ${item.val} ダメージ！`; }
+        else if(item.type === "escape") { document.getElementById('item-overlay').style.display='none'; resetBattle(); return; }
+        
+        document.getElementById('msg').innerText = m;
         inventory.splice(idx, 1); save(); updateUI();
         document.getElementById('item-overlay').style.display='none';
-        enemyTurn();
+        if(ehp <= 0) setTimeout(showBonus, 1000); else setTimeout(enemyTurn, 1000);
     }
 
     function openItemMenu() {
@@ -305,8 +243,13 @@
     function getBonusItem() {
         const pool = Object.keys(DB_ITEM_FULL);
         const gid = parseInt(pool[Math.floor(Math.random() * pool.length)]);
-        library.I[gid] = { t: DB_ITEM_FULL[gid].name, r: DB_ITEM_FULL[gid].rare };
+        const itm = DB_ITEM_FULL[gid];
+        library.I[gid] = { t: itm.name, r: itm.rare };
         if(inventory.length < 8) inventory.push(gid);
+        
+        // メッセージを表示
+        alert(`${itm.name} を獲得した！`); 
+        
         document.getElementById('bonus-overlay').style.display = 'none';
         resetBattle(); save();
     }
@@ -315,7 +258,8 @@
     function renderLib(type) {
         const grid = document.getElementById('lib-grid'); grid.innerHTML = "";
         const offset = type==='W' ? 0 : type==='M' ? 100 : 200;
-        const max = type==='I' ? 100 : type==='M' ? 19 : 22;
+        // 表示数設定
+        const max = type==='W' ? DB_WEAPON.length : type==='M' ? DB_MONSTER.length : 100;
         for(let i=0; i<max; i++){
             const gid = offset + i; const data = library[type][gid];
             const slot = document.createElement('div'); slot.className = "lib-slot" + (data?" found":"");
@@ -330,45 +274,51 @@
         }
     }
 
+    // --- MAGIC FIX ---
     function openMagicMenu() {
         const list = document.getElementById('magic-list'); list.innerHTML = "";
         Object.keys(magicLv).forEach(k => { if(magicLv[k]>0){
             const m = MAGIC_INFO[k]; const btn = document.createElement('button');
             btn.style.cssText = "width:95%; background:#331144; color:#fff; padding:12px; margin:5px; height:auto; border:2px solid var(--magic-purple); flex:none;";
             btn.innerHTML = `<b>${m.s} ${m.n} Lv.${magicLv[k]}</b>`; 
-            btn.onclick = () => {
-                document.getElementById('magic-overlay').style.display = 'none';
-                let dmg=Math.floor(eMax*(magicLv[k]*0.15)); ehp-=dmg; 
-                document.getElementById('msg').innerText=`${m.s}${m.n}！${dmg}ダメ！`;
-                updateUI(); setTimeout(()=>ehp<=0?showBonus():enemyTurn(), 1000);
-            };
+            btn.onclick = () => castMagic(k);
             list.appendChild(btn);
         }});
         document.getElementById('magic-overlay').style.display = 'flex';
     }
 
-    /* --- SKILL MENU FIXED --- */
-    function openSkillMenu() {
-        document.getElementById('skill-overlay').style.display='flex'; 
-        renderSkillList();
+    function castMagic(key) {
+        document.getElementById('magic-overlay').style.display = 'none';
+        const m = MAGIC_INFO[key];
+        const mLv = magicLv[key];
+        let msg = `${m.s}${m.n} Lv.${mLv}！\n`;
+        
+        if(key === 'H') { 
+            let h = Math.floor(pMax * (mLv * 0.2)); php = Math.min(pMax, php + h); 
+            msg += `${h} 回復した！`;
+        } else {
+            let d = Math.floor(eMax * (mLv * 0.15)); ehp -= d; 
+            msg += `敵に ${d} ダメージ！`;
+        }
+        
+        document.getElementById('msg').innerText = msg;
+        updateUI(); 
+        setTimeout(() => ehp <= 0 ? showBonus() : enemyTurn(), 1000);
     }
 
+    function openSkillMenu() { document.getElementById('skill-overlay').style.display='flex'; renderSkillList(); }
     function renderSkillList() {
         const list = document.getElementById('skill-list'); list.innerHTML = "";
-        const ptsDisp = document.getElementById('skill-points-display');
-        ptsDisp.innerText = `SP: ${skillPoints}`;
-        
+        document.getElementById('skill-points-display').innerText = `SP: ${skillPoints}`;
         Object.keys(magicLv).forEach(k => {
             const m = MAGIC_INFO[k]; const cur = magicLv[k];
             const div = document.createElement('div'); div.className = "skill-item";
             div.innerHTML = `<div class="skill-name-text">${m.s} ${m.n} <span style="color:var(--p-color)">Lv.${cur}</span></div>`;
-            const up = document.createElement('button'); 
-            up.className = "skill-up-btn";
+            const up = document.createElement('button'); up.className = "skill-up-btn";
             up.innerText = cur===0?"習得":"UP";
             up.disabled = (skillPoints <= 0 || cur >= 5);
             up.onclick = () => { skillPoints--; magicLv[k]++; save(); renderSkillList(); updateUI(); };
-            div.appendChild(up); 
-            list.appendChild(div);
+            div.appendChild(up); list.appendChild(div);
         });
     }
 
