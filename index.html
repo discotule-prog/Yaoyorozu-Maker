@@ -265,9 +265,9 @@ let lv=1, exp=0, php=1000, pMax=1000, patk=0, pdef=0, pelem="", inventory=[], sk
 let magicLv = {H:1, F:0, W:0, L:0, G:0, B:0, K:0, S:0, R:0};
 let net, mode="W", ehp=0, eMax=0, eatk=0, edef=0, eelem="", isLucky=false, isSureHit=false, isPerfectEvasion=false;
 let fieldEffect = null, trapTimer = 0, stream = null;
-let startHP, startAtk, startDef, startEHP; // 砂時計用
+let startHP, startAtk, startDef, startEHP;
 let library = JSON.parse(localStorage.getItem('myth_v6_lib')) || { W: {}, M: {}, I: {} };
-let hasUsedItemThisTurn = false; // 今のターンにアイテムを使ったか
+let hasUsedItemThisTurn = false;
 let magicUsedThisBattle = { H:false, F:false, W:false, L:false, G:false, B:false, K:false, S:false, R:false };
 
 const MAGIC_INFO = {
