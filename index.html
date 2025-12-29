@@ -140,10 +140,9 @@
 </div>
 
 <script>
-    const DB_WEAPON = ["錆びた短剣","棒切れ","練習用の剣","皮のムチ","ブロンズナイフ","鉄の爪","ランス","木刀","兵士の剣","鋼鉄の長剣","銀のレイピア","剛弓","漆黒の短刀","守護者の大盾","魔法の杖","三叉矛","黄金の槌","ミスリルの小太刀","竜殺しの太刀","精霊の杖","聖剣エクスカリバー","魔剣グラム"];
+const DB_WEAPON = ["錆びた短剣","棒切れ","練習用の剣","皮のムチ","ブロンズナイフ","鉄の爪","ランス","木刀","兵士の剣","鋼鉄の長剣","銀のレイピア","剛弓","漆黒の短刀","守護者の大盾","魔法の杖","三叉矛","黄金の槌","ミスリルの小太刀","竜殺しの太刀","精霊の杖","聖剣エクスカリバー","魔剣グラム"];
     const DB_MONSTER = ["スライム","ゴブリン","スケルトン","野良犬","巨大クモ","ウィスプ","ゾンビ","オーク","デスナイト","ケルベロス","キマイラ","ミミック","デーモン","ゴーレム","ヒュドラ","クラーケン","フェニックス","古龍","魔王サタン"];
 
-    // CSVデータそのままの定義 (ID 200〜299)
     const DB_ITEM_FULL = {
         200: {name:"非常食", rare:"NORMAL", type:"HP RECOVERY", val:100, mode:"fix"},
         201: {name:"パン", rare:"NORMAL", type:"HP RECOVERY", val:200, mode:"fix"},
@@ -208,7 +207,7 @@
         260: {name:"煙玉", rare:"NORMAL", type:"ESCAPE", eff:"escape"},
         261: {name:"幸運の磁石", rare:"LEGEND", type:"LUCKY ITEM", eff:"none"},
         262: {name:"不思議な砂時計", rare:"LEGEND", type:"TIME LOOP", eff:"extra"},
-        263: {name:"ゾーンの心得", rare:"ELITE", type:"ATK FLAG", eff:"m_rec"}, // 効果：必中
+        263: {name:"ゾーンの心得", rare:"ELITE", type:"ATK FLAG", eff:"m_rec"}, 
         264: {name:"ボクサーシューズ", rare:"ELITE", type:"DFE FLAG", eff:"atk_up"},
         265: {name:"赤いマント", rare:"ELITE", type:"ATTRIBUTE CHANGE", eff:"fire_change"},
         266: {name:"青い腕輪", rare:"ELITE", type:"ATTRIBUTE CHANGE", eff:"water_change"},
@@ -250,48 +249,43 @@
     const ELEMENTS = { "🔥": "🌿", "🌿": "⚡", "⚡": "💧", "💧": "🔥" };
     const MAGIC_INFO = { H:{n:"HEAL",s:"✨"},F:{n:"FIRE",s:"🔥"},W:{n:"AQUA",s:"💧"},L:{n:"ELEC",s:"⚡"},G:{n:"LEAF",s:"🌿"},B:{n:"BRAK",s:"🛡️⬇️"},K:{n:"WEAK",s:"⚔️⬇️"},S:{n:"SEAL",s:"🛡️⬆️"},R:{n:"BRAV",s:"⚔️⬆️"} };
 
-    let lv=1, exp=0, php=1000, pMax=1000, patk=0, pdef=0, pelem="", inventory=[], skillPoints=0, isLucky = false; 
-// ↑ 最後にまとめてセミコロン「;」を置くのが正解です
-    let startHP, startAtk, startDef, startEHP; // ここで宣言することで全ての関数で共有できる
-    let isSureHit = false; // 必中フラグ
-    let isPerfectEvasion = false; // ★追加：完全回避フラグ
-    let magicLv = {H:1, F:0, W:0, L:0, G:0, B:0, K:0, S:0, R:0}; // Hを1に初期化
-    let net, mode="W", ehp=0, eMax=0, eatk=0, edef=0, eelem="", stream=null, canUseMagic=true;
+    // グローバル変数
+    let lv=1, exp=0, php=1000, pMax=1000, patk=0, pdef=0, pelem="", inventory=[], skillPoints=0;
+    let magicLv = {H:1, F:0, W:0, L:0, G:0, B:0, K:0, S:0, R:0};
+    let net, mode="W", ehp=0, eMax=0, eatk=0, edef=0, eelem="", isLucky=false, isSureHit=false, isPerfectEvasion=false;
     let fieldEffect = null, trapTimer = 0;
     let library = JSON.parse(localStorage.getItem('myth_v6_lib')) || { W: {}, M: {}, I: {} };
 
-  async function init() {
-    console.log("System Initializing...");
-    const saved = JSON.parse(localStorage.getItem('myth_v6_save'));
-    
-    // データの読み込み
-    if(saved) {
-        lv = saved.lv || 1; 
-        exp = saved.exp || 0; 
-        pMax = saved.pMax || 1000; 
-        magicLv = saved.magicLv || {H:1, F:0, W:0, L:0, G:0, B:0, K:0, S:0, R:0};
-        skillPoints = saved.skillPoints || 0;
-        inventory = saved.inventory || []; 
-        php = pMax;
-    } else {
-        lv = 1; exp = 0; pMax = 1000;
-        magicLv = {H:1, F:0, W:0, L:0, G:0, B:0, K:0, S:0, R:0};
-        skillPoints = 0; inventory = []; php = pMax;
-    }
-
-    try { 
-        // 1. まずUIを更新
-        updateUI();
-
-        // 2. AIモデルのロード（ここが重い）
-        document.getElementById('init-msg').innerText = "LOADING AI MODEL...";
-        net = await mobilenet.load(); 
+    // 初期化関数
+    async function init() {
+        console.log("System Initializing...");
+        const saved = JSON.parse(localStorage.getItem('myth_v6_save'));
         
-        // 3. カメラとボタンの準備
-        document.getElementById('scan-btn').disabled = false; 
-        document.getElementById('msg').innerText = "武器をスキャンしてください"; 
-        switchCamera('P'); 
+        if(saved) {
+            lv = saved.lv || 1; 
+            exp = saved.exp || 0; 
+            pMax = saved.pMax || 1000; 
+            magicLv = saved.magicLv || {H:1, F:0, W:0, L:0, G:0, B:0, K:0, S:0, R:0};
+            skillPoints = saved.skillPoints || 0;
+            inventory = saved.inventory || []; 
+            php = pMax;
+        }
 
+        try { 
+            updateUI();
+            document.getElementById('init-msg').innerText = "LOADING AI MODEL...";
+            net = await mobilenet.load(); 
+            document.getElementById('scan-btn').disabled = false; 
+            document.getElementById('msg').innerText = "武器をスキャンしてください"; 
+            switchCamera('P'); 
+        } catch (e) { 
+            console.error("Init Error:", e);
+            document.getElementById('msg').innerText = "AI ERROR: " + e.message; 
+        } finally {
+            const overlay = document.getElementById('init-overlay');
+            if (overlay) overlay.style.display = 'none';
+        }
+    }
     } catch (e) { 
         console.error("Initialization Error:", e);
         document.getElementById('msg').innerText = "AI ERROR: モデルの読み込みに失敗しました。"; 
