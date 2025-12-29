@@ -261,8 +261,10 @@
     let library = JSON.parse(localStorage.getItem('myth_v6_lib')) || { W: {}, M: {}, I: {} };
 
   async function init() {
+    console.log("System Initializing...");
     const saved = JSON.parse(localStorage.getItem('myth_v6_save'));
     
+    // データの読み込み
     if(saved) {
         lv = saved.lv || 1; 
         exp = saved.exp || 0; 
@@ -277,6 +279,31 @@
         skillPoints = 0; inventory = []; php = pMax;
     }
 
+    try { 
+        // 1. まずUIを更新
+        updateUI();
+
+        // 2. AIモデルのロード（ここが重い）
+        document.getElementById('init-msg').innerText = "LOADING AI MODEL...";
+        net = await mobilenet.load(); 
+        
+        // 3. カメラとボタンの準備
+        document.getElementById('scan-btn').disabled = false; 
+        document.getElementById('msg').innerText = "武器をスキャンしてください"; 
+        switchCamera('P'); 
+
+    } catch (e) { 
+        console.error("Initialization Error:", e);
+        document.getElementById('msg').innerText = "AI ERROR: モデルの読み込みに失敗しました。"; 
+    } finally {
+        // 4. 【最重要】成功しても失敗しても、最後に黒い画面を消す！
+        console.log("Cleaning up overlay...");
+        const overlay = document.getElementById('init-overlay');
+        if (overlay) {
+            overlay.style.display = 'none';
+        }
+    }
+}
     try { 
         // AIモデルのロード
         net = await mobilenet.load(); 
