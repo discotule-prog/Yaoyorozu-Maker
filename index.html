@@ -155,7 +155,6 @@
 </div>
 
 <script>
-     alert("Script Start!"); // ← これを追加
 const DB_WEAPON = ["錆びた短剣","棒切れ","練習用の剣","皮のムチ","ブロンズナイフ","鉄の爪","ランス","木刀","兵士の剣","鋼鉄の長剣","銀のレイピア","剛弓","漆黒の短刀","守護者の大盾","魔法の杖","三叉矛","黄金の槌","ミスリルの小太刀","竜殺しの太刀","精霊の杖","聖剣エクスカリバー","魔剣グラム"];
 const DB_MONSTER = ["スライム","ゴブリン","スケルトン","野良犬","巨大クモ","ウィスプ","ゾンビ","オーク","デスナイト","ケルベロス","キマイラ","ミミック","デーモン","ゴーレム","ヒュドラ","クラーケン","フェニックス","古龍","魔王サタン"];
 
@@ -266,6 +265,7 @@ const ELEMENTS = { "🔥": "🌿", "🌿": "⚡", "⚡": "💧", "💧": "🔥" 
 const MAGIC_INFO = { H:{n:"HEAL",s:"✨"},F:{n:"FIRE",s:"🔥"},W:{n:"AQUA",s:"💧"},L:{n:"ELEC",s:"⚡"},G:{n:"LEAF",s:"🌿"},B:{n:"BRAK",s:"🛡️⬇️"},K:{n:"WEAK",s:"⚔️⬇️"},S:{n:"SEAL",s:"🛡️⬆️"},R:{n:"BRAV",s:"⚔️⬆️"} };
 
 // --- グローバル変数 ---
+alert("Script Start!"); // ← これを追加
 let lv=1, exp=0, php=1000, pMax=1000, patk=0, pdef=0, pelem="", inventory=[], skillPoints=0;
 let magicLv = {H:1, F:0, W:0, L:0, G:0, B:0, K:0, S:0, R:0};
 let net, mode="W", ehp=0, eMax=0, eatk=0, edef=0, eelem="", isLucky=false, isSureHit=false, isPerfectEvasion=false;
@@ -1000,5 +1000,6 @@ function showBonus() {
 // もし上の変数宣言の下に init を書いたのであれば、
 // コードの「一番最後の行」はこれだけでOKです。
 
-init();
-    </script>
+window.onload = init;
+</script>
+</body>
