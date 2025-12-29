@@ -267,9 +267,20 @@ let net, mode="W", ehp=0, eMax=0, eatk=0, edef=0, eelem="", isLucky=false, isSur
 let fieldEffect = null, trapTimer = 0, stream = null;
 let startHP, startAtk, startDef, startEHP; // 砂時計用
 let library = JSON.parse(localStorage.getItem('myth_v6_lib')) || { W: {}, M: {}, I: {} };
-    let hasUsedItemThisTurn = false; // 今のターンにアイテムを使ったか
-    // 各魔法がこの戦闘で使われたかを管理
+let hasUsedItemThisTurn = false; // 今のターンにアイテムを使ったか
 let magicUsedThisBattle = { H:false, F:false, W:false, L:false, G:false, B:false, K:false, S:false, R:false };
+
+const MAGIC_INFO = {
+    H: { n: "ヒール", s: "✨" },
+    F: { n: "ファイア", s: "🔥" },
+    W: { n: "ウォーター", s: "💧" },
+    L: { n: "ライトニング", s: "⚡" },
+    G: { n: "ガイア", s: "🌿" },
+    K: { n: "カース", s: "💀" },
+    B: { n: "ブレイク", s: "⚔️" },
+    R: { n: "ブレイブ", s: "✊" },
+    S: { n: "シール", s: "🛡️" }
+};
 
 async function init() {
     console.log("System Initializing...");
