@@ -362,36 +362,26 @@ async function switchCamera(target) {
     }
 }
 
-// --- 全ての準備が整ったら実行 ---
-init();
-    // --- カメラ切り替え関数 (1つにまとめました) ---
+// --- カメラ切り替え関数 ---
 async function switchCamera(target) {
-    // 1. 既存のストリームを停止
     if(stream) { 
         stream.getTracks().forEach(t => t.stop()); 
         stream = null; 
     }
-    
-    // 2. OFFの場合は光を消して終了
     if(target === 'OFF') { 
         document.querySelectorAll('.cam-frame').forEach(f => f.classList.remove('cam-active')); 
         return; 
     }
-    
-    // 3. ターゲットのID取得
     const vId = {P:'pv', E:'ev', B:'bv'}[target];
     const videoElem = document.getElementById(vId);
     if(!videoElem) return;
 
     try {
-        // 4. カメラ起動
         stream = await navigator.mediaDevices.getUserMedia({
             video: { facingMode: "environment" },
             audio: false
         });
         videoElem.srcObject = stream;
-
-        // 5. 枠の表示切り替え
         document.querySelectorAll('.cam-frame').forEach(f => f.classList.remove('cam-active'));
         videoElem.parentElement.classList.add('cam-active');
     } catch(e) { 
@@ -400,9 +390,29 @@ async function switchCamera(target) {
     }
 }
 
-// --- 全ての準備が整ったら最後に1回だけ実行 ---
+// --- スキャン処理 ---
+async function handleScan() {
+    const vid = (mode === "W") ? document.getElementById('pv') : document.getElementById('ev');
+    let id;
+    try {
+        const r = await net.classify(vid);
+        // AIの確率をIDに変換
+        id = Math.floor(r[0].className.length * 7 + r[0].probability * 100) % 100;
+    } catch (e) {
+        id = Math.floor(Math.random() * 100);
+    }
+
+    const rare = id >= 95 ? "LEGEND" : id >= 75 ? "ELITE" : "NORMAL";
+    
+    // この後に武器なら武器登録、モンスターなら戦闘開始の処理が続きます
+    // いったんログに出して動作確認
+    console.log("スキャン完了:", rare, "ID:", id);
+    document.getElementById('msg').innerText = `スキャン完了！\nレア度: ${rare} (ID: ${id})`;
+}
+
+// --- 全ての関数の定義が終わってから、最後に1回だけ実行！ ---
 init();
-   async function handleScan() {
+    async function handleScan() {
     const vid = mode === "W" ? document.getElementById('pv') : document.getElementById('ev');
     let id;
     try {
