@@ -37,6 +37,17 @@
         .lib-slot.found { border-color: var(--p-color); background: #333; color: #fff; }
         #detail-pop { position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#111; border:2px solid var(--p-color); padding:20px; z-index:200; width:75%; display:none; border-radius:12px; }
         .det-row { display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding: 8px 0; font-size: 0.8rem; }
+    /* 画面を揺らすアニメーション */
+.shake {
+    animation: shake-anim 0.3s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+@keyframes shake-anim {
+    10%, 90% { transform: translate3d(-2px, 0, 0); }
+    20%, 80% { transform: translate3d(3px, 0, 0); }
+    30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+    40%, 60% { transform: translate3d(6px, 0, 0); }
+}
     </style>
 </head>
 <body>
@@ -407,13 +418,31 @@ async function handleScan() {
     updateUI();
 }
 
-// --- 攻撃処理 ---
+// 1. 揺れを実行する関数を追加
+function applyShake() {
+    const gameBody = document.body;
+    gameBody.classList.add('shake');
+    // アニメーションが終わる0.3秒後にクラスを削除（次にまた揺らせるようにする）
+    setTimeout(() => {
+        gameBody.classList.remove('shake');
+    }, 300);
+
+    // スマホ本体を振動させる（Androidなど対応端末のみ）
+    if (navigator.vibrate) {
+        navigator.vibrate(100); 
+    }
+}
+
+// 2. 攻撃関数を修正（applyShakeを呼び出す）
 function handleAttack() {
     if(typeof setBattleBtns === 'function') setBattleBtns(true); 
     let msg = "";
     let isHit = isSureHit || Math.random() > 0.15;
 
     if (isHit) {
+        // --- ★ ここで振動を実行！ ---
+        if(typeof applyShake === 'function') applyShake(); 
+
         // 弱点属性なら1.5倍
         const isWeak = ELEMENTS[pelem] === eelem;
         let dmg = Math.floor(Math.max(50, (patk * (isWeak ? 1.5 : 1)) - (edef * 0.2)));
@@ -429,10 +458,12 @@ function handleAttack() {
         msg = "💨 攻撃はかわされた！";
     }
 
+    // 後片付けとUI更新
     isSureHit = false; 
     document.getElementById('msg').innerText = msg;
     updateUI();
 
+    // 1秒後に次の行動（勝利 or 敵のターン）へ
     setTimeout(() => {
         if (ehp <= 0) {
             if(typeof showBonus === 'function') showBonus();
@@ -441,7 +472,6 @@ function handleAttack() {
         }
     }, 1000);
 }
-
 // --- UI更新 ---
 function updateUI() {
     document.getElementById('p-lv').innerText = lv;
@@ -459,42 +489,45 @@ function updateUI() {
 function enemyTurn() {
     // 1. 罠（トラップ）の判定
     if (trapTimer > 0) {
-        trapTimer--; // 罠の残りターンを減らす
-        if (Math.random() < 0.5) { // 50%で拘束成功
+        trapTimer--; 
+        if (Math.random() < 0.5) { 
             document.getElementById('msg').innerText = "敵は罠にかかって動けない！";
             setTimeout(() => { 
                 document.getElementById('msg').innerText = "あなたのターン"; 
                 setBattleBtns(false); 
             }, 1000);
-            return; // 罠にかかったらここで攻撃終了
+            return; 
         }
     }
 
     document.getElementById('msg').innerText = "敵の攻撃！";
 
     setTimeout(() => {
-        // 2. 完全回避（ボクサーシューズ）の判定
+        // 2. 完全回避の判定
         if (isPerfectEvasion) {
             document.getElementById('msg').innerText = "💨 ボクサーシューズで華麗に回避！";
-            isPerfectEvasion = false; // フラグを消費
+            isPerfectEvasion = false; 
 
             setTimeout(() => { 
                 document.getElementById('msg').innerText = "あなたのターン"; 
                 setBattleBtns(false); 
             }, 1000);
-            return; // 回避したらここでダメージ処理を飛ばして終了
+            return; 
         }
 
-        // 3. 通常のダメージ計算
+        // 3. 通常のダメージ処理
+        // ★ここで振動を実行！（プレイヤーがダメージを受ける瞬間）
+        if(typeof applyShake === 'function') applyShake(); 
+
         let dmg = Math.floor(Math.max(40, eatk - (pdef * 0.2))); 
-        php -= dmg;
+        php = Math.max(0, php - dmg); // HPがマイナスにならないよう調整
         document.getElementById('msg').innerText = `⚠️ ${dmg} ダメージ受けた！`;
         
-        updateUI(); // HPバーなどの表示を更新
+        updateUI(); 
 
         setTimeout(() => { 
             if (php <= 0) {
-                finish(false); // プレイヤー死亡
+                finish(false); 
             } else { 
                 document.getElementById('msg').innerText = "あなたのターン"; 
                 setBattleBtns(false); 
