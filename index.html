@@ -873,11 +873,14 @@ function showBonus() {
         alert(`LEVEL UP! LV.${lv}\nスキルポイントを 1 獲得！`);
     }
     
-    updateUI();
+   updateUI();
     document.getElementById('bonus-overlay').style.display = 'flex';
     switchCamera('B');
     document.getElementById('msg').innerText = "敵を倒した！アイテムスキャン！";
 }
 
-// 最後にゲームを起動させる命令
+// ここに init 関数の中身がどこかにあるはずですが、
+// もし上の変数宣言の下に init を書いたのであれば、
+// コードの「一番最後の行」はこれだけでOKです。
+
 init();
