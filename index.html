@@ -257,35 +257,56 @@ let fieldEffect = null, trapTimer = 0, stream = null;
 let startHP, startAtk, startDef, startEHP; // 砂時計用
 let library = JSON.parse(localStorage.getItem('myth_v6_lib')) || { W: {}, M: {}, I: {} };
 
-// --- 初期化関数 ---
 async function init() {
     console.log("System Initializing...");
+    
+    // 1. まずデフォルト値を設定（セーブデータがなくても動くように）
+    lv = 1; exp = 0; pMax = 1000;
+    magicLv = {H:1, F:0, W:0, L:0, G:0, B:0, K:0, S:0, R:0};
+    skillPoints = 0; inventory = [];
+
+    // 2. セーブデータがあれば上書き
     const saved = JSON.parse(localStorage.getItem('myth_v6_save'));
     if(saved) {
-        lv = saved.lv || 1; exp = saved.exp || 0; pMax = saved.pMax || 1000;
+        lv = saved.lv || 1; 
+        exp = saved.exp || 0; 
+        pMax = saved.pMax || 1000;
         magicLv = saved.magicLv || {H:1, F:0, W:0, L:0, G:0, B:0, K:0, S:0, R:0};
-        skillPoints = saved.skillPoints || 0; inventory = saved.inventory || [];
-        php = pMax;
+        skillPoints = saved.skillPoints || 0; 
+        inventory = saved.inventory || [];
     }
+    
+    // HPを最大値にセット（これは必ず実行する）
+    php = pMax;
+
     try {
+        // UIを一旦表示
         updateUI();
+        
         const msgBox = document.getElementById('init-msg');
         if(msgBox) msgBox.innerText = "LOADING AI MODEL...";
         
+        // AIモデルの読み込み
         net = await mobilenet.load();
         
+        // 読み込み完了後の処理
         document.getElementById('scan-btn').disabled = false;
         document.getElementById('msg').innerText = "武器をスキャンしてください";
+        
+        // カメラ起動
         await switchCamera('P');
+        
     } catch (e) {
         console.error("Init Error:", e);
-        document.getElementById('msg').innerText = "AI ERROR: " + e.message;
+        // エラーが起きたらメッセージを表示
+        const msgElement = document.getElementById('msg');
+        if(msgElement) msgElement.innerText = "AI ERROR: " + e.message;
     } finally {
+        // 成功しても失敗しても、初期化画面を消す
         const overlay = document.getElementById('init-overlay');
         if (overlay) overlay.style.display = 'none';
     }
 }
-
 // --- カメラ切り替え ---
 async function switchCamera(target) {
     if(stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
