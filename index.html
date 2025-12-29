@@ -561,25 +561,33 @@ function enemyTurn() {
     }
 
     function openLibrary() { document.getElementById('lib-overlay').style.display='flex'; renderLib('W'); }
-    function renderLib(type) {
-        const grid = document.getElementById('lib-grid'); grid.innerHTML = "";
-        const offset = type==='W' ? 0 : type==='M' ? 100 : 200;
-        const max = type==='I' ? 100 : type==='M' ? 19 : 22;
-        for(let i=0; i<max; i++){
-            const gid = offset + i; const data = library[type][gid];
-            const slot = document.createElement('div'); slot.className = "lib-slot" + (data?" found":"");
-            slot.innerText = data ? data.t : "No." + gid;
-            if(data) slot.onclick = () => {
+   function renderLib(type) {
+    const grid = document.getElementById('lib-grid'); 
+    grid.innerHTML = "";
+    const offset = type==='W' ? 0 : type==='M' ? 100 : 200;
+    const max = type==='I' ? 100 : type==='M' ? 19 : 22;
+
+    for(let i=0; i<max; i++){
+        const gid = offset + i; 
+        const data = library[type][gid];
+        const slot = document.createElement('div'); 
+        slot.className = "lib-slot" + (data ? " found" : "");
+        
+        // ★ここを追加：見つかっていれば名前、なければ番号を表示
+        slot.innerText = data ? data.t : "No." + gid;
+
+        if(data) {
+            slot.onclick = () => {
                 document.getElementById('det-name').innerText = data.t;
                 document.getElementById('det-rare').innerText = data.r;
                 document.getElementById('det-sub-label').innerText = type==='I'?"TYPE":"ELEMENT";
                 document.getElementById('det-sub-value').innerText = type==='I'?(DB_ITEM_FULL[gid]?DB_ITEM_FULL[gid].type:"-"):data.e;
                 document.getElementById('detail-pop').style.display = 'block';
             };
-            grid.appendChild(slot);
         }
+        grid.appendChild(slot);
     }
-
+}
     function updateUI() {
         document.getElementById('p-lv').innerText=lv; document.getElementById('p-hp-cur').innerText=Math.floor(php); 
         document.getElementById('p-hp-max').innerText=pMax; document.getElementById('p-atk-val').innerText=patk;
