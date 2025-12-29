@@ -867,21 +867,28 @@ function resetBattle() {
     switchCamera('P');
     updateUI();
 }
-
+// 勝利時のボーナス画面表示
 function showBonus() {
+    // 経験値計算（Lv100必要仕様に合わせるならここも調整）
     let gainExp = isLucky ? 50 : 10;
     exp += gainExp;
-    if(exp >= lv * 100) {
-        exp -= lv * 100;
+    
+    let nextExp = lv * 100;
+    if(exp >= nextExp) {
+        exp -= nextExp;
         lv++;
         skillPoints += 3;
         pMax += 100;
         php = pMax;
         alert("LEVEL UP!");
     }
+    
+    // UIを最新にしてからボーナス画面へ
+    updateUI();
     document.getElementById('bonus-overlay').style.display = 'flex';
-    switchCamera('B');
+    switchCamera('B'); // ボーナススキャン用にカメラ切り替え
     document.getElementById('msg').innerText = "敵を倒した！アイテムスキャン！";
 }
 
+// 最後にゲームを起動させる命令
 init();
