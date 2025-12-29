@@ -363,18 +363,45 @@ async function switchCamera(target) {
 }
 
 // --- 全ての準備が整ったら実行 ---
-init();    async function switchCamera(target) {
-        if(stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
-        if(target === 'OFF') { document.querySelectorAll('.cam-frame').forEach(f=>f.classList.remove('cam-active')); return; }
-        const vId = {P:'pv', E:'ev', B:'bv'}[target];
-        try {
-            stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
-            document.getElementById(vId).srcObject = stream;
-            document.querySelectorAll('.cam-frame').forEach(f=>f.classList.remove('cam-active'));
-            document.getElementById(vId).parentElement.classList.add('cam-active');
-        } catch(e) { console.error(e); }
+init();
+    // --- カメラ切り替え関数 (1つにまとめました) ---
+async function switchCamera(target) {
+    // 1. 既存のストリームを停止
+    if(stream) { 
+        stream.getTracks().forEach(t => t.stop()); 
+        stream = null; 
     }
+    
+    // 2. OFFの場合は光を消して終了
+    if(target === 'OFF') { 
+        document.querySelectorAll('.cam-frame').forEach(f => f.classList.remove('cam-active')); 
+        return; 
+    }
+    
+    // 3. ターゲットのID取得
+    const vId = {P:'pv', E:'ev', B:'bv'}[target];
+    const videoElem = document.getElementById(vId);
+    if(!videoElem) return;
 
+    try {
+        // 4. カメラ起動
+        stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "environment" },
+            audio: false
+        });
+        videoElem.srcObject = stream;
+
+        // 5. 枠の表示切り替え
+        document.querySelectorAll('.cam-frame').forEach(f => f.classList.remove('cam-active'));
+        videoElem.parentElement.classList.add('cam-active');
+    } catch(e) { 
+        console.error("Camera Error:", e);
+        document.getElementById('msg').innerText = "カメラの起動に失敗しました。";
+    }
+}
+
+// --- 全ての準備が整ったら最後に1回だけ実行 ---
+init();
    async function handleScan() {
     const vid = mode === "W" ? document.getElementById('pv') : document.getElementById('ev');
     let id;
