@@ -268,6 +268,8 @@ let fieldEffect = null, trapTimer = 0, stream = null;
 let startHP, startAtk, startDef, startEHP; // 砂時計用
 let library = JSON.parse(localStorage.getItem('myth_v6_lib')) || { W: {}, M: {}, I: {} };
     let hasUsedItemThisTurn = false; // 今のターンにアイテムを使ったか
+    // 各魔法がこの戦闘で使われたかを管理
+let magicUsedThisBattle = { H:false, F:false, W:false, L:false, G:false, B:false, K:false, S:false, R:false };
 
 async function init() {
     console.log("System Initializing...");
@@ -745,6 +747,16 @@ function handleEscape() {
 }
 
 function castMagic(type) {
+    // 1. 使用制限チェック
+    if (magicUsedThisBattle[type]) {
+        document.getElementById('msg').innerText = "その魔法はもう魔力が尽きている！";
+        return;
+    }
+    if (magicLv[type] <= 0) {
+        document.getElementById('msg').innerText = "その魔法はまだ習得していない！";
+        return;
+    }
+
     const mlv = magicLv[type];
     const info = MAGIC_INFO[type];
     let msg = `${info.s} ${info.n} Lv.${mlv} を唱えた！\n`;
@@ -752,12 +764,12 @@ function castMagic(type) {
 
     const magElem = (type === 'F' ? '🔥' : type === 'W' ? '💧' : type === 'L' ? '⚡' : type === 'G' ? '🌿' : null);
 
+    // 2. 魔法の効果計算
     if (type === 'H') {
         let healRate = mlv * 0.15;
         let healAmount = Math.floor(pMax * healRate);
         php = Math.min(pMax, php + healAmount);
         msg += `聖なる光が包み込む！\nHPが ${healAmount} (${Math.round(healRate * 100)}%) 回復した！`;
-        updateUI();
     } 
     else if (magElem) {
         let baseRate = mlv * 0.1;
@@ -784,32 +796,32 @@ function castMagic(type) {
         let dropRate = mlv * 0.1;
         let oldAtk = eatk;
         eatk = Math.floor(eatk * (1 - dropRate));
-        msg += `【弱体化】呪いの言葉が響く！\n敵の攻撃力が ${Math.round(dropRate * 100)}% 低下！\n(ATK: ${oldAtk} → ${eatk})`;
-        if (typeof applyShake === 'function') applyShake();
+        msg += `【弱体化】敵の攻撃力が ${Math.round(dropRate * 100)}% 低下！`;
     }
     else if (type === 'B') { 
         let dropRate = mlv * 0.1;
         let oldDef = edef;
         edef = Math.floor(edef * (1 - dropRate));
-        msg += `【防御破壊】防具が脆くなった！\n敵の防御力が ${Math.round(dropRate * 100)}% 低下！\n(DEF: ${oldDef} → ${edef})`;
-        if (typeof applyShake === 'function') applyShake();
+        msg += `【防御破壊】敵の防御力が ${Math.round(dropRate * 100)}% 低下！`;
     }
-    else if (type === 'R') { // BRAV: 自分の攻撃力アップ
+    else if (type === 'R') {
         let buffRate = mlv * 0.1;
         patk = Math.floor(patk * (1 + buffRate));
-        msg += `【勇猛】力が溢れ出す！\n自分の攻撃力が ${Math.round(buffRate * 100)}% 上昇した！`;
+        msg += `【勇猛】自分の攻撃力が ${Math.round(buffRate * 100)}% 上昇！`;
     }
-    else if (type === 'S') { // SEAL: 自分の防御力アップ
+    else if (type === 'S') {
         let buffRate = mlv * 0.1;
         pdef = Math.floor(pdef * (1 + buffRate));
-        msg += `【守護】鉄壁の構え！\n自分の防御力が ${Math.round(buffRate * 100)}% 上昇した！`;
+        msg += `【守護】自分の防御力が ${Math.round(buffRate * 100)}% 上昇！`;
     }
 
-    // 表示とUI更新（1回だけでOK）
+    // 3. 使用済みフラグを立てる
+    magicUsedThisBattle[type] = true;
+
+    // 4. UI更新とターン移行
     document.getElementById('msg').innerText = msg;
     updateUI();
 
-    // ターン移行処理
     setTimeout(() => {
         if (ehp <= 0) {
             if (typeof showBonus === 'function') showBonus();
@@ -817,7 +829,7 @@ function castMagic(type) {
             if (typeof enemyTurn === 'function') enemyTurn();
         }
     }, 1500);
-} // ← ここの閉じカッコで関数が終了します
+}
 
 // 魔法メニュー表示
 function openMagicMenu() {
