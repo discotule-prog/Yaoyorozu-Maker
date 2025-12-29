@@ -256,44 +256,47 @@
     let fieldEffect = null, trapTimer = 0;
     let library = JSON.parse(localStorage.getItem('myth_v6_lib')) || { W: {}, M: {}, I: {} };
 
-   async function init() {
-        const saved = JSON.parse(localStorage.getItem('myth_v6_save'));
-        
-        if(saved) {
-            // セーブデータがある場合
-            lv = saved.lv; 
-            exp = saved.exp || 0; 
-            pMax = saved.pMax; 
-            magicLv = saved.magicLv || {H:1, F:0, W:0, L:0, G:0, B:0, K:0, S:0, R:0};
-            skillPoints = saved.skillPoints;
-            inventory = saved.inventory || []; 
-            php = pMax;
-        } else {
-            // 完全新規プレイ時の初期化
-            lv = 1;
-            exp = 0;
-            pMax = 1000;
-            magicLv = {H:1, F:0, W:0, L:0, G:0, B:0, K:0, S:0, R:0};
-            skillPoints = 0;
-            inventory = [];
-            php = pMax;
-        }
-
-        // --- ここからは共通の処理（セーブデータの有無に関わらず必要） ---
-        try { 
-            // AIモデルのロード
-            net = await mobilenet.load(); 
-            document.getElementById('scan-btn').disabled = false; 
-            document.getElementById('msg').innerText = "武器をスキャンしてください"; 
-            
-            // カメラ起動とUI更新
-            switchCamera('P'); 
-            updateUI();
-        } catch (e) { 
-            document.getElementById('msg').innerText = "AI ERROR: " + e.message; 
-        }
+  async function init() {
+    const saved = JSON.parse(localStorage.getItem('myth_v6_save'));
+    
+    if(saved) {
+        lv = saved.lv || 1; 
+        exp = saved.exp || 0; 
+        pMax = saved.pMax || 1000; 
+        magicLv = saved.magicLv || {H:1, F:0, W:0, L:0, G:0, B:0, K:0, S:0, R:0};
+        skillPoints = saved.skillPoints || 0;
+        inventory = saved.inventory || []; 
+        php = pMax;
+    } else {
+        lv = 1; exp = 0; pMax = 1000;
+        magicLv = {H:1, F:0, W:0, L:0, G:0, B:0, K:0, S:0, R:0};
+        skillPoints = 0; inventory = []; php = pMax;
     }
 
+    try { 
+        // AIモデルのロード
+        net = await mobilenet.load(); 
+        document.getElementById('scan-btn').disabled = false; 
+        document.getElementById('msg').innerText = "武器をスキャンしてください"; 
+        
+        switchCamera('P'); 
+        updateUI();
+
+        // ★ここが重要！★ 
+        // 準備が終わったら「INITIALIZING...」の画面を消す
+        if (document.getElementById('init-overlay')) {
+            document.getElementById('init-overlay').style.display = 'none';
+        }
+
+    } catch (e) { 
+        console.error(e);
+        document.getElementById('msg').innerText = "AI ERROR: " + e.message; 
+        // エラーが起きても、とりあえず画面を消さないと何も操作できないので消す
+        if (document.getElementById('init-overlay')) {
+            document.getElementById('init-overlay').style.display = 'none';
+        }
+    }
+}
     async function switchCamera(target) {
         if(stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
         if(target === 'OFF') { document.querySelectorAll('.cam-frame').forEach(f=>f.classList.remove('cam-active')); return; }
@@ -718,25 +721,50 @@ function castMagic(type) {
     let msg = `${info.s} ${info.n} Lv.${mlv} を唱えた！\n`;
     document.getElementById('magic-overlay').style.display = 'none';
 
-    if (type === 'H') { // ヒール
+    // 属性アイコンの定義
+    const magElem = (type==='F'?'🔥':type==='W'?'💧':type==='L'?'⚡':type==='G'?'🌿':null);
+
+    if (type === 'H') {
+        // ヒールは固定値または最大HPの割合
         let heal = mlv * 200;
         php = Math.min(pMax, php + heal);
         msg += `HPが ${heal} 回復した！`;
-    } else if (['F','W','L','G'].includes(type)) { // 攻撃魔法
-        let baseDmg = mlv * 150;
-        let magElem = (type==='F'?'🔥':type==='W'?'💧':type==='L'?'⚡':type==='G'?'🌿':null);
-        if (magElem && ELEMENTS[magElem] === eelem) {
-            baseDmg = Math.floor(baseDmg * 2.0);
-            msg += "弱点を突いた！ ";
+    } 
+    else if (magElem) {
+        // 1. 基礎ダメージ率の計算 (Lv1=10%, Lv2=20%...)
+        let baseRate = mlv * 0.1;
+        let finalDmg = 0;
+
+        // 2. 相性判定
+        if (magElem === eelem) {
+            // 同じ属性：無効
+            finalDmg = 0;
+            msg += "効果がない！ダメージ 0！";
+        } 
+        else if (ELEMENTS[magElem] === eelem) {
+            // 有利な属性：1.5倍ダメージ
+            finalDmg = Math.floor(eMax * (baseRate * 1.5));
+            ehp = Math.max(0, ehp - finalDmg);
+            msg += `弱点を突いた！超強力な ${finalDmg} ダメージ！`;
+        } 
+        else if (ELEMENTS[eelem] === magElem) {
+            // 不利な属性：1.5倍回復（相手の弱点の逆）
+            let healAmount = Math.floor(eMax * (baseRate * 1.5));
+            ehp = Math.min(eMax, ehp + healAmount);
+            msg += `属性が最悪だ！敵のHPを ${healAmount} 回復させてしまった！`;
+        } 
+        else {
+            // 等倍（火→雷など）：そのまま
+            finalDmg = Math.floor(eMax * baseRate);
+            ehp = Math.max(0, ehp - finalDmg);
+            msg += `敵のHPを ${finalDmg} 削った！`;
         }
-        ehp = Math.max(0, ehp - baseDmg);
-        msg += `${baseDmg} のダメージ！`;
-    } else {
-        msg += "しかし、まだ効果が実装されていない！";
     }
 
     document.getElementById('msg').innerText = msg;
     updateUI();
+    
+    // 敵の死亡判定
     if (ehp <= 0) setTimeout(showBonus, 1000);
     else setTimeout(enemyTurn, 1000);
 }
