@@ -40,6 +40,10 @@
     </style>
 </head>
 <body>
+    <div id="init-overlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background:#000; color:#0f0; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:10000;">
+        <div style="font-size:1.5rem; margin-bottom:10px;">MYTH SCANNER 6.1</div>
+        <div id="init-msg" style="font-size:0.8rem;">INITIALIZING...</div>
+    </div>
 
 <div id="header">
     <button onclick="if(confirm('リセットしますか？')){localStorage.clear();location.reload();}" class="head-btn" style="background:var(--reset-red);">RESET</button>
