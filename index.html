@@ -328,66 +328,46 @@
     updateUI();
     }
 
-   function handleAttack() {
+function handleAttack() {
     setBattleBtns(true); 
     let msg = "";
     
-    // 通常は15%の確率で外れるが、必中フラグがあれば100%当たる
+    // 1. 命中判定（必中フラグまたは85%の確率で命中）
     let isHit = isSureHit || Math.random() > 0.15;
 
     if (isHit) {
+        // 2. ダメージ計算（弱点なら1.5倍）
         let dmg = Math.floor(Math.max(50, (patk * (ELEMENTS[pelem]===eelem?1.5:1)) - (edef*0.2)));
+        
         if (isSureHit) {
-            dmg = Math.floor(dmg * 1.5); // 必中時はダメージ1.5倍のボーナス！
+            dmg = Math.floor(dmg * 1.5); // 必中時はさらに1.5倍
             msg = `🎯 必中！急所を捉えた！ ${dmg} ダメージ！`;
         } else {
             msg = `💥 ${dmg} ダメージ！`;
         }
-        ehp -= dmg;
+        
+        // 3. 敵HPを減らす（0以下にはしない）
+        ehp = Math.max(0, ehp - dmg);
     } else {
         msg = "💨 攻撃はかわされた！";
     }
 
-    isSureHit = false; // 攻撃した後は（当たっても外れても）フラグを消す
+    // 4. フラグのリセットとメッセージ表示
+    isSureHit = false; 
     document.getElementById('msg').innerText = msg;
     
-    // ...このあと死んだかどうかの判定へ
-    }
+    // 5. UI更新（バーを動かす）
+    updateUI();
 
-    // 勝利時の処理（磁石の5倍判定はここで行う）
-    function showBonus() {
-        // 基本経験値の計算
-        let baseExp = Math.floor(50 * (1 + lv * 0.2)); 
-        
-        // 磁石を使っていたら5倍
-        let getExp = isLucky ? baseExp * 5 : baseExp;
-        exp += getExp;
-
-        let msg = `👾 敵を撃破した！\n${getExp} EXPを獲得！`;
-        if (isLucky) msg += "\n(幸運の磁石の効果で5倍！)";
-
-        // ★重要：使った後はフラグを戻す
-        isLucky = false; 
-
-        // レベルアップ判定
-        let nextLvExp = lv * 100;
-        if (exp >= nextLvExp) {
-            lv++;
-            exp -= nextLvExp;
-            skillPoints += 3;
-            pMax += 100; php = pMax;
-            msg += `\n✨ レベルアップ！ Lv.${lv}\nHP上限アップ & スキルPt+3`;
+    // 6. 次のターンへの移行（1秒待機）
+    setTimeout(() => {
+        if (ehp <= 0) {
+            showBonus(); // 敵が死んだら勝利処理へ
+        } else {
+            enemyTurn(); // 敵が生きていたら敵の反撃へ
         }
-
-        document.getElementById('msg').innerText = msg;
-        save();
-        updateUI();
-
-        // 勝利後、アイテム獲得画面（bonus-overlay）を表示
-        setTimeout(() => {
-            document.getElementById('bonus-overlay').style.display = 'flex';
-        }, 2000);
-    }
+    }, 1000);
+}
     
 
 function enemyTurn() {
