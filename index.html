@@ -307,9 +307,13 @@ async function init() {
         if (overlay) overlay.style.display = 'none';
     }
 }
-// --- カメラ切り替え ---
+
+    // --- カメラ切り替え ---
 async function switchCamera(target) {
-    if(stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+    if(stream) { 
+        stream.getTracks().forEach(t => t.stop()); 
+        stream = null; 
+    }
     if(target === 'OFF') {
         document.querySelectorAll('.cam-frame').forEach(f=>f.classList.remove('cam-active'));
         return;
@@ -317,22 +321,50 @@ async function switchCamera(target) {
     const vId = {P:'pv', E:'ev', B:'bv'}[target];
     const videoElem = document.getElementById(vId);
     if(!videoElem) return;
+
     try {
-        stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
+        // 設定を少し詳しく指定（iOS対策含む）
+        const constraints = {
+            video: { 
+                facingMode: "environment",
+                width: { ideal: 640 },
+                height: { ideal: 480 }
+            }
+        };
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+        videoElem.setAttribute('playsinline', true); // iOSで勝手に全画面になるのを防ぐ
         videoElem.srcObject = stream;
+        
+        // 映像の準備ができるまで待機
+        await new Promise((resolve) => {
+            videoElem.onloadedmetadata = () => {
+                videoElem.play();
+                resolve();
+            };
+        });
+
         document.querySelectorAll('.cam-frame').forEach(f=>f.classList.remove('cam-active'));
         videoElem.parentElement.classList.add('cam-active');
-    } catch(e) { console.error("Camera Error:", e); }
+    } catch(e) { 
+        console.error("Camera Error:", e);
+        alert("カメラが起動できません。設定を確認してください。");
+    }
 }
-
 // --- スキャン処理 ---
 async function handleScan() {
     const vid = (mode === "W") ? document.getElementById('pv') : document.getElementById('ev');
-    let id;
+    // ビデオが準備できていない（幅が0）場合は処理しない
+    if (!vid || vid.videoWidth === 0) {
+        alert("カメラの準備ができるまでお待ちください");
+        return;
+    }
+    let id; // ★ここで宣言しておくと安心です
     try {
         const r = await net.classify(vid);
+        // 分類結果からユニークなIDを生成
         id = Math.floor(r[0].className.length * 7 + r[0].probability * 100) % 100;
     } catch (e) {
+        // AIエラー時はランダムで代用
         id = Math.floor(Math.random() * 100);
     }
 
