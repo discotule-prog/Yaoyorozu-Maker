@@ -265,7 +265,8 @@ const ELEMENTS = { "🔥": "🌿", "🌿": "⚡", "⚡": "💧", "💧": "🔥" 
 const MAGIC_INFO = { H:{n:"HEAL",s:"✨"},F:{n:"FIRE",s:"🔥"},W:{n:"AQUA",s:"💧"},L:{n:"ELEC",s:"⚡"},G:{n:"LEAF",s:"🌿"},B:{n:"BRAK",s:"🛡️⬇️"},K:{n:"WEAK",s:"⚔️⬇️"},S:{n:"SEAL",s:"🛡️⬆️"},R:{n:"BRAV",s:"⚔️⬆️"} };
 
 // --- グローバル変数 ---
-alert("Script Start!"); // ← これを追加
+alert("Script Start!"); 
+
 let lv=1, exp=0, php=1000, pMax=1000, patk=0, pdef=0, pelem="", inventory=[], skillPoints=0;
 let magicLv = {H:1, F:0, W:0, L:0, G:0, B:0, K:0, S:0, R:0};
 let net, mode="W", ehp=0, eMax=0, eatk=0, edef=0, eelem="", isLucky=false, isSureHit=false, isPerfectEvasion=false;
@@ -287,38 +288,28 @@ const MAGIC_INFO = {
     S: { n: "シール", s: "🛡️" }
 };
 
+// --- 初期化 ---
 async function init() {
     console.log("System Initializing...");
     
-    // 1. デフォルト値の設定
-    lv = 1; exp = 0; pMax = 1000;
-    magicLv = {H:1, F:0, W:0, L:0, G:0, B:0, K:0, S:0, R:0};
-    skillPoints = 0; inventory = [];
-
-    // 2. セーブデータの上書き
-    const saved = JSON.parse(localStorage.getItem('myth_v6_save'));
-    if(saved) {
-        lv = saved.lv || 1; 
-        exp = saved.exp || 0; 
-        pMax = saved.pMax || 1000;
-        magicLv = saved.magicLv || {H:1, F:0, W:0, L:0, G:0, B:0, K:0, S:0, R:0};
-        skillPoints = saved.skillPoints || 0; 
-        inventory = saved.inventory || [];
-    }
+    // 値のセット
+    const saved = JSON.parse(localStorage.getItem('myth_v6_save')) || {};
+    lv = saved.lv || 1;
+    exp = saved.exp || 0;
+    pMax = saved.pMax || 1000;
     php = pMax;
+    magicLv = saved.magicLv || {H:1, F:0, W:0, L:0, G:0, B:0, K:0, S:0, R:0};
+    skillPoints = saved.skillPoints || 0;
+    inventory = saved.inventory || [];
 
     try {
-        updateUI();
+        if(typeof updateUI === 'function') updateUI();
         const msgBox = document.getElementById('init-msg');
         if(msgBox) msgBox.innerText = "LOADING AI MODEL...";
         
-        // AIモデルの読み込み
         net = await mobilenet.load();
         
-        // --- ここが修正ポイント ---
         if(msgBox) msgBox.innerText = "READY!";
-        
-        // 「START GAME」ボタンを表示させる
         const startBtn = document.getElementById('start-btn');
         if(startBtn) startBtn.style.display = 'block'; 
         
@@ -326,14 +317,11 @@ async function init() {
         console.error("Init Error:", e);
         const msgElement = document.getElementById('msg');
         if(msgElement) msgElement.innerText = "AI ERROR: " + e.message;
-        
-        // エラー時でもボタンを出して、再試行できるようにしておくと親切です
-        const startBtn = document.getElementById('start-btn');
-        if(startBtn) startBtn.style.display = 'block'; 
     }
-    // 注意：finally ブロックで overlay を消す処理は削除しました。
-    // 消す処理は、ボタンを押した時の startGame() 関数で行います。
 }
+
+// ページ読み込み完了時に実行
+window.onload = init;
 
 // 3. ボタンを押した時に実行される新しい関数（これも追加してください）
 async function startGame() {
