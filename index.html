@@ -249,16 +249,18 @@ const DB_ITEM_FULL = {
 const ELEMENTS = { "🔥": "🌿", "🌿": "⚡", "⚡": "💧", "💧": "🔥" };
 const MAGIC_INFO = { H:{n:"HEAL",s:"✨"},F:{n:"FIRE",s:"🔥"},W:{n:"AQUA",s:"💧"},L:{n:"ELEC",s:"⚡"},G:{n:"LEAF",s:"🌿"},B:{n:"BRAK",s:"🛡️⬇️"},K:{n:"WEAK",s:"⚔️⬇️"},S:{n:"SEAL",s:"🛡️⬆️"},R:{n:"BRAV",s:"⚔️⬆️"} };
 
-// グローバル変数
+// --- グローバル変数 ---
 let lv=1, exp=0, php=1000, pMax=1000, patk=0, pdef=0, pelem="", inventory=[], skillPoints=0;
 let magicLv = {H:1, F:0, W:0, L:0, G:0, B:0, K:0, S:0, R:0};
 let net, mode="W", ehp=0, eMax=0, eatk=0, edef=0, eelem="", isLucky=false, isSureHit=false, isPerfectEvasion=false;
-let fieldEffect = null, trapTimer = 0, stream=null;
+let fieldEffect = null, trapTimer = 0, stream = null;
 let library = JSON.parse(localStorage.getItem('myth_v6_lib')) || { W: {}, M: {}, I: {} };
 
+// --- 初期化関数 (ここが重要) ---
 async function init() {
     console.log("System Initializing...");
     const saved = JSON.parse(localStorage.getItem('myth_v6_save'));
+    
     if(saved) {
         lv = saved.lv || 1; 
         exp = saved.exp || 0; 
@@ -272,42 +274,95 @@ async function init() {
     try { 
         updateUI();
         document.getElementById('init-msg').innerText = "LOADING AI MODEL...";
+        
+        // AIモデルのロードを待機
         net = await mobilenet.load(); 
+        
         document.getElementById('scan-btn').disabled = false; 
         document.getElementById('msg').innerText = "武器をスキャンしてください"; 
-        switchCamera('P'); 
+        
+        await switchCamera('P'); 
+        
     } catch (e) { 
-        console.error("Init Error:", e);
+        console.error("Initialization Error:", e);
         document.getElementById('msg').innerText = "AI ERROR: " + e.message; 
     } finally {
+        // 成功しても失敗しても初期化オーバーレイを消す
         const overlay = document.getElementById('init-overlay');
         if (overlay) overlay.style.display = 'none';
     }
 }
 
-// 他の関数群（handleScan, updateUIなど）をこの下に書き足す
+// --- カメラ切り替え ---
+async function switchCamera(m) {
+    if(stream) stream.getTracks().forEach(t => t.stop());
+    const id = (m === 'P') ? 'pv' : (m === 'E') ? 'ev' : 'bv';
+    
+    document.querySelectorAll('video').forEach(v => v.parentElement.parentElement.classList.remove('cam-active'));
+    
+    const v = document.getElementById(id);
+    v.parentElement.parentElement.classList.add('cam-active');
+    
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({video: {facingMode: "environment"}, audio: false});
+        v.srcObject = stream;
+    } catch (err) {
+        console.error("Camera Error:", err);
+    }
+}
+
+// --- UI更新 ---
 function updateUI() {
     document.getElementById('p-lv').innerText = lv;
     document.getElementById('p-hp-cur').innerText = php;
     document.getElementById('p-hp-max').innerText = pMax;
-    document.getElementById('p-fill').style.width = (php/pMax*100) + "%";
-    document.getElementById('exp-text').innerText = `${exp} / ${lv*100}`;
-    document.getElementById('exp-fill').style.width = (exp/(lv*100)*100) + "%";
+    document.getElementById('p-fill').style.width = (php / pMax * 100) + "%";
+    
+    // 経験値バーの更新も追加（あれば）
+    if(document.getElementById('exp-fill')) {
+        document.getElementById('exp-text').innerText = `${exp} / ${lv * 100}`;
+        document.getElementById('exp-fill').style.width = (exp / (lv * 100) * 100) + "%";
+    }
+    
     document.getElementById('skill-menu-btn').innerText = `SKILL UP (${skillPoints})`;
 }
 
-// カメラ切り替え
-async function switchCamera(m) {
-    if(stream) stream.getTracks().forEach(t => t.stop());
-    const id = m==='P'?'pv':m==='E'?'ev':'bv';
-    document.querySelectorAll('video').forEach(v => v.parentElement.parentElement.classList.remove('cam-active'));
-    const v = document.getElementById(id);
-    v.parentElement.parentElement.classList.add('cam-active');
-    stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"},audio:false});
-    v.srcObject = stream;
+// --- カメラ切り替え関数 ---
+async function switchCamera(target) {
+    // 1. 既存のストリームを停止してメモリを解放
+    if(stream) { 
+        stream.getTracks().forEach(t => t.stop()); 
+        stream = null; 
+    }
+    
+    // 2. OFFの場合は枠の光を消して終了
+    if(target === 'OFF') { 
+        document.querySelectorAll('.cam-frame').forEach(f => f.classList.remove('cam-active')); 
+        return; 
+    }
+    
+    // 3. ターゲットに応じたビデオIDを取得
+    const vId = {P:'pv', E:'ev', B:'bv'}[target];
+    const videoElem = document.getElementById(vId);
+
+    try {
+        // 4. カメラ起動
+        stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "environment" },
+            audio: false
+        });
+        videoElem.srcObject = stream;
+
+        // 5. 枠の表示切り替え（光らせる）
+        document.querySelectorAll('.cam-frame').forEach(f => f.classList.remove('cam-active'));
+        videoElem.parentElement.classList.add('cam-active');
+    } catch(e) { 
+        console.error("Camera Error:", e);
+        document.getElementById('msg').innerText = "カメラの起動に失敗しました。";
+    }
 }
 
-// 最後に実行
+// --- 全ての準備が整ったら実行 ---
 init();    async function switchCamera(target) {
         if(stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
         if(target === 'OFF') { document.querySelectorAll('.cam-frame').forEach(f=>f.classList.remove('cam-active')); return; }
