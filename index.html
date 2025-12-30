@@ -226,8 +226,11 @@ function spawnEnemy(detectedName) {
 
     document.getElementById('msg').innerText = `${eName} が現れた！\nATTACKボタンで戦え！`;
     document.getElementById('atk-btn').disabled = false; 
+    
+    // ★ここを追加：逃げるボタンを有効にする
+    document.getElementById('esc-btn').disabled = false; 
 
-    // ★追加：戦闘開始時にSCANボタンを無効化する
+    // 戦闘開始時にSCANボタンを無効化する
     document.getElementById('scan-btn').disabled = true; 
 }
 
