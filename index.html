@@ -153,10 +153,29 @@
     <h2 style="color:var(--gold);">ITEM SCAN</h2>
     <div class="cam-frame" style="width:150px; height:150px;"><video id="bv" autoplay playsinline muted></video></div>
     <button id="get-item-btn" style="background:var(--main-blue); width:95%; height:40px; border:none; color:#fff; margin-top:20px;" onclick="getBonusItem()">GET ITEM</button>
-</div> <script>
-    // もしここに他の長いコード（init関数など）があるなら、それらもこの中に入れます
-    window.onload = init;
-</script>
+</div>
+<script>
+    // 1. まずこれが動くか確認
+    alert("Check 1: Script Loaded");
 
+    // 2. ボタンとメッセージを強制的に書き換えるテスト
+    window.onload = function() {
+        alert("Check 2: Window Loaded");
+        
+        // INITIALIZINGの文字を書き換えてみる
+        const msg = document.getElementById('init-msg');
+        if (msg) {
+            msg.innerText = "TEST SUCCESS!";
+            msg.style.color = "yellow";
+        }
+
+        // ボタンを強制的に表示してみる
+        const btn = document.getElementById('start-btn');
+        if (btn) {
+            btn.style.display = 'block';
+            btn.innerText = "CLICK ME";
+        }
+    };
+</script>
 </body>
 </html>
