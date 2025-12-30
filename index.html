@@ -237,14 +237,40 @@ function openMagicMenu() {
     document.getElementById('magic-overlay').style.display = 'flex';
 }
 
-function castMagic(k) {
-    magicUsedThisBattle[k] = true;
-    const mlv = magicLv[k];
+// --- 魔法システム（修正版） ---
+function castMagic(type) {
+    // 魔法を発動したら、この戦闘中「MAGICボタン」自体を封印するフラグを立てる
+    magicCommandUsed = true; 
+    
+    const mlv = magicLv[type];
+    const info = MAGIC_INFO[type];
+    let msg = `${info.s} ${info.n} Lv.${mlv}！\n`;
+    
+    // メニューを閉じる
     document.getElementById('magic-overlay').style.display = 'none';
-    if(k === 'H') { php = Math.min(pMax, php + Math.floor(pMax * 0.3)); document.getElementById('msg').innerText = "回復魔法！"; }
-    else { applyShake(); ehp = Math.max(0, ehp - (mlv * 100)); document.getElementById('msg').innerText = `${MAGIC_INFO[k].n}！`; }
+
+    // 効果処理
+    if (type === 'H') {
+        let heal = Math.floor(pMax * 0.3);
+        php = Math.min(pMax, php + heal);
+        msg += `HPが ${heal} 回復！`;
+    } else {
+        applyShake();
+        let dmg = mlv * 100;
+        ehp = Math.max(0, ehp - dmg);
+        msg += `${dmg} ダメージ！`;
+    }
+
+    document.getElementById('msg').innerText = msg;
     updateUI();
-    setTimeout(() => { if(ehp <= 0) showBonus(); else enemyTurn(); }, 1000);
+
+    // 魔法使用後は即座にボタンを無効化
+    setBattleBtns(true);
+
+    setTimeout(() => {
+        if (ehp <= 0) showBonus();
+        else enemyTurn();
+    }, 1500);
 }
 
 function openItemMenu() {
@@ -300,12 +326,34 @@ function updateCardUI(side, sym, name, elem, rare) {
     document.getElementById(`${side}-elem`).innerText = elem;
     document.getElementById(`${side}-rare`).innerText = rare;
 }
+// --- ボタン制御（修正版） ---
+let magicCommandUsed = false; // 戦闘ごとに管理するフラグ
+
 function setBattleBtns(dis) {
     document.getElementById('atk-btn').disabled = dis;
-    document.getElementById('magic-btn').disabled = dis;
     document.getElementById('item-open-btn').disabled = dis;
     document.getElementById('esc-btn').disabled = dis;
-    if(!dis) hasUsedItemThisTurn = false;
+    
+    // 魔法コマンドの制御：
+    // disがtrue（敵のターンなど）の時は無効。
+    // disがfalse（自分のターン）でも、既に魔法を使っていれば無効のまま。
+    const magicBtn = document.getElementById('magic-btn');
+    if (magicBtn) {
+        magicBtn.disabled = dis || magicCommandUsed;
+    }
+
+    if (!dis) hasUsedItemThisTurn = false; 
+}
+
+// --- 戦闘リセット（修正版） ---
+function resetBattle() {
+    mode = "W"; ehp = 0; eMax = 0;
+    magicCommandUsed = false; // 新しい戦闘では魔法コマンドを解禁
+    document.getElementById('scan-btn').disabled = false;
+    setBattleBtns(true);
+    switchCamera('P');
+    updateUI();
+    save();
 }
 function applyShake() { document.body.classList.add('shake'); setTimeout(() => document.body.classList.remove('shake'), 300); if(navigator.vibrate) navigator.vibrate(100); }
 function closeOverlay() { document.querySelectorAll('.overlay').forEach(o => o.style.display = 'none'); }
