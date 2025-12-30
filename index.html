@@ -264,37 +264,25 @@ async function switchCamera(target) {
     video.style.display = 'block';
 }
 
-async function handleScan() {
-    const vid = mode === "W" ? document.getElementById('pv') : document.getElementById('ev');
-    applyShake();
-    let id = Math.floor(Math.random() * 100);
-    try { const r = await net.classify(vid); id = (r[0].className.length * 7) % 100; } catch(e){}
-    
-    const rare = id >= 90 ? "LEGEND" : id >= 60 ? "ELITE" : "NORMAL";
-    const typeId = id % 4;
-    const elemList = ["🔥", "💧", "⚡", "🌿"];
+async function handleScanSuccess(label) {
+    if (mode === "W") {
+        // 武器スキャン
+        setPlayerWeapon(label);
+        mode = "E"; // 次は敵スキャン
+        document.getElementById('scan-btn').innerText = "ENEMY SCAN";
+        alert("武器を登録しました。次は敵をスキャンしてください。");
 
-    if(mode === "W") {
-        pelem = elemList[typeId];
-        const name = DB_WEAPON[id % DB_WEAPON.length];
-        updateCardUI('p', "⚔️", name, pelem, rare);
-        library.W[id] = { t: name, e: pelem, r: rare };
-        mode = "E";
-        await switchCamera('E');
-        document.getElementById('msg').innerText = "モンスターを探しています...";
-    } else {
-        eelem = elemList[typeId];
-        eMax = Math.floor(800 * (1 + lv*0.1)); ehp = eMax;
-        eatk = Math.floor(80 * (1 + lv*0.1)); edef = Math.floor(40 * (1 + lv*0.1));
-        const name = DB_MONSTER[id % DB_MONSTER.length];
-        updateCardUI('e', "👾", name, eelem, rare);
-        library.M[id+100] = { t: name, e: eelem, r: rare };
-        setBattleBtns(false);
-        document.getElementById('scan-btn').disabled = true;
-        document.getElementById('msg').innerText = "バトル開始！";
+    } else if (mode === "E") {
+        // 敵スキャン
+        setEnemy(label);
+        mode = "B"; // 戦闘開始
+        startBattle();
+
+    } else if (mode === "I") {
+        // アイテムスキャン（勝利後）
+        getBonusItem(); // 先ほど作成したレア度抽選機能付きの関数
+        // getBonusItemの中で最終的に resetBattle() が呼ばれ mode="W" に戻る
     }
-    updateUI();
-    save();
 }
 
 function handleAttack() {
@@ -316,16 +304,39 @@ function handleAttack() {
 }
 
 function enemyTurn() {
-    if(trapTimer > 0) { trapTimer--; if(Math.random() < 0.5) { document.getElementById('msg').innerText = "罠にかかっている！"; setTimeout(()=>setBattleBtns(false), 1000); return; } }
+    // 罠の状態チェック
+    if(trapTimer > 0) { 
+        trapTimer--; 
+        if(Math.random() < 0.5) { 
+            document.getElementById('msg').innerText = "罠にかかっている！"; 
+            setTimeout(()=>setBattleBtns(false), 1000); 
+            return; 
+        } 
+    }
+
     document.getElementById('msg').innerText = "敵の攻撃！";
+    
     setTimeout(() => {
-        if(isPerfectEvasion) { document.getElementById('msg').innerText = "💨 回避！"; isPerfectEvasion=false; setBattleBtns(false); return; }
+        // 回避の判定
+        if(isPerfectEvasion) { 
+            document.getElementById('msg').innerText = "💨 回避！"; 
+            isPerfectEvasion = false; 
+            setBattleBtns(false); 
+            return; 
+        }
+
         applyShake();
         let dmg = Math.floor(Math.max(30, eatk - (pdef * 0.2)));
         php = Math.max(0, php - dmg);
         document.getElementById('msg').innerText = `⚠️ ${dmg}のダメージ！`;
         updateUI();
-        if(php <= 0) { alert("敗北..."); resetBattle(); } else { setBattleBtns(false); }
+
+        // 敗北か続行かの判定
+        if(php <= 0) { 
+            playerDeath(); // 敗北処理へ（HP全快リセット）
+        } else { 
+            setBattleBtns(false); // プレイヤーのターンに戻す
+        }
     }, 1000);
 }
 
@@ -416,22 +427,28 @@ function openSkillMenu() {
     document.getElementById('skill-overlay').style.display = 'flex';
 }
 
-// --- Utils ---
 function updateUI() {
     document.getElementById('p-lv').innerText = lv;
     document.getElementById('p-hp-cur').innerText = php;
     document.getElementById('p-hp-max').innerText = pMax;
     document.getElementById('p-fill').style.width = (php/pMax*100) + "%";
+    
     document.getElementById('e-hp-cur').innerText = ehp;
     document.getElementById('e-hp-max').innerText = eMax;
     document.getElementById('e-fill').style.width = eMax > 0 ? (ehp/eMax*100) + "%" : "0%";
+    
     document.getElementById('sp-btn').innerText = `SKILL UP (${skillPoints})`;
-}
-function updateCardUI(side, sym, name, elem, rare) {
-    document.getElementById(`${side}-sym`).innerText = sym;
-    document.getElementById(`${side}-name`).innerText = name;
-    document.getElementById(`${side}-elem`).innerText = elem;
-    document.getElementById(`${side}-rare`).innerText = rare;
+
+    // アイテム収集率の計算
+    const total = Object.keys(DB_ITEM_FULL).length;
+    const collected = Object.keys(library.I || {}).length;
+    const percent = total > 0 ? Math.floor((collected / total) * 100) : 0;
+
+    // メッセージ欄の末尾に、重複しないように収集率を表示
+    const msgEl = document.getElementById('msg');
+    // すでに収集率が書いてある場合は、一旦それ以前のテキストだけ取り出す
+    let baseMsg = msgEl.innerText.split("\n(アイテム収集率")[0];
+    msgEl.innerText = baseMsg + `\n(アイテム収集率: ${percent}%)`;
 }
 // --- ボタン制御（修正版） ---
 let magicCommandUsed = false; // 戦闘ごとに管理するフラグ
@@ -452,32 +469,30 @@ function setBattleBtns(dis) {
     if (!dis) hasUsedItemThisTurn = false; 
 }
 
-// --- 戦闘リセット（修正版） ---
+// --- 戦闘リセット ---
 function resetBattle() {
-    mode = "W"; ehp = 0; eMax = 0;
-    magicCommandUsed = false; // 新しい戦闘では魔法コマンドを解禁
+    mode = "W"; // 武器スキャンモードへ戻る
+    ehp = 0; eMax = 0;
+    magicCommandUsed = false; // 魔法封印を解除
+    hasUsedItemThisTurn = false;
+    
     document.getElementById('scan-btn').disabled = false;
-    setBattleBtns(true);
-    switchCamera('P');
+    document.getElementById('scan-btn').innerText = "WEAPON SCAN";
+    
+    setBattleBtns(true); // バトルボタンを無効化
+    switchCamera('P');   // スキャン画面へ
     updateUI();
     save();
 }
-function applyShake() { document.body.classList.add('shake'); setTimeout(() => document.body.classList.remove('shake'), 300); if(navigator.vibrate) navigator.vibrate(100); }
-function closeOverlay() { document.querySelectorAll('.overlay').forEach(o => o.style.display = 'none'); }
-function save() { localStorage.setItem('myth_v6_save', JSON.stringify({lv, exp, pMax, magicLv, skillPoints, inventory})); localStorage.setItem('myth_v6_lib', JSON.stringify(library)); }
-function handleEscape() { if(confirm("逃げますか？")) resetBattle(); }
 
-function showBonus() {
-    skillPoints += 1; lv++; pMax += 100; php = pMax;
-    document.getElementById('bonus-overlay').style.display = 'flex';
-    switchCamera('B');
-}
+// --- 共通変数（もしコードの最初の方にない場合は追加してください） ---
+let library = JSON.parse(localStorage.getItem('myth_v6_lib')) || { W: {}, M: {}, I: {} };
+
 // --- 勝利時の処理 ---
 function showBonus() {
-    mode = "I"; // モードをアイテムスキャン(Item scan)に変更
+    mode = "I"; 
     document.getElementById('msg').innerText = "ENEMY DEFEATED!\nアイテムをスキャンしてください...";
     
-    // 経験値獲得 (例: モンスターのHPに基づいた経験値)
     let gainExp = Math.floor(eMax / 10);
     exp += gainExp;
     if (exp >= lv * 100) {
@@ -490,10 +505,8 @@ function showBonus() {
     updateUI();
     save();
     
-    // バトルUIを閉じてスキャン画面（アイテム用）へ
-    // 実際にはスキャンボタンを「アイテムスキャン」として機能させる
     setTimeout(() => {
-        switchCamera('P'); // スキャン画面に戻る
+        switchCamera('P'); 
         document.getElementById('scan-btn').innerText = "ITEM SCAN";
     }, 2000);
 }
@@ -501,19 +514,121 @@ function showBonus() {
 // --- 敗北時のリセット ---
 function playerDeath() {
     alert("敗北しました... HPを回復して最初からやり直します。");
-    php = pMax; // HP全回復
-    // アイテム・経験値の獲得はなし
-    resetBattle(); // 内部フラグをリセットして武器スキャン(W)モードへ
+    php = pMax; 
+    resetBattle(); 
 }
 
-function resetBattle() {
-    mode="W"; ehp=0; eMax=0;
-    magicUsedThisBattle = {H:false,F:false,W:false,L:false,G:false,B:false,K:false,S:false,R:false};
-    document.getElementById('scan-btn').disabled = false;
-    setBattleBtns(true);
-    switchCamera('P');
+// --- ユーティリティ ---
+function applyShake() { 
+    document.body.classList.add('shake'); 
+    setTimeout(() => document.body.classList.remove('shake'), 300); 
+    if(navigator.vibrate) navigator.vibrate(100); 
+}
+
+function closeOverlay() { 
+    document.querySelectorAll('.overlay').forEach(o => o.style.display = 'none'); 
+}
+
+function save() { 
+    // ステータスの保存
+    localStorage.setItem('myth_v6_save', JSON.stringify({lv, exp, pMax, magicLv, skillPoints, inventory})); 
+    // 図鑑の保存
+    localStorage.setItem('myth_v6_lib', JSON.stringify(library)); 
+}
+
+function handleEscape() { 
+    if(confirm("逃げますか？")) resetBattle(); 
+}
+
+// --- コレクション（図鑑）関連 ---
+function openLibrary() {
+    renderLibrary('W'); 
+    document.getElementById('lib-overlay').style.display = 'flex';
+}
+
+function renderLibrary(type) {
+    const list = document.getElementById('lib-list');
+    list.innerHTML = ""; 
+    const items = library[type] || {};
+    
+    if (type === 'I') {
+        for (let gid in DB_ITEM_FULL) {
+            const data = DB_ITEM_FULL[gid];
+            const isUnlocked = items[gid];
+            const row = document.createElement('div');
+            row.style = "display:flex; justify-content:space-between; padding:8px; border-bottom:1px solid #333; font-size:0.7rem;";
+            
+            if (isUnlocked) {
+                const color = data.rare === 'LEGEND' ? '#ffdf00' : (data.rare === 'ELITE' ? '#00ffff' : '#fff');
+                row.innerHTML = `<span style="color:${color}">No.${gid} ${data.name}</span><span style="color:${color}; font-weight:bold;">${data.rare}</span>`;
+            } else {
+                row.innerHTML = `<span style="color:#444;">No.${gid} ？？？？？？</span><span style="color:#222;">---</span>`;
+            }
+            list.appendChild(row);
+        }
+    } else {
+        for (let id in items) {
+            const data = items[id];
+            const row = document.createElement('div');
+            row.style = "display:flex; justify-content:space-between; padding:8px; border-bottom:1px solid #333; font-size:0.7rem;";
+            row.innerHTML = `<span>${data.e || ''} ${data.t}</span><span style="color:#aaa;">DISCOVERED</span>`;
+            list.appendChild(row);
+        }
+    }
+}
+
+// 勝利後のアイテム獲得処理
+function getBonusItem() {
+    const allGids = Object.keys(DB_ITEM_FULL);
+    const getWeight = (rare) => {
+        if (rare === "LEGEND") return 5;
+        if (rare === "ELITE") return 25;
+        return 70;
+    };
+
+    let pool = [];
+    allGids.forEach(gid => {
+        const item = DB_ITEM_FULL[gid];
+        const weight = getWeight(item.rare);
+        for (let i = 0; i < weight; i++) pool.push(gid);
+    });
+
+    const selectedGid = parseInt(pool[Math.floor(Math.random() * pool.length)]);
+    const itm = DB_ITEM_FULL[selectedGid];
+
+    if (inventory.length < 8) {
+        inventory.push(selectedGid);
+        if (!library.I) library.I = {};
+        library.I[selectedGid] = { t: itm.name, r: itm.rare, e: "📦" };
+        alert(`【${itm.rare}】${itm.name} を獲得しました！`);
+    } else {
+        alert("持ち物がいっぱいですが、図鑑には登録されました。");
+    }
+    
+    save(); // アイテム獲得直後にセーブ
+    resetBattle(); 
+}
+
+// --- 初期化処理 ---
+async function init() {
+    // データの読み込み
+    const saved = localStorage.getItem('myth_v6_save');
+    if (saved) {
+        const d = JSON.parse(saved);
+        lv = d.lv; exp = d.exp; pMax = d.pMax; 
+        magicLv = d.magicLv; skillPoints = d.skillPoints; inventory = d.inventory;
+    }
+    php = pMax;
+
+    // AIの読み込み（MobileNet等がある場合）
+    try {
+        if (typeof mobilenet !== 'undefined') {
+            net = await mobilenet.load();
+        }
+    } catch(e) { console.error("AI Load Error", e); }
+    
     updateUI();
-    save();
+    document.getElementById('scan-btn').innerText = "WEAPON SCAN";
 }
 
 window.onload = init;
