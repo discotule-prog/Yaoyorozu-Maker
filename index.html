@@ -156,19 +156,19 @@
 </div>
 <script>
 let net;
+// ゲームの状態管理
+let lv=1, exp=0, hp=1000, maxHp=1000;
+let myAtk=10, myDef=10;
+let enemyHp = 0, enemyMaxHp = 0;
 
 // 1. データベース
 const DB_ITEM_FULL = {
     "n01214153": { name: "テストの剣", rarity: "N", hp: 100, atk: 10, def: 5, elem: "🔥", sym: "🗡️" },
-    "mouse": { name: "伝説のマグカップ", rarity: "SSR", hp: 1500, atk: 50, def: 30, elem: "💧", sym: "☕" },
-    "computerkeyboard": { name: "サイバーキーボード", rarity: "R", hp: 800, atk: 25, def: 10, elem: "⚡", sym: "⌨️" }
+    "mouse": { name: "伝説のマウス", rarity: "SSR", hp: 1500, atk: 50, def: 30, elem: "💧", sym: "🖱️" },
+    "coffeemug": { name: "伝説のマグカップ", rarity: "SSR", hp: 1500, atk: 50, def: 30, elem: "💧", sym: "☕" }
 };
 
-// ゲームの状態管理
-let lv=1, exp=0, hp=1000, maxHp=1000;
-let myAtk=10, myDef=10;
-let enemyHp = 0, enemyMaxHp = 0; // ここに移動
-
+// 初期化
 async function init() {
     try {
         const msgBox = document.getElementById('init-msg');
@@ -181,6 +181,7 @@ async function init() {
     }
 }
 
+// ゲーム開始
 async function startGame() {
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
@@ -195,7 +196,9 @@ async function startGame() {
     }
 }
 
-// ステータス反映
+// --- 【重要】ここから下の関数がバラバラに独立している必要があります ---
+
+// 2. プレイヤーのステータス更新
 function showPlayerStats(item) {
     document.getElementById('p-name').innerText = item.name;
     document.getElementById('p-rare').innerText = item.rarity;
@@ -209,53 +212,44 @@ function showPlayerStats(item) {
     hp = item.hp; maxHp = item.hp; myAtk = item.atk; myDef = item.def;
 }
 
-// 敵を出現させる（独立した関数）
+// 3. 敵を出現させる
 function spawnEnemy(detectedName) {
     const eName = detectedName.split(',')[0].toUpperCase();
     document.getElementById('e-name').innerText = eName;
     document.getElementById('e-sym').innerText = "👾";
     enemyMaxHp = 500 + Math.floor(Math.random() * 500);
     enemyHp = enemyMaxHp;
+    
     document.getElementById('e-hp-cur').innerText = enemyHp;
     document.getElementById('e-hp-max').innerText = enemyMaxHp;
     document.getElementById('e-fill').style.width = "100%";
-    document.getElementById('msg').innerText = `${eName} が現れた！\n攻撃ボタンで戦え！`;
-    document.getElementById('atk-btn').disabled = false;
+    
+    document.getElementById('msg').innerText = `${eName} が現れた！\nATTACKボタンで戦え！`;
+    document.getElementById('atk-btn').disabled = false; // 攻撃ボタンをONにする
 }
 
-// 攻撃ボタン（独立した関数）
-function handleAttack() {
-    if (enemyHp <= 0) return;
-    const damage = Math.max(10, myAtk + Math.floor(Math.random() * 10));
-    enemyHp -= damage;
-    const percent = Math.max(0, (enemyHp / enemyMaxHp) * 100);
-    document.getElementById('e-fill').style.width = percent + "%";
-    document.getElementById('e-hp-cur').innerText = Math.max(0, enemyHp);
-    document.getElementById('msg').innerText = `${damage} のダメージを与えた！`;
-    if (enemyHp <= 0) {
-        document.getElementById('msg').innerText = "敵を倒した！\n次の獲物をスキャンしてください。";
-        document.getElementById('atk-btn').disabled = true;
-    }
-}
-
-// スキャンボタン
+// 4. スキャン実行
 async function handleScan() {
     if (!net) return;
     const msg = document.getElementById('msg');
     const btn = document.getElementById('scan-btn');
+    
     msg.innerText = "解析中... 🔍";
     btn.disabled = true;
+
     try {
         const video = document.getElementById('pv');
         const results = await net.classify(video);
         const topResult = results[0];
         const detectedId = topResult.className.split(',')[0].toLowerCase().replace(/\s+/g, '');
-        msg.innerText = `検出: ${topResult.className}\n(確率: ${Math.round(topResult.probability * 100)}%)`;
+
+        msg.innerText = `検出: ${topResult.className}\n(確信度: ${Math.round(topResult.probability * 100)}%)`;
 
         if (DB_ITEM_FULL[detectedId]) {
             showPlayerStats(DB_ITEM_FULL[detectedId]);
-            msg.innerText += `\n➡ ${DB_ITEM_FULL[detectedId].name} を装備しました！`;
+            msg.innerText += `\n➡ ${DB_ITEM_FULL[detectedId].name} を装備！`;
         } else {
+            // ここで敵を出す関数を呼び出す
             spawnEnemy(topResult.className);
         }
     } catch (e) {
@@ -265,6 +259,26 @@ async function handleScan() {
     }
 }
 
+// 5. 攻撃ボタン
+function handleAttack() {
+    if (enemyHp <= 0) return;
+    
+    const damage = Math.max(10, myAtk + Math.floor(Math.random() * 10));
+    enemyHp -= damage;
+    
+    const percent = Math.max(0, (enemyHp / enemyMaxHp) * 100);
+    document.getElementById('e-fill').style.width = percent + "%";
+    document.getElementById('e-hp-cur').innerText = Math.max(0, enemyHp);
+    
+    document.getElementById('msg').innerText = `${damage} のダメージを与えた！`;
+
+    if (enemyHp <= 0) {
+        document.getElementById('msg').innerText = "敵を倒した！\n次の獲物を探してください。";
+        document.getElementById('atk-btn').disabled = true;
+    }
+}
+
 window.onload = init;
-</script></body>
+</script>
+</body>
 </html>
