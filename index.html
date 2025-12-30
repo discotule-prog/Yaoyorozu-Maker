@@ -197,10 +197,41 @@ async function startGame() {
 
 // ★3. スキャンボタンを押した時の動き（仮）
 async function handleScan() {
-    document.getElementById('msg').innerText = "スキャン中...";
-    // ここにあとで、MobileNetを使った判定ロジックを追加します
-}
+    if (!net) return;
+    const msg = document.getElementById('msg');
+    const btn = document.getElementById('scan-btn');
+    
+    msg.innerText = "解析中... 🔍";
+    btn.disabled = true; // 連打防止
 
+    try {
+        const video = document.getElementById('pv');
+        // AI（MobileNet）に現在のビデオ映像を渡して解析
+        const results = await net.classify(video);
+        
+        // 解析結果からID（n番号など）を抽出（MobileNetのクラスIDを模倣）
+        // ここではテスト用に最初の結果を表示します
+        const topResult = results[0];
+        const detectedId = topResult.className.split(',')[0].toLowerCase().replace(/\s+/g, '');
+
+        msg.innerText = `検出: ${topResult.className}\n(確率: ${Math.round(topResult.probability * 100)}%)`;
+
+        // もしDBにそのアイテムがあれば表示する（なければ「不明」）
+        if (DB_ITEM_FULL[detectedId]) {
+            const item = DB_ITEM_FULL[detectedId];
+            showPlayerStats(item); // プレイヤーに装備させる関数（後ほど追加）
+            msg.innerText += `\n➡ ${item.name} を装備しました！`;
+        } else {
+            msg.innerText += "\n(未登録のアイテムです)";
+        }
+
+    } catch (e) {
+        alert("Scan Error: " + e.message);
+    } finally {
+        // 3秒後にボタンを復活させる
+        setTimeout(() => { btn.disabled = false; }, 3000);
+    }
+}
 window.onload = init;
 </script>
 </body>
