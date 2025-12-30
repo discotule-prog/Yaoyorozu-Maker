@@ -108,10 +108,108 @@
 const DB_WEAPON = ["錆びた短剣","鉄の剣","名刀正宗","レーヴァテイン","星砕きの槌"];
 const DB_MONSTER = ["野良犬","はぐれメタル","地獄の門番","古の魔龍","虚無の王"];
 const DB_ITEM_FULL = {
-    201: { name: "薬草", type: "HP RECOVERY", val: 300, rare: "NORMAL", mode: "fix" },
-    202: { name: "聖水", type: "ELEMENTAL ATTACK", val: 0.3, elem: "💧", rare: "ELITE" },
-    203: { name: "勇者の旗", type: "BUFF_ATK", val: 0.5, rare: "LEGEND" }
+    200: {name:"非常食", rare:"NORMAL", type:"HP RECOVERY", val:100, mode:"fix"},
+    201: {name:"パン", rare:"NORMAL", type:"HP RECOVERY", val:200, mode:"fix"},
+    202: {name:"缶詰", rare:"NORMAL", type:"HP RECOVERY", val:300, mode:"fix"},
+    203: {name:"新鮮野菜", rare:"NORMAL", type:"HP RECOVERY", val:400, mode:"fix"},
+    204: {name:"旬の野菜", rare:"NORMAL", type:"HP RECOVERY", val:500, mode:"fix"},
+    205: {name:"果実", rare:"ELITE", type:"HP RECOVERY", val:600, mode:"fix"},
+    206: {name:"高級果実", rare:"ELITE", type:"HP RECOVERY", val:700, mode:"fix"},
+    207: {name:"骨付き肉", rare:"ELITE", type:"HP RECOVERY", val:800, mode:"fix"},
+    208: {name:"骨付き肉（大）", rare:"ELITE", type:"HP RECOVERY", val:900, mode:"fix"},
+    209: {name:"携帯フルコース", rare:"ELITE", type:"HP RECOVERY", val:1000, mode:"fix"},
+    210: {name:"軟膏", rare:"NORMAL", type:"HP RECOVERY", val:0.1, mode:"pct"},
+    211: {name:"エナジードリンク", rare:"NORMAL", type:"HP RECOVERY", val:0.2, mode:"pct"},
+    212: {name:"栄養ドリンク", rare:"NORMAL", type:"HP RECOVERY", val:0.3, mode:"pct"},
+    213: {name:"傷薬", rare:"NORMAL", type:"HP RECOVERY", val:0.4, mode:"pct"},
+    214: {name:"高級傷薬", rare:"NORMAL", type:"HP RECOVERY", val:0.5, mode:"pct"},
+    215: {name:"ポーション", rare:"ELITE", type:"HP RECOVERY", val:0.6, mode:"pct"},
+    216: {name:"ハイポーション", rare:"ELITE", type:"HP RECOVERY", val:0.7, mode:"pct"},
+    217: {name:"エクスポーション", rare:"ELITE", type:"HP RECOVERY", val:0.8, mode:"pct"},
+    218: {name:"聖水", rare:"LEGEND", type:"HP RECOVERY", val:0.9, mode:"pct"},
+    219: {name:"神様の雫", rare:"LEGEND", type:"HP RECOVERY", val:1.0, mode:"pct"},
+    220: {name:"松明", rare:"NORMAL", type:"ELEMENTAL ATTACK", elem:"🔥", val:0.1},
+    221: {name:"水風船", rare:"NORMAL", type:"ELEMENTAL ATTACK", elem:"💧", val:0.1},
+    222: {name:"壊れた機械", rare:"NORMAL", type:"ELEMENTAL ATTACK", elem:"⚡", val:0.1},
+    223: {name:"蔦", rare:"NORMAL", type:"ELEMENTAL ATTACK", elem:"🌿", val:0.1},
+    224: {name:"火炎瓶", rare:"NORMAL", type:"ELEMENTAL ATTACK", elem:"🔥", val:0.2},
+    225: {name:"水鉄砲", rare:"NORMAL", type:"ELEMENTAL ATTACK", elem:"💧", val:0.2},
+    226: {name:"ビリビリマシン", rare:"NORMAL", type:"ELEMENTAL ATTACK", elem:"⚡", val:0.2},
+    227: {name:"荊棘", rare:"NORMAL", type:"ELEMENTAL ATTACK", elem:"🌿", val:0.2},
+    228: {name:"手榴弾", rare:"NORMAL", type:"ELEMENTAL ATTACK", elem:"🔥", val:0.3},
+    229: {name:"放水ホース", rare:"NORMAL", type:"ELEMENTAL ATTACK", elem:"💧", val:0.3},
+    230: {name:"電気ショック", rare:"NORMAL", type:"ELEMENTAL ATTACK", elem:"⚡", val:0.3},
+    231: {name:"有毒植物", rare:"NORMAL", type:"ELEMENTAL ATTACK", elem:"🌿", val:0.3},
+    232: {name:"火炎放射器", rare:"ELITE", type:"ELEMENTAL ATTACK", elem:"🔥", val:0.4},
+    233: {name:"高圧洗浄機", rare:"ELITE", type:"ELEMENTAL ATTACK", elem:"💧", val:0.4},
+    234: {name:"スタンガン", rare:"ELITE", type:"ELEMENTAL ATTACK", elem:"⚡", val:0.4},
+    235: {name:"食虫植物", rare:"ELITE", type:"ELEMENTAL ATTACK", elem:"🌿", val:0.4},
+    236: {name:"爆弾", rare:"LEGEND", type:"ELEMENTAL ATTACK", elem:"🔥", val:0.5},
+    237: {name:"ウォーターカッター", rare:"LEGEND", type:"ELEMENTAL ATTACK", elem:"💧", val:0.5},
+    238: {name:"エレキテル", rare:"LEGEND", type:"ELEMENTAL ATTACK", elem:"⚡", val:0.5},
+    239: {name:"御神木の枝", rare:"LEGEND", type:"ELEMENTAL ATTACK", elem:"🌿", val:0.5},
+    240: {name:"風邪ウイルス", rare:"NORMAL", type:"DEBUFF_DEF", val:0.1},
+    241: {name:"サンプル病原菌", rare:"NORMAL", type:"DEBUFF_DEF", val:0.2},
+    242: {name:"人工ウイルス", rare:"NORMAL", type:"DEBUFF_DEF", val:0.3},
+    243: {name:"インフルエンザ", rare:"ELITE", type:"DEBUFF_DEF", val:0.4},
+    244: {name:"未知のウイルス", rare:"LEGEND", type:"DEBUFF_DEF", val:0.5},
+    245: {name:"オルゴール", rare:"NORMAL", type:"DEBUFF_ATK", val:0.1},
+    246: {name:"安眠枕", rare:"NORMAL", type:"DEBUFF_ATK", val:0.2},
+    247: {name:"やる気オフスイッチ", rare:"NORMAL", type:"DEBUFF_ATK", val:0.3},
+    248: {name:"世界説教テープ", rare:"ELITE", type:"DEBUFF_ATK", val:0.4},
+    249: {name:"胸糞映像集", rare:"LEGEND", type:"DEBUFF_ATK", val:0.5},
+    250: {name:"植物系プロテイン", rare:"NORMAL", type:"BUFF_DEF", val:0.1},
+    251: {name:"動物系プロテイン", rare:"NORMAL", type:"BUFF_DEF", val:0.2},
+    252: {name:"筋肉増強剤", rare:"NORMAL", type:"BUFF_DEF", val:0.3},
+    253: {name:"筋肉増強剤", rare:"ELITE", type:"BUFF_DEF", val:0.4},
+    254: {name:"合法ドラッグ", rare:"LEGEND", type:"BUFF_DEF", val:0.5},
+    255: {name:"植物系プロテイン", rare:"NORMAL", type:"BUFF_ATK", val:0.1},
+    256: {name:"動物系プロテイン", rare:"NORMAL", type:"BUFF_ATK", val:0.2},
+    257: {name:"筋肉増強剤", rare:"NORMAL", type:"BUFF_ATK", val:0.3},
+    258: {name:"筋肉増強剤", rare:"ELITE", type:"BUFF_ATK", val:0.4},
+    259: {name:"合法ドラッグ", rare:"LEGEND", type:"BUFF_ATK", val:0.5},
+    260: {name:"煙玉", rare:"NORMAL", type:"ESCAPE", eff:"escape"},
+    261: {name:"幸運の磁石", rare:"LEGEND", type:"LUCKY ITEM", eff:"none"},
+    262: {name:"不思議な砂時計", rare:"LEGEND", type:"TIME LOOP", eff:"extra"},
+    263: {name:"ゾーンの心得", rare:"ELITE", type:"ATK FLAG", eff:"m_rec"}, 
+    264: {name:"ボクサーシューズ", rare:"ELITE", type:"DFE FLAG", eff:"atk_up"},
+    265: {name:"赤いマント", rare:"ELITE", type:"ATTRIBUTE CHANGE", eff:"fire_change"},
+    266: {name:"青い腕輪", rare:"ELITE", type:"ATTRIBUTE CHANGE", eff:"water_change"},
+    267: {name:"黄色のピアス", rare:"ELITE", type:"ATTRIBUTE CHANGE", eff:"elec_change"},
+    268: {name:"緑の指輪", rare:"ELITE", type:"ATTRIBUTE CHANGE", val:10, eff:"leaf_change"},
+    269: {name:"虹のかけら", rare:"LEGEND", type:"ATTRIBUTE CHANGE", eff:"all_change"},
+    270: {name:"発火燃料", rare:"ELITE", type:"FIELD CHANGE", elem:"🔥"},
+    271: {name:"雨雲発生機", rare:"ELITE", type:"FIELD CHANGE", elem:"💧"},
+    272: {name:"磁場発生装置", rare:"ELITE", type:"FIELD CHANGE", elem:"⚡"},
+    273: {name:"超成長促進剤", rare:"ELITE", type:"FIELD CHANGE", elem:"🌿"},
+    274: {name:"毒針", rare:"NORMAL", type:"POISON", eff:"instant"},
+    275: {name:"ギャンブラーのサイコロ", rare:"ELITE", type:"DICE", eff:"gamble"},
+    276: {name:"ペンキ", rare:"NORMAL", type:"PAINT", eff:"paint"},
+    277: {name:"覚悟のススメ", rare:"ELITE", type:"ATK ONLY", eff:"atk_sac"},
+    278: {name:"亀の甲羅", rare:"ELITE", type:"DFE ONLY", eff:"def_sac"},
+    279: {name:"罠", rare:"NORMAL", type:"TRAP ITEM", eff:"trap"},
+    280: {name:"古びたランプ", rare:"LEGEND", type:"ARTIFACT"},
+    281: {name:"何かの神様の像", rare:"LEGEND", type:"ARTIFACT"},
+    282: {name:"誰かの日記", rare:"LEGEND", type:"ARTIFACT"},
+    283: {name:"海賊の銀貨", rare:"LEGEND", type:"ARTIFACT"},
+    284: {name:"書けない万年筆", rare:"NORMAL", type:"ARTIFACT"},
+    285: {name:"東洋の水墨画", rare:"NORMAL", type:"ARTIFACT"},
+    286: {name:"裸の王様の服", rare:"ELITE", type:"ARTIFACT"},
+    287: {name:"相対性理論原本（写）", rare:"ELITE", type:"ARTIFACT"},
+    288: {name:"限りなく真円に近い石", rare:"LEGEND", type:"ARTIFACT"},
+    289: {name:"円周率最後の数字", rare:"ELITE", type:"ARTIFACT"},
+    290: {name:"誰も知らない物語", rare:"LEGEND", type:"ARTIFACT"},
+    291: {name:"漢の浪漫", rare:"LEGEND", type:"ARTIFACT"},
+    292: {name:"古代のデジタル時計", rare:"ELITE", type:"ARTIFACT"},
+    293: {name:"偽典", rare:"ELITE", type:"ARTIFACT"},
+    294: {name:"サンタの髭", rare:"NORMAL", type:"ARTIFACT"},
+    295: {name:"サンタの髭（本物）", rare:"LEGEND", type:"ARTIFACT"},
+    296: {name:"天使のわっか", rare:"LEGEND", type:"ARTIFACT"},
+    297: {name:"龍の糞", rare:"LEGEND", type:"ARTIFACT"},
+    298: {name:"石", rare:"NORMAL", type:"STONE"},
+    299: {name:"聖書", rare:"LEGEND", type:"BIBLE", eff:"bible"}
 };
+
 const ELEMENTS = { "🔥": "🌿", "🌿": "⚡", "⚡": "💧", "💧": "🔥" };
 const MAGIC_INFO = {
     H: { n: "ヒール", s: "✨" }, F: { n: "ファイア", s: "🔥" }, W: { n: "ウォーター", s: "💧" },
@@ -123,8 +221,17 @@ const MAGIC_INFO = {
 let lv=1, exp=0, php=1000, pMax=1000, patk=120, pdef=60, pelem="🔥", inventory=[], skillPoints=0;
 let magicLv = {H:1, F:0, W:0, L:0, G:0, B:0, K:0, S:0, R:0};
 let net, mode="W", ehp=0, eMax=0, eatk=0, edef=0, eelem="", stream=null;
-let hasUsedItemThisTurn = false, isSureHit = false, isPerfectEvasion = false, trapTimer = 0;
+
+// 戦闘中の状態管理
+let hasUsedItemThisTurn = false; // アイテム1ターン1回制限用
+let magicCommandUsed = false;    // 魔法コマンド封印用
+let isSureHit = false; 
+let isPerfectEvasion = false; 
+let trapTimer = 0;
+
+// 旧バージョンの名残（個別制限を使わないなら削除OK）
 let magicUsedThisBattle = {H:false,F:false,W:false,L:false,G:false,B:false,K:false,S:false,R:false};
+
 let library = JSON.parse(localStorage.getItem('myth_v6_lib')) || { W: {}, M: {}, I: {} };
 
 // --- Core Logic ---
@@ -365,14 +472,40 @@ function showBonus() {
     document.getElementById('bonus-overlay').style.display = 'flex';
     switchCamera('B');
 }
-function getBonusItem() {
-    const gids = Object.keys(DB_ITEM_FULL);
-    const gid = parseInt(gids[Math.floor(Math.random()*gids.length)]);
-    if(inventory.length < 8) inventory.push(gid);
-    alert("アイテム獲得！");
-    closeOverlay();
-    resetBattle();
+// --- 勝利時の処理 ---
+function showBonus() {
+    mode = "I"; // モードをアイテムスキャン(Item scan)に変更
+    document.getElementById('msg').innerText = "ENEMY DEFEATED!\nアイテムをスキャンしてください...";
+    
+    // 経験値獲得 (例: モンスターのHPに基づいた経験値)
+    let gainExp = Math.floor(eMax / 10);
+    exp += gainExp;
+    if (exp >= lv * 100) {
+        lv++;
+        exp = 0;
+        skillPoints += 2;
+        alert("LEVEL UP!");
+    }
+    
+    updateUI();
+    save();
+    
+    // バトルUIを閉じてスキャン画面（アイテム用）へ
+    // 実際にはスキャンボタンを「アイテムスキャン」として機能させる
+    setTimeout(() => {
+        switchCamera('P'); // スキャン画面に戻る
+        document.getElementById('scan-btn').innerText = "ITEM SCAN";
+    }, 2000);
 }
+
+// --- 敗北時のリセット ---
+function playerDeath() {
+    alert("敗北しました... HPを回復して最初からやり直します。");
+    php = pMax; // HP全回復
+    // アイテム・経験値の獲得はなし
+    resetBattle(); // 内部フラグをリセットして武器スキャン(W)モードへ
+}
+
 function resetBattle() {
     mode="W"; ehp=0; eMax=0;
     magicUsedThisBattle = {H:false,F:false,W:false,L:false,G:false,B:false,K:false,S:false,R:false};
