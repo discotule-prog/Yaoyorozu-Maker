@@ -366,6 +366,30 @@ function victory() {
     document.getElementById('scan-btn').disabled = false; 
     document.getElementById('msg').innerText += "\n次の獲物をスキャンしてください。";
 }
+// --- 逃げる処理 ---
+function handleEscape() {
+    if (enemyHp <= 0 || hp <= 0) return; // すでに決着がついていたら無効
+
+    if (confirm("戦闘から逃げ出しますか？")) {
+        // 1. 敵のデータをリセット
+        enemyHp = 0;
+        enemyMaxHp = 0;
+        
+        // 2. 表示をクリア
+        document.getElementById('e-name').innerText = "???";
+        document.getElementById('e-hp-cur').innerText = "0";
+        document.getElementById('e-hp-max').innerText = "0";
+        document.getElementById('e-fill').style.width = "0%";
+        
+        // 3. UIの状態を戻す
+        isMyTurn = true;
+        document.getElementById('atk-btn').disabled = true;
+        document.getElementById('esc-btn').disabled = true; // 逃げるボタン自体も一旦オフ
+        document.getElementById('scan-btn').disabled = false; // SCANを復活させる
+        
+        document.getElementById('msg').innerText = "無事に逃げ出した。\n体制を整えてスキャンし直そう。";
+    }
+}
 window.onload = init;
 </script>
 </body>
