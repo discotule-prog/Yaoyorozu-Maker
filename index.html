@@ -217,6 +217,8 @@ function spawnEnemy(detectedName) {
     const eName = detectedName.split(',')[0].toUpperCase();
     document.getElementById('e-name').innerText = eName;
     document.getElementById('e-sym').innerText = "👾";
+    
+    // 敵のHP設定
     enemyMaxHp = 500 + Math.floor(Math.random() * 500);
     enemyHp = enemyMaxHp;
 
@@ -225,23 +227,27 @@ function spawnEnemy(detectedName) {
     document.getElementById('e-fill').style.width = "100%";
 
     document.getElementById('msg').innerText = `${eName} が現れた！\nATTACKボタンで戦え！`;
-    document.getElementById('atk-btn').disabled = false; 
     
-    // ★ここを追加：逃げるボタンを有効にする
-    document.getElementById('esc-btn').disabled = false; 
-
-    // 戦闘開始時にSCANボタンを無効化する
-    document.getElementById('scan-btn').disabled = true; 
+    // --- ボタン制御の徹底 ---
+    document.getElementById('scan-btn').disabled = true;  // SCANを無効化
+    document.getElementById('atk-btn').disabled = false; // ATTACKを有効化
+    document.getElementById('esc-btn').disabled = false; // ESCAPEを有効化
+    
+    // カメラ映像を一時停止（以前の仕様に近い演出）
+    document.getElementById('pv').pause();
 }
 
 // 4. スキャン実行
 async function handleScan() {
+    // 【重要】敵のHPが残っている場合は、ボタンの状態に関わらず即座に終了する
+    if (enemyHp > 0) return; 
+
     if (!net) return;
     const msg = document.getElementById('msg');
     const btn = document.getElementById('scan-btn');
 
     msg.innerText = "解析中... 🔍";
-    btn.disabled = true;
+    btn.disabled = true; // 解析開始時に無効化
 
     try {
         const video = document.getElementById('pv');
@@ -254,15 +260,17 @@ async function handleScan() {
         if (DB_ITEM_FULL[detectedId]) {
             showPlayerStats(DB_ITEM_FULL[detectedId]);
             msg.innerText += `\n➡ ${DB_ITEM_FULL[detectedId].name} を装備！`;
+            // 装備しただけならSCANは再度押せるようにする
+            btn.disabled = false;
         } else {
-            // ここで敵を出す関数を呼び出す
+            // 敵が出現する場合
             spawnEnemy(topResult.className);
         }
     } catch (e) {
         alert("Scan Error: " + e.message);
-    } finally {
-        setTimeout(() => { btn.disabled = false; }, 3000);
+        btn.disabled = false;
     }
+    // ※ finallyでの自動復帰（setTimeout）は、敵出現時のロックを上書きしてしまうので削除しました。
 }
 
 // --- 自分の攻撃（ターン制対応版） ---
