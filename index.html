@@ -94,4 +94,248 @@
             <div id="e-name" style="font-size:0.55rem;">???</div>
         </div>
         <div class="stat-text">HP:<span id="e-hp-cur">0</span>/<span id="e-hp-max">0</span></div>
-        <div class="bar-container"><div class
+        <div class="bar-container"><div class="bar-bg"><div id="e-fill" class="bar-fill" style="background:var(--e-color);"></div></div></div>
+    </div>
+</div>
+
+<div id="magic-overlay" class="overlay"><h2>MAGIC</h2><div id="magic-list" class="scroll-list"></div><button onclick="closeOverlay()" style="margin-top:20px; background:var(--close-btn);">CLOSE</button></div>
+<div id="item-overlay" class="overlay"><h2>ITEMS</h2><div id="item-list" class="scroll-list"></div><button onclick="closeOverlay()" style="margin-top:20px; background:var(--close-btn);">CLOSE</button></div>
+<div id="skill-overlay" class="overlay"><h2>SKILL UP</h2><div id="skill-points-display"></div><div id="skill-list" class="scroll-list"></div><button onclick="closeOverlay()" style="margin-top:20px; background:var(--close-btn);">CLOSE</button></div>
+<div id="bonus-overlay" class="overlay"><h2>VICTORY!</h2><div class="cam-frame" style="width:150px; height:150px; margin:20px;"><video id="bv" autoplay playsinline muted></video></div><button id="get-item-btn" onclick="getBonusItem()" style="background:var(--gold); color:#000; font-weight:bold; padding:20px;">SCAN FOR LOOT</button></div>
+
+<script>
+// --- Data ---
+const DB_WEAPON = ["錆びた短剣","鉄の剣","名刀正宗","レーヴァテイン","星砕きの槌"];
+const DB_MONSTER = ["野良犬","はぐれメタル","地獄の門番","古の魔龍","虚無の王"];
+const DB_ITEM_FULL = {
+    201: { name: "薬草", type: "HP RECOVERY", val: 300, rare: "NORMAL", mode: "fix" },
+    202: { name: "聖水", type: "ELEMENTAL ATTACK", val: 0.3, elem: "💧", rare: "ELITE" },
+    203: { name: "勇者の旗", type: "BUFF_ATK", val: 0.5, rare: "LEGEND" }
+};
+const ELEMENTS = { "🔥": "🌿", "🌿": "⚡", "⚡": "💧", "💧": "🔥" };
+const MAGIC_INFO = {
+    H: { n: "ヒール", s: "✨" }, F: { n: "ファイア", s: "🔥" }, W: { n: "ウォーター", s: "💧" },
+    L: { n: "ライトニング", s: "⚡" }, G: { n: "ガイア", s: "🌿" }, K: { n: "カース", s: "💀" },
+    B: { n: "ブレイク", s: "⚔️" }, R: { n: "ブレイブ", s: "✊" }, S: { n: "シール", s: "🛡️" }
+};
+
+// --- Variables ---
+let lv=1, exp=0, php=1000, pMax=1000, patk=120, pdef=60, pelem="🔥", inventory=[], skillPoints=0;
+let magicLv = {H:1, F:0, W:0, L:0, G:0, B:0, K:0, S:0, R:0};
+let net, mode="W", ehp=0, eMax=0, eatk=0, edef=0, eelem="", stream=null;
+let hasUsedItemThisTurn = false, isSureHit = false, isPerfectEvasion = false, trapTimer = 0;
+let magicUsedThisBattle = {H:false,F:false,W:false,L:false,G:false,B:false,K:false,S:false,R:false};
+let library = JSON.parse(localStorage.getItem('myth_v6_lib')) || { W: {}, M: {}, I: {} };
+
+// --- Core Logic ---
+async function init() {
+    const saved = JSON.parse(localStorage.getItem('myth_v6_save')) || {};
+    if(saved.lv) { lv=saved.lv; exp=saved.exp; pMax=saved.pMax; magicLv=saved.magicLv; skillPoints=saved.skillPoints; inventory=saved.inventory; }
+    php = pMax;
+    updateUI();
+    try {
+        net = await mobilenet.load();
+        document.getElementById('init-msg').innerText = "SYSTEM READY";
+        document.getElementById('start-btn').style.display = 'block';
+    } catch(e) { alert("AI Load Error"); }
+}
+
+async function startGame() {
+    await switchCamera('P');
+    document.getElementById('init-overlay').style.display = 'none';
+    document.getElementById('scan-btn').disabled = false;
+    document.getElementById('msg').innerText = "武器をスキャンしてください";
+}
+
+async function switchCamera(target) {
+    if(stream) stream.getTracks().forEach(t => t.stop());
+    const vId = {P:'pv', E:'ev', B:'bv'}[target];
+    const video = document.getElementById(vId);
+    if(!video) return;
+    stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
+    video.srcObject = stream;
+    video.style.display = 'block';
+}
+
+async function handleScan() {
+    const vid = mode === "W" ? document.getElementById('pv') : document.getElementById('ev');
+    applyShake();
+    let id = Math.floor(Math.random() * 100);
+    try { const r = await net.classify(vid); id = (r[0].className.length * 7) % 100; } catch(e){}
+    
+    const rare = id >= 90 ? "LEGEND" : id >= 60 ? "ELITE" : "NORMAL";
+    const typeId = id % 4;
+    const elemList = ["🔥", "💧", "⚡", "🌿"];
+
+    if(mode === "W") {
+        pelem = elemList[typeId];
+        const name = DB_WEAPON[id % DB_WEAPON.length];
+        updateCardUI('p', "⚔️", name, pelem, rare);
+        library.W[id] = { t: name, e: pelem, r: rare };
+        mode = "E";
+        await switchCamera('E');
+        document.getElementById('msg').innerText = "モンスターを探しています...";
+    } else {
+        eelem = elemList[typeId];
+        eMax = Math.floor(800 * (1 + lv*0.1)); ehp = eMax;
+        eatk = Math.floor(80 * (1 + lv*0.1)); edef = Math.floor(40 * (1 + lv*0.1));
+        const name = DB_MONSTER[id % DB_MONSTER.length];
+        updateCardUI('e', "👾", name, eelem, rare);
+        library.M[id+100] = { t: name, e: eelem, r: rare };
+        setBattleBtns(false);
+        document.getElementById('scan-btn').disabled = true;
+        document.getElementById('msg').innerText = "バトル開始！";
+    }
+    updateUI();
+    save();
+}
+
+function handleAttack() {
+    setBattleBtns(true);
+    let isHit = isSureHit || Math.random() > 0.15;
+    if(isHit) {
+        applyShake();
+        const bonus = ELEMENTS[pelem] === eelem ? 1.5 : 1.0;
+        let dmg = Math.floor(Math.max(50, (patk * bonus) - (edef * 0.2)));
+        if(isSureHit) dmg = Math.floor(dmg * 1.5);
+        ehp = Math.max(0, ehp - dmg);
+        document.getElementById('msg').innerText = `💥 ${dmg}ダメージ！`;
+    } else {
+        document.getElementById('msg').innerText = "💨 ミス！";
+    }
+    isSureHit = false;
+    updateUI();
+    setTimeout(() => { if(ehp <= 0) showBonus(); else enemyTurn(); }, 1000);
+}
+
+function enemyTurn() {
+    if(trapTimer > 0) { trapTimer--; if(Math.random() < 0.5) { document.getElementById('msg').innerText = "罠にかかっている！"; setTimeout(()=>setBattleBtns(false), 1000); return; } }
+    document.getElementById('msg').innerText = "敵の攻撃！";
+    setTimeout(() => {
+        if(isPerfectEvasion) { document.getElementById('msg').innerText = "💨 回避！"; isPerfectEvasion=false; setBattleBtns(false); return; }
+        applyShake();
+        let dmg = Math.floor(Math.max(30, eatk - (pdef * 0.2)));
+        php = Math.max(0, php - dmg);
+        document.getElementById('msg').innerText = `⚠️ ${dmg}のダメージ！`;
+        updateUI();
+        if(php <= 0) { alert("敗北..."); resetBattle(); } else { setBattleBtns(false); }
+    }, 1000);
+}
+
+// --- Menu Systems ---
+function openMagicMenu() {
+    const list = document.getElementById('magic-list'); list.innerHTML = "";
+    for(let k in magicLv) {
+        if(magicLv[k] > 0) {
+            const b = document.createElement('button');
+            b.innerHTML = `${MAGIC_INFO[k].s} ${MAGIC_INFO[k].n} (Lv.${magicLv[k]}) ${magicUsedThisBattle[k]?'[空]':''}`;
+            b.disabled = magicUsedThisBattle[k];
+            b.onclick = () => castMagic(k);
+            list.appendChild(b);
+        }
+    }
+    document.getElementById('magic-overlay').style.display = 'flex';
+}
+
+function castMagic(k) {
+    magicUsedThisBattle[k] = true;
+    const mlv = magicLv[k];
+    document.getElementById('magic-overlay').style.display = 'none';
+    if(k === 'H') { php = Math.min(pMax, php + Math.floor(pMax * 0.3)); document.getElementById('msg').innerText = "回復魔法！"; }
+    else { applyShake(); ehp = Math.max(0, ehp - (mlv * 100)); document.getElementById('msg').innerText = `${MAGIC_INFO[k].n}！`; }
+    updateUI();
+    setTimeout(() => { if(ehp <= 0) showBonus(); else enemyTurn(); }, 1000);
+}
+
+function openItemMenu() {
+    const list = document.getElementById('item-list'); list.innerHTML = "";
+    inventory.forEach((gid, i) => {
+        const itm = DB_ITEM_FULL[gid] || {name:"不明な石", rare:"NORMAL"};
+        const b = document.createElement('button');
+        b.innerHTML = `[${itm.rare}] ${itm.name}`;
+        b.onclick = () => { if(!hasUsedItemThisTurn) { useItem(gid, i); } else { alert("1ターン1回までです"); } };
+        list.appendChild(b);
+    });
+    document.getElementById('item-overlay').style.display = 'flex';
+}
+
+function useItem(gid, idx) {
+    const itm = DB_ITEM_FULL[gid];
+    if(itm && itm.type === "HP RECOVERY") php = Math.min(pMax, php + itm.val);
+    inventory.splice(idx, 1);
+    hasUsedItemThisTurn = true;
+    document.getElementById('item-overlay').style.display = 'none';
+    document.getElementById('msg').innerText = `${itm?itm.name:'アイテム'}を使用した！`;
+    updateUI();
+    if(ehp <= 0) showBonus();
+}
+
+function openSkillMenu() {
+    document.getElementById('skill-points-display').innerText = `ポイント: ${skillPoints}`;
+    const list = document.getElementById('skill-list'); list.innerHTML = "";
+    for(let k in magicLv) {
+        const b = document.createElement('button');
+        const cost = magicLv[k] + 1;
+        b.innerHTML = `${MAGIC_INFO[k].n} Lv.${magicLv[k]} -> ${magicLv[k]+1} (消費:${cost})`;
+        b.onclick = () => { if(skillPoints >= cost) { skillPoints -= cost; magicLv[k]++; save(); openSkillMenu(); updateUI(); } };
+        list.appendChild(b);
+    }
+    document.getElementById('skill-overlay').style.display = 'flex';
+}
+
+// --- Utils ---
+function updateUI() {
+    document.getElementById('p-lv').innerText = lv;
+    document.getElementById('p-hp-cur').innerText = php;
+    document.getElementById('p-hp-max').innerText = pMax;
+    document.getElementById('p-fill').style.width = (php/pMax*100) + "%";
+    document.getElementById('e-hp-cur').innerText = ehp;
+    document.getElementById('e-hp-max').innerText = eMax;
+    document.getElementById('e-fill').style.width = eMax > 0 ? (ehp/eMax*100) + "%" : "0%";
+    document.getElementById('sp-btn').innerText = `SKILL UP (${skillPoints})`;
+}
+function updateCardUI(side, sym, name, elem, rare) {
+    document.getElementById(`${side}-sym`).innerText = sym;
+    document.getElementById(`${side}-name`).innerText = name;
+    document.getElementById(`${side}-elem`).innerText = elem;
+    document.getElementById(`${side}-rare`).innerText = rare;
+}
+function setBattleBtns(dis) {
+    document.getElementById('atk-btn').disabled = dis;
+    document.getElementById('magic-btn').disabled = dis;
+    document.getElementById('item-open-btn').disabled = dis;
+    document.getElementById('esc-btn').disabled = dis;
+    if(!dis) hasUsedItemThisTurn = false;
+}
+function applyShake() { document.body.classList.add('shake'); setTimeout(() => document.body.classList.remove('shake'), 300); if(navigator.vibrate) navigator.vibrate(100); }
+function closeOverlay() { document.querySelectorAll('.overlay').forEach(o => o.style.display = 'none'); }
+function save() { localStorage.setItem('myth_v6_save', JSON.stringify({lv, exp, pMax, magicLv, skillPoints, inventory})); localStorage.setItem('myth_v6_lib', JSON.stringify(library)); }
+function handleEscape() { if(confirm("逃げますか？")) resetBattle(); }
+
+function showBonus() {
+    skillPoints += 1; lv++; pMax += 100; php = pMax;
+    document.getElementById('bonus-overlay').style.display = 'flex';
+    switchCamera('B');
+}
+function getBonusItem() {
+    const gids = Object.keys(DB_ITEM_FULL);
+    const gid = parseInt(gids[Math.floor(Math.random()*gids.length)]);
+    if(inventory.length < 8) inventory.push(gid);
+    alert("アイテム獲得！");
+    closeOverlay();
+    resetBattle();
+}
+function resetBattle() {
+    mode="W"; ehp=0; eMax=0;
+    magicUsedThisBattle = {H:false,F:false,W:false,L:false,G:false,B:false,K:false,S:false,R:false};
+    document.getElementById('scan-btn').disabled = false;
+    setBattleBtns(true);
+    switchCamera('P');
+    updateUI();
+    save();
+}
+
+window.onload = init;
+</script>
+</body>
+</html>
