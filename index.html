@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MYTH SCANNER 6.2 - FULL RECOVERY</title>
+    <title>MYTH SCANNER 6.2 - FULL INTEGRATED</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
@@ -11,7 +11,6 @@
         :root { --p-color: #00f2ff; --e-color: #ff3c00; --exp-color: #32ff32; --gold: #ffd700; --magic-purple: #9d4edd; --close-btn: #880000; --main-blue: #0044cc; --reset-red: #cc0000; }
         body { font-family: 'DotGothic16', sans-serif; background: #000; color: #fff; margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         
-        /* 初期画面：最前面に固定 */
         #init-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; color: #0f0; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10000; }
         
         #header { height: 40px; background: #222; display: flex; justify-content: space-around; align-items: center; border-bottom: 2px solid #444; flex-shrink: 0; padding: 0 5px; }
@@ -20,7 +19,8 @@
         .char-area { height: 30%; display: flex; border-bottom: 1px solid #333; padding: 10px; box-sizing: border-box; position: relative; }
         .cam-part { width: 35%; display: flex; align-items: center; justify-content: center; }
         .cam-frame { width: 90px; height: 90px; border: 2px solid #555; background: #111; overflow: hidden; position: relative; border-radius: 8px; }
-        video, canvas { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; }
+        .cam-active { border-color: var(--p-color); box-shadow: 0 0 10px var(--p-color); }
+        video { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; }
         
         .info-part { width: 65%; display: flex; flex-direction: column; padding-left: 10px; justify-content: center; }
         .visual-card { width: 100%; height: 75px; border: 2px solid #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #111; position: relative; border-radius: 4px; }
@@ -36,11 +36,9 @@
         button { flex: 1; height: 38px; font-family: 'DotGothic16'; border: 2px solid #fff; color: #fff; background: #444; font-size: 0.65rem; cursor: pointer; }
         button:disabled { opacity: 0.25; }
 
-        .scan-flash { position: absolute; top:0; left:0; width:100%; height:100%; background:#fff; opacity:0; pointer-events:none; z-index:10; }
-        .flash-active { animation: flash-anim 0.4s ease-out; }
-        @keyframes flash-anim { 0% { opacity: 1; } 100% { opacity: 0; } }
-
-        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 100; display: none; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; }
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 100; display: none; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; }
+        .scroll-list { width: 100%; overflow-y: auto; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        
         .shake { animation: shake-anim 0.3s cubic-bezier(.36,.07,.19,.97) both; }
         @keyframes shake-anim { 10%, 90% { transform: translate3d(-2px, 0, 0); } 20%, 80% { transform: translate3d(3px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-6px, 0, 0); } }
     </style>
@@ -50,28 +48,22 @@
 <div id="init-overlay">
     <h1 style="margin-bottom:10px;">MYTH SCANNER 6.2</h1>
     <div id="init-msg">SYSTEM INITIALIZING...</div>
-    <button id="start-btn" onclick="startGame()" style="display:none; margin-top:20px; padding:15px 40px; background:var(--main-blue); border-radius:8px;">LINK START</button>
+    <button id="start-btn" onclick="startGame()" style="display:none; margin-top:20px; padding:15px 40px; background:var(--main-blue); border-radius:8px; border:none; color:white;">LINK START</button>
 </div>
 
 <div id="header">
     <button onclick="if(confirm('RESET?')){localStorage.clear();location.reload();}" class="head-btn" style="background:var(--reset-red);">RESET</button>
-    <button onclick="alert('Library: Under Const')" class="head-btn" style="background:#555;">COLLECTION</button>
-    <button id="sp-btn" class="head-btn" style="background:var(--magic-purple);">SKILL UP (0)</button>
+    <button onclick="openLibrary()" class="head-btn" style="background:#555;">COLLECTION</button>
+    <button id="sp-btn" onclick="openSkillMenu()" class="head-btn" style="background:var(--magic-purple);">SKILL UP (0)</button>
 </div>
 
 <div class="char-area" id="p-area">
-    <div class="cam-part">
-        <div class="cam-frame">
-            <video id="pv" autoplay playsinline muted></video>
-            <canvas id="pc" style="display:none;"></canvas>
-            <div id="pf" class="scan-flash"></div>
-        </div>
-    </div>
+    <div class="cam-part"><div class="cam-frame"><video id="pv" autoplay playsinline muted></video></div></div>
     <div class="info-part">
         <div class="visual-card">
             <div id="p-elem" style="position:absolute; top:2px; left:5px;"></div>
             <div id="p-rare" style="position:absolute; top:2px; right:5px; font-size:0.5rem; background:#fff; color:#000; padding:1px 3px;">-</div>
-            <div id="p-sym" style="font-size:1.8rem;">?</div>
+            <div id="p-sym" style="font-size:1.8rem;">⚔️</div>
             <div id="p-name" style="font-size:0.55rem;">WEAPON READY</div>
         </div>
         <div class="stat-text">LV:<span id="p-lv">1</span> HP:<span id="p-hp-cur">1000</span>/<span id="p-hp-max">1000</span></div>
@@ -86,20 +78,14 @@
         <button id="atk-btn" onclick="handleAttack()" disabled style="background:#aa0000; flex:1.5;">ATTACK</button>
     </div>
     <div class="btn-row">
-        <button id="magic-btn" disabled style="background:var(--magic-purple);">MAGIC</button>
-        <button id="item-btn" disabled style="background:#008844;">ITEM</button>
-        <button id="esc-btn" onclick="location.reload()" disabled style="background:#555;">ESCAPE</button>
+        <button id="magic-btn" onclick="openMagicMenu()" disabled style="background:var(--magic-purple);">MAGIC</button>
+        <button id="item-open-btn" onclick="openItemMenu()" disabled style="background:#008844;">ITEM</button>
+        <button id="esc-btn" onclick="handleEscape()" disabled style="background:#555;">ESCAPE</button>
     </div>
 </div>
 
 <div class="char-area" id="e-area">
-    <div class="cam-part">
-        <div class="cam-frame">
-            <video id="ev" autoplay playsinline muted style="display:none;"></video>
-            <canvas id="ec" style="display:none;"></canvas>
-            <div id="ef" class="scan-flash"></div>
-        </div>
-    </div>
+    <div class="cam-part"><div class="cam-frame"><video id="ev" autoplay playsinline muted></video></div></div>
     <div class="info-part">
         <div class="visual-card">
             <div id="e-elem" style="position:absolute; top:2px; left:5px;"></div>
@@ -108,144 +94,4 @@
             <div id="e-name" style="font-size:0.55rem;">???</div>
         </div>
         <div class="stat-text">HP:<span id="e-hp-cur">0</span>/<span id="e-hp-max">0</span></div>
-        <div class="bar-container"><div class="bar-bg"><div id="e-fill" class="bar-fill" style="background:var(--e-color);"></div></div></div>
-    </div>
-</div>
-
-<script>
-// --- 基本データ ---
-const DB_WEAPON = ["錆びた短剣","ブロンズナイフ","鋼鉄の剣","ミスリルの杖","聖剣エクスカリバー"];
-const DB_MONSTER = ["スライム","ゴブリン","オーク","ドラゴン","魔王サタン"];
-const ELEMENTS = { "🔥": "🌿", "🌿": "⚡", "⚡": "💧", "💧": "🔥" };
-
-let net, stream;
-let lv=1, php=1000, pMax=1000, patk=100, pelem="🔥";
-let ehp=0, eMax=0, eatk=50, eelem="🔥";
-let gamePhase = "EQUIP"; // EQUIP -> SEARCH -> BATTLE
-
-async function init() {
-    try {
-        net = await mobilenet.load();
-        document.getElementById('init-msg').innerText = "AI MODEL LOADED.";
-        document.getElementById('start-btn').style.display = "block";
-    } catch(e) { document.getElementById('init-msg').innerText = "LOAD ERROR"; }
-}
-
-async function startGame() {
-    document.getElementById('init-overlay').style.display = "none";
-    startPhaseEquip();
-}
-
-async function startPhaseEquip() {
-    gamePhase = "EQUIP";
-    document.getElementById('msg').innerText = "【装備スキャン】\n武器となる物を映してください";
-    document.getElementById('scan-btn').disabled = false;
-    await switchCamera('pv');
-}
-
-async function switchCamera(vId) {
-    if(stream) stream.getTracks().forEach(t => t.stop());
-    const video = document.getElementById(vId);
-    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-    video.srcObject = stream;
-    video.style.display = "block";
-}
-
-function capture(side) {
-    const v = document.getElementById(side + 'v');
-    const c = document.getElementById(side + 'c');
-    const f = document.getElementById(side + 'f');
-    c.width = v.videoWidth; c.height = v.videoHeight;
-    c.getContext('2d').drawImage(v, 0, 0);
-    v.style.display = "none"; c.style.display = "block";
-    f.classList.add('flash-active');
-    setTimeout(() => f.classList.remove('flash-active'), 400);
-}
-
-async function handleScan() {
-    const v = (gamePhase === "EQUIP") ? document.getElementById('pv') : document.getElementById('ev');
-    document.getElementById('msg').innerText = "ANALYZING...";
-    
-    const res = await net.classify(v);
-    const id = res[0].className.length;
-    const rare = id % 10 > 7 ? "LEGEND" : "NORMAL";
-    const elem = ["🔥", "💧", "⚡", "🌿"][id % 4];
-
-    if(gamePhase === "EQUIP") {
-        capture('p');
-        const name = DB_WEAPON[id % DB_WEAPON.length];
-        pelem = elem;
-        document.getElementById('p-name').innerText = name;
-        document.getElementById('p-elem').innerText = elem;
-        document.getElementById('p-rare').innerText = rare;
-        document.getElementById('p-sym').innerText = "⚔️";
-        
-        gamePhase = "SEARCH";
-        document.getElementById('msg').innerText = `${name}を装備！\n敵を探してください...`;
-        setTimeout(() => switchCamera('ev'), 1000);
-    } else {
-        capture('e');
-        const name = DB_MONSTER[id % DB_MONSTER.length];
-        eelem = elem;
-        eMax = 500 + (lv * 200); ehp = eMax;
-        document.getElementById('e-name').innerText = name;
-        document.getElementById('e-elem').innerText = elem;
-        document.getElementById('e-rare').innerText = rare;
-        document.getElementById('e-sym').innerText = "👾";
-        
-        gamePhase = "BATTLE";
-        document.getElementById('msg').innerText = `野生の ${name} が現れた！`;
-        document.getElementById('scan-btn').disabled = true;
-        document.getElementById('atk-btn').disabled = false;
-        document.getElementById('esc-btn').disabled = false;
-        updateUI();
-    }
-}
-
-function handleAttack() {
-    document.body.classList.add('shake');
-    setTimeout(() => document.body.classList.remove('shake'), 300);
-
-    let dmg = patk + Math.floor(Math.random() * 20);
-    let bonus = "";
-    if(ELEMENTS[pelem] === eelem) { dmg = Math.floor(dmg * 1.5); bonus = "WEAKNESS!! "; }
-    if(ELEMENTS[eelem] === pelem) { dmg = Math.floor(dmg * 0.5); bonus = "RESISTED... "; }
-
-    ehp = Math.max(0, ehp - dmg);
-    document.getElementById('msg').innerText = `${bonus}${dmg} DAMAGE!`;
-    updateUI();
-
-    if(ehp <= 0) {
-        document.getElementById('msg').innerText = "VICTORY!!";
-        setTimeout(() => location.reload(), 2000);
-    } else {
-        document.getElementById('atk-btn').disabled = true;
-        setTimeout(enemyTurn, 1000);
-    }
-}
-
-function enemyTurn() {
-    let dmg = eatk;
-    php = Math.max(0, php - dmg);
-    document.getElementById('msg').innerText = `ENEMY ATTACK!\n${dmg} DAMAGE!`;
-    updateUI();
-    if(php <= 0) {
-        alert("GAME OVER");
-        location.reload();
-    } else {
-        document.getElementById('atk-btn').disabled = false;
-    }
-}
-
-function updateUI() {
-    document.getElementById('p-hp-cur').innerText = php;
-    document.getElementById('p-fill').style.width = (php/pMax*100) + "%";
-    document.getElementById('e-hp-cur').innerText = ehp;
-    document.getElementById('e-hp-max').innerText = eMax;
-    document.getElementById('e-fill').style.width = (ehp/eMax*100) + "%";
-}
-
-window.onload = init;
-</script>
-</body>
-</html>
+        <div class="bar-container"><div class
