@@ -155,21 +155,25 @@
     <button id="get-item-btn" style="background:var(--main-blue); width:95%; height:40px; border:none; color:#fff; margin-top:20px;" onclick="getBonusItem()">GET ITEM</button>
 </div>
 <script>
-// --- 最小限の変数 ---
 let net;
+
+// ★1. ここに少しずつデータを戻していきます
+const DB_ITEM_FULL = {
+    // まずはテスト用に1つだけ入れてみてください
+    "n01214153": { name: "テストの剣", rarity: "N", hp: 100, atk: 10, def: 5, elem: "🔥", sym: "🗡️" }
+};
+
+// --- ゲームの状態管理 ---
+let lv=1, exp=0, hp=1000, maxHp=1000;
+let myAtk=10, myDef=10;
 
 async function init() {
     try {
         const msgBox = document.getElementById('init-msg');
         msgBox.innerText = "LOADING AI...";
-        
-        // AIの読み込み（ここで少し時間がかかります）
         net = await mobilenet.load();
-        
         msgBox.innerText = "READY!";
         document.getElementById('start-btn').style.display = 'block';
-        document.getElementById('start-btn').innerText = "START GAME";
-        
     } catch (e) {
         alert("Init Error: " + e.message);
     }
@@ -177,23 +181,26 @@ async function init() {
 
 async function startGame() {
     try {
-        // iPhoneでカメラを起動するための必須処理
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-        const video = document.getElementById('pv'); // プレイヤー側のビデオ
-        video.srcObject = stream;
-        video.style.display = "block";
+        document.getElementById('pv').srcObject = stream;
+        document.getElementById('pv').style.display = "block";
         document.getElementById('p-area').classList.add('cam-active');
-
-        // オーバーレイを消す
         document.getElementById('init-overlay').style.display = 'none';
-        document.getElementById('msg').innerText = "カメラ起動成功！";
         
+        // ★2. ゲーム開始時にスキャンボタンを有効にする
+        document.getElementById('scan-btn').disabled = false;
+        document.getElementById('msg').innerText = "武器をスキャンしてください";
     } catch (e) {
         alert("Camera Error: " + e.message);
     }
 }
 
-// 実行予約
+// ★3. スキャンボタンを押した時の動き（仮）
+async function handleScan() {
+    document.getElementById('msg').innerText = "スキャン中...";
+    // ここにあとで、MobileNetを使った判定ロジックを追加します
+}
+
 window.onload = init;
 </script>
 </body>
