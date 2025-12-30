@@ -155,27 +155,46 @@
     <button id="get-item-btn" style="background:var(--main-blue); width:95%; height:40px; border:none; color:#fff; margin-top:20px;" onclick="getBonusItem()">GET ITEM</button>
 </div>
 <script>
-    // 1. まずこれが動くか確認
-    alert("Check 1: Script Loaded");
+// --- 最小限の変数 ---
+let net;
 
-    // 2. ボタンとメッセージを強制的に書き換えるテスト
-    window.onload = function() {
-        alert("Check 2: Window Loaded");
+async function init() {
+    try {
+        const msgBox = document.getElementById('init-msg');
+        msgBox.innerText = "LOADING AI...";
         
-        // INITIALIZINGの文字を書き換えてみる
-        const msg = document.getElementById('init-msg');
-        if (msg) {
-            msg.innerText = "TEST SUCCESS!";
-            msg.style.color = "yellow";
-        }
+        // AIの読み込み（ここで少し時間がかかります）
+        net = await mobilenet.load();
+        
+        msgBox.innerText = "READY!";
+        document.getElementById('start-btn').style.display = 'block';
+        document.getElementById('start-btn').innerText = "START GAME";
+        
+    } catch (e) {
+        alert("Init Error: " + e.message);
+    }
+}
 
-        // ボタンを強制的に表示してみる
-        const btn = document.getElementById('start-btn');
-        if (btn) {
-            btn.style.display = 'block';
-            btn.innerText = "CLICK ME";
-        }
-    };
+async function startGame() {
+    try {
+        // iPhoneでカメラを起動するための必須処理
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        const video = document.getElementById('pv'); // プレイヤー側のビデオ
+        video.srcObject = stream;
+        video.style.display = "block";
+        document.getElementById('p-area').classList.add('cam-active');
+
+        // オーバーレイを消す
+        document.getElementById('init-overlay').style.display = 'none';
+        document.getElementById('msg').innerText = "カメラ起動成功！";
+        
+    } catch (e) {
+        alert("Camera Error: " + e.message);
+    }
+}
+
+// 実行予約
+window.onload = init;
 </script>
 </body>
 </html>
