@@ -219,13 +219,16 @@ function spawnEnemy(detectedName) {
     document.getElementById('e-sym').innerText = "👾";
     enemyMaxHp = 500 + Math.floor(Math.random() * 500);
     enemyHp = enemyMaxHp;
-    
+
     document.getElementById('e-hp-cur').innerText = enemyHp;
     document.getElementById('e-hp-max').innerText = enemyMaxHp;
     document.getElementById('e-fill').style.width = "100%";
-    
+
     document.getElementById('msg').innerText = `${eName} が現れた！\nATTACKボタンで戦え！`;
-    document.getElementById('atk-btn').disabled = false; // 攻撃ボタンをONにする
+    document.getElementById('atk-btn').disabled = false; 
+
+    // ★追加：戦闘開始時にSCANボタンを無効化する
+    document.getElementById('scan-btn').disabled = true; 
 }
 
 // 4. スキャン実行
@@ -233,7 +236,7 @@ async function handleScan() {
     if (!net) return;
     const msg = document.getElementById('msg');
     const btn = document.getElementById('scan-btn');
-    
+
     msg.innerText = "解析中... 🔍";
     btn.disabled = true;
 
@@ -357,7 +360,11 @@ function victory() {
     document.getElementById('exp-fill').style.width = expPercent + "%";
     document.getElementById('exp-text').innerText = `${exp} / ${lv * 50}`;
     
-    isMyTurn = true; // 次のバトルのためにターンを戻す
+    isMyTurn = true; 
+    
+    // ★追加：敵を倒したので、再びSCANできるようにする
+    document.getElementById('scan-btn').disabled = false; 
+    document.getElementById('msg').innerText += "\n次の獲物をスキャンしてください。";
 }
 window.onload = init;
 </script>
