@@ -259,25 +259,106 @@ async function handleScan() {
     }
 }
 
-// 5. 攻撃ボタン
+// --- 自分の攻撃（ターン制対応版） ---
+let isMyTurn = true; // ターン管理フラグ
+
 function handleAttack() {
-    if (enemyHp <= 0) return;
-    
+    if (!isMyTurn || enemyHp <= 0 || hp <= 0) return;
+
+    isMyTurn = false; // 自分のターン終了
+    document.getElementById('atk-btn').disabled = true; // ボタンを一時無効化
+
+    // 1. ダメージ計算（自分から敵へ）
     const damage = Math.max(10, myAtk + Math.floor(Math.random() * 10));
     enemyHp -= damage;
     
-    const percent = Math.max(0, (enemyHp / enemyMaxHp) * 100);
-    document.getElementById('e-fill').style.width = percent + "%";
-    document.getElementById('e-hp-cur').innerText = Math.max(0, enemyHp);
-    
+    // 演出：画面を揺らす
+    document.body.classList.remove('shake');
+    void document.body.offsetWidth;
+    document.body.classList.add('shake');
+
+    // 画面更新
+    updateBattleUI();
     document.getElementById('msg').innerText = `${damage} のダメージを与えた！`;
 
+    // 2. 敵の生存チェック
     if (enemyHp <= 0) {
-        document.getElementById('msg').innerText = "敵を倒した！\n次の獲物を探してください。";
-        document.getElementById('atk-btn').disabled = true;
+        victory();
+    } else {
+        // 敵が生きていれば、1秒後に敵のターンへ
+        setTimeout(enemyTurn, 1000);
     }
 }
 
+// --- 敵のターン ---
+function enemyTurn() {
+    if (enemyHp <= 0) return;
+
+    // 1. 敵の攻撃力（ランダムに設定）
+    const enemyAtk = 20 + (lv * 5);
+    const damage = Math.max(5, enemyAtk - Math.floor(myDef / 2));
+    
+    hp -= damage;
+    
+    // 演出：ダメージ音の代わりにメッセージ更新
+    document.getElementById('msg').innerText = `敵の攻撃！\n${damage} のダメージを受けた！`;
+    
+    // 画面更新
+    updateBattleUI();
+
+    // 2. 自分の生存チェック
+    if (hp <= 0) {
+        document.getElementById('msg').innerText = "あなたは倒れた...";
+        // 必要に応じてリロードやリセットの処理
+    } else {
+        // 生きていれば自分のターンに戻す
+        setTimeout(() => {
+            isMyTurn = true;
+            document.getElementById('atk-btn').disabled = false;
+            document.getElementById('msg').innerText += "\nあなたのターン！";
+        }, 800);
+    }
+}
+
+// UI更新をまとめる関数
+function updateBattleUI() {
+    // プレイヤーHP
+    const pPercent = Math.max(0, (hp / maxHp) * 100);
+    document.getElementById('p-fill').style.width = pPercent + "%";
+    document.getElementById('p-hp-cur').innerText = Math.max(0, hp);
+    
+    // 敵HP
+    const ePercent = Math.max(0, (enemyHp / enemyMaxHp) * 100);
+    document.getElementById('e-fill').style.width = ePercent + "%";
+    document.getElementById('e-hp-cur').innerText = Math.max(0, enemyHp);
+}
+
+// 勝利時の処理
+function victory() {
+    const getExp = 20;
+    exp += getExp;
+    document.getElementById('msg').innerText = `敵を倒した！\n${getExp} の経験値を獲得！`;
+    
+    // レベルアップ判定（以前のロジックを流用）
+    const nextLvExp = lv * 50;
+    if (exp >= nextLvExp) {
+        lv++;
+        exp = 0;
+        maxHp += 100;
+        hp = maxHp;
+        myAtk += 5;
+        document.getElementById('p-lv').innerText = lv;
+        document.getElementById('p-atk-val').innerText = myAtk;
+        document.getElementById('msg').innerText += `\n🌟 LEVEL UP! Lv.${lv}`;
+    }
+    
+    // 経験値バー更新
+    const expPercent = (exp / (lv * 50)) * 100;
+    document.getElementById('exp-fill').style.width = expPercent + "%";
+    document.getElementById('exp-text').innerText = `${exp} / ${lv * 50}`;
+    
+    isMyTurn = true; // 次のバトルのためにターンを戻す
+}
 window.onload = init;
 </script>
 </body>
