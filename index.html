@@ -157,10 +157,34 @@
 <script>
 let net;
 
-// ★1. ここに少しずつデータを戻していきます
+// --- 1. データベースを更新して、身の回りのものを登録してみる ---
 const DB_ITEM_FULL = {
-    // まずはテスト用に1つだけ入れてみてください
-    "n01214153": { name: "テストの剣", rarity: "N", hp: 100, atk: 10, def: 5, elem: "🔥", sym: "🗡️" }
+    "n01214153": { name: "テストの剣", rarity: "N", hp: 100, atk: 10, def: 5, elem: "🔥", sym: "🗡️" },
+    // 例：コップを映して coffee mug と出た場合
+    "coffeemug": { name: "伝説のマグカップ", rarity: "SSR", hp: 1500, atk: 50, def: 30, elem: "💧", sym: "☕" },
+    // 例：キーボードを映して computer keyboard と出た場合
+    "computerkeyboard": { name: "サイバーキーボード", rarity: "R", hp: 800, atk: 25, def: 10, elem: "⚡", sym: "⌨️" }
+};
+
+// --- 2. ステータスを画面に反映させる関数を追加 ---
+function showPlayerStats(item) {
+    document.getElementById('p-name').innerText = item.name;
+    document.getElementById('p-rare').innerText = item.rarity;
+    document.getElementById('p-elem').innerText = item.elem;
+    document.getElementById('p-sym').innerText = item.sym;
+    
+    document.getElementById('p-hp-cur').innerText = item.hp;
+    document.getElementById('p-hp-max').innerText = item.hp;
+    document.getElementById('p-atk-val').innerText = item.atk;
+    document.getElementById('p-def-val').innerText = item.def;
+    
+    document.getElementById('p-fill').style.width = "100%";
+    
+    // 変数も更新
+    hp = item.hp;
+    maxHp = item.hp;
+    myAtk = item.atk;
+    myDef = item.def;
 };
 
 // --- ゲームの状態管理 ---
