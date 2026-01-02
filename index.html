@@ -39,16 +39,25 @@
 
 <div id="game-ui">
     <div class="status-bar">
-        <div>PLAYER Lv.<span id="p-lv">1</span> HP: <span id="p-hp-cur">1000</span>/<span id="p-hp-max">1000</span></div>
-        <div class="hp-bar"><div id="p-fill" class="hp-fill"></div></div>
-        <div style="margin-top:5px; color:#ff4444;">ENEMY HP: <span id="e-hp-cur">0</span>/<span id="e-hp-max">0</span></div>
-        <div class="hp-bar"><div id="e-fill" class="hp-fill" style="background:#f00; width:0%;"></div></div>
+    <div>
+        PLAYER Lv.<span id="p-lv">1</span>
+        <span id="p-elem" style="font-weight:bold; margin-left:10px;"></span>
+        HP: <span id="p-hp-cur">1000</span>/<span id="p-hp-max">1000</span>
     </div>
-
-    <div class="camera-container">
-        <video id="webcam" autoplay playsinline muted></video>
-        <canvas id="offscreen-canvas" style="display:none;"></canvas>
+    <div class="hp-bar"><div id="p-fill" class="hp-fill"></div></div>
+    <div style="margin-top:5px; color:#ff4444;">
+        ENEMY HP: <span id="e-hp-cur">0</span>/<span id="e-hp-max">0</span>
+        <span id="e-elem" style="font-weight:bold; margin-left:10px;"></span>
     </div>
+    <div class="hp-bar"><div id="e-fill" class="hp-fill" style="background:#f00; width:0%;"></div></div>
+    <div id="element-debug" style="font-size:0.8rem; margin-top:5px;"></div>
+</div>
+<div class="camera-container">
+    <video id="webcam" autoplay playsinline muted></video>
+    <canvas id="color-canvas" width="1" height="1" style="display:none;"></canvas> 
+    <div style="position:absolute; width:20px; height:2px; background:white; z-index:5;"></div>
+    <div style="position:absolute; width:2px; height:20px; background:white; z-index:5;"></div>
+</div>
 
     <div id="msg" class="msg-area">SYSTEM INITIALIZING...</div>
 
@@ -68,14 +77,76 @@
 
 <script>
 // --- ゲーム変数 ---
+// ...（既存の let lv=1, exp=0, ... などの下に追記）...
+let mode = "W"; // W:Weapon, E:Enemy, B:Battle, I:Item
+
+// ★追記：プレイヤーと敵に付与される属性を保持する変数
+let playerElement = null; 
+let enemyElement = null;
+
+// ...（ELEMENTS定義とgetElementModifier関数の下に追記）...
+
+// ★追記：武器リストのマスターデータ（ユーザーリストに基づき作成）
+const WEAPON_MASTER_DB = [
+    // MYTH (No. 97-100)
+    { no: 97, rarity: "MYTH", name: "ドラゴンズロッド", keywords: ["rod", "stick", "wood", "tool"] },
+    { no: 98, rarity: "MYTH", name: "オリハルコンダガー", keywords: ["knife", "blade", "iron", "steel"] },
+    { no: 99, rarity: "MYTH", name: "ロンギヌスの槍", keywords: ["spear", "stick", "blade", "iron"] },
+    { no: 100, rarity: "MYTH", name: "エクスカリバー", keywords: ["sword", "blade", "iron", "steel"] },
+    // LEGEND (No. 81-96)
+    { no: 81, rarity: "LEGEND", name: "雷鳴の剣", keywords: ["sword", "blade", "iron", "electricity"] },
+    // ... (以下、LEGEND, ELITE, COMMON 全100種をここに定義します) ...
+    // ...
+    // COMMON (No. 1-48)
+    { no: 1, rarity: "COMMON", name: "木の棒", keywords: ["wood", "branch", "stick"] },
+    { no: 48, rarity: "COMMON", name: "木刀", keywords: ["sword", "wood", "stick", "japan", "blade"] },
+];
+
+// ★追記：レアリティと確率の定義
+const RARITY_RATES = [
+    { rarity: "MYTH", rate: 5, start: 0 },   // 5%
+    { rarity: "LEGEND", rate: 10, start: 5 }, // 10%
+    { rarity: "ELITE", rate: 25, start: 15 }, // 25%
+    { rarity: "COMMON", rate: 60, start: 40 }  // 60%
+];
+
+// ★追記：色と属性の対応表
+const COLOR_MAPPING = [
+    { elem: "FIRE", check: (r, g, b) => r > 150 && g < 100 }, // 赤系
+    { elem: "WATER", check: (r, g, b) => b > 150 && r < 100 }, // 青系
+    { elem: "WOOD", check: (r, g, b) => g > 120 && r < 120 && b < 120 }, // 緑系
+    { elem: "EARTH", check: (r, g, b) => r > 100 && g > 50 && b < 100 } // 茶色・黄土色系
+];
 let lv=1, exp=0, pMax=1000, php=1000;
 let ehp=0, eMax=0, eatk=100, pdef=100;
-let mode = "W"; // W:Weapon, E:Enemy, B:Battle, I:Item
 let net, stream;
 let inventory = [];
 let library = JSON.parse(localStorage.getItem('myth_v6_lib')) || { W: {}, E: {}, I: {} };
 let magicLv = { H:1, F:0, L:0 }; 
 
+// --- 4属性（4すくみ）の定義 ---
+const ELEMENTS = {
+    FIRE:  { name: "火", color: "#ff4444", icon: "🔥", strongTo: "WOOD" },
+    WATER: { name: "水", color: "#4444ff", icon: "💧", strongTo: "FIRE" },
+    EARTH: { name: "土", color: "#8b4513", icon: "⛰️", strongTo: "WATER" },
+    WOOD:  { name: "木", color: "#228b22", icon: "🍃", strongTo: "EARTH" }
+};
+
+/**
+ * 属性相性によるダメージ倍率を計算
+ * @param {string} atkElem 攻撃側の属性キー (FIRE, WATER, etc.)
+ * @param {string} defElem 防御側の属性キー
+ * @returns {number} ダメージ倍率 (1.5倍 or 0.5倍 or 1.0倍)
+ */
+function getElementModifier(atkElem, defElem) {
+    if (ELEMENTS[atkElem].strongTo === defElem) {
+        return 1.5; // 有利：ダメージ1.5倍
+    }
+    if (ELEMENTS[defElem].strongTo === atkElem) {
+        return 0.5; // 不利：ダメージ0.5倍
+    }
+    return 1.0; // 相性なし：等倍
+}
 // --- 初期化 ---
 window.onload = async () => {
     try {
@@ -117,29 +188,40 @@ async function startScan() {
     btn.disabled = true;
     log("スキャン中...");
     
-    // 画像解析
     const video = document.getElementById('webcam');
     const result = await net.classify(video);
-    const label = result[0].className;
+    const label = result[0].className; // AIが認識した名前 (例: 'wooden stick, wood')
     
+    // ★重要：色で属性を決定
+    const determinedElement = getElementByColor();
+    const elementInfo = ELEMENTS[determinedElement];
+
     if (mode === "W") {
-        log(`武器を検知: ${label}`);
+        // ★武器の抽選を実行
+        const discoveredWeapon = lotteryWeapon(label, determinedElement); 
+        
+        playerElement = discoveredWeapon.element; // プレイヤーの属性を決定
+        
+        log(`武器検知: ${discoveredWeapon.name} (${discoveredWeapon.rarity})`);
+        log(`属性: ${elementInfo.name}${elementInfo.icon}に変化！`);
+
+        // 図鑑登録（属性も保存）
+        library.W[discoveredWeapon.no] = { 
+            name: discoveredWeapon.name, 
+            rarity: discoveredWeapon.rarity,
+            element: discoveredWeapon.element 
+        };
+        
         mode = "E";
         btn.innerText = "ENEMY SCAN";
         btn.disabled = false;
-    } else if (mode === "E") {
-        eMax = 500 + (lv * 200);
-        ehp = eMax;
-        log(`敵が出現: ${label.split(',')[0]}!`);
-        mode = "B";
-        btn.innerText = "BATTLE MODE";
-        document.getElementById('atk-btn').disabled = false;
-        document.getElementById('magic-btn').disabled = false;
-    } else if (mode === "I") {
-        getBonusItem(label);
-    }
+    } 
+    // ... (以降の else if (mode === "E") ... などの処理は同様に抽選ロジックに置き換える必要があります)
+    
     updateUI();
 }
+
+// ... (以下、updateUIなどの既存の関数が続く) ...
 
 // --- バトルロジック ---
 function handleAttack() {
@@ -177,7 +259,87 @@ function win() {
     exp += 50;
     save();
 }
+/**
+ * 1. カメラの中央ピクセルから色を取得し、属性を決定する
+ * @returns {string} 属性キー (FIRE, WATER, etc.)
+ */
+function getElementByColor() {
+    const video = document.getElementById('webcam');
+    const canvas = document.getElementById('color-canvas');
+    const ctx = canvas.getContext('2d');
 
+    // カメラの中央部分を1x1ピクセルでキャプチャ
+    ctx.drawImage(video, video.videoWidth / 2, video.videoHeight / 2, 1, 1, 0, 0, 1, 1);
+    const pixelData = ctx.getImageData(0, 0, 1, 1).data;
+    const r = pixelData[0], g = pixelData[1], b = pixelData[2];
+    
+    // UIにデバッグ情報を表示
+    document.getElementById('element-debug').innerHTML = `RGB: (${r}, ${g}, ${b})`;
+
+    // 色マッピングに基づいて属性を判定
+    for (const mapping of COLOR_MAPPING) {
+        if (mapping.check(r, g, b)) {
+            return mapping.elem;
+        }
+    }
+    // どの色にも当てはまらない場合はランダム
+    const keys = Object.keys(ELEMENTS);
+    return keys[Math.floor(Math.random() * keys.length)];
+}
+
+
+/**
+ * 2. 決定した属性とAIラベルから、候補を抽選する
+ * @param {string} label AIが認識したラベル
+ * @param {string} determinedElement 色で決まった属性
+ * @returns {object} 出現する武器/モンスターオブジェクト
+ */
+function lotteryWeapon(label, determinedElement) {
+    const lowerLabel = label.toLowerCase().split(',').map(s => s.trim()); // AIラベルを小文字リスト化
+
+    // 1. キーワードが一致する候補をすべて抽出 (OR条件)
+    let candidates = WEAPON_MASTER_DB.filter(weapon => {
+        // 武器のキーワードリスト (例: ["knife", "blade", "iron"])
+        const weaponKeys = weapon.keywords; 
+        
+        // AIのラベルリストのどれか一つでも武器のキーワードに一致するか？
+        return lowerLabel.some(aiKey => weaponKeys.includes(aiKey));
+    });
+
+    if (candidates.length === 0) {
+        log("一致するキーワードが見つかりませんでした。ランダム抽選を開始します。");
+        // キーワード一致なしの場合、全100種からランダムにレアリティ抽選
+        // (ここではシンプルに全100種からランダム選択とします - 要改善)
+        candidates = WEAPON_MASTER_DB; 
+    }
+    
+    // 2. 候補の中から、レアリティの確率で抽選する（ガチャロジック）
+    let totalRate = 0;
+    const weightedCandidates = candidates.map(w => {
+        const rateInfo = RARITY_RATES.find(r => r.rarity === w.rarity);
+        // 同じキーワードで複数のレアリティがヒットした場合、元の確率を重みとして再抽選する
+        const weight = rateInfo ? rateInfo.rate : 0; 
+        totalRate += weight;
+        return { weapon: w, weight: weight };
+    });
+    
+    // 3. 抽選実行
+    let rand = Math.random() * totalRate;
+    let current = 0;
+    for (const item of weightedCandidates) {
+        current += item.weight;
+        if (rand <= current) {
+            // 抽選された武器に、色で決めた属性を付与して返す
+            return {
+                ...item.weapon,
+                element: determinedElement 
+            };
+        }
+    }
+    
+    // 安全のため、失敗したらCOMMONを返す
+    return { no: 1, rarity: "COMMON", name: "木の棒", element: determinedElement };
+}
 // --- システム ---
 function log(m) {
     const el = document.getElementById('msg');
@@ -219,7 +381,9 @@ function getBonusItem(label) {
     save();
     location.reload(); // 最初から（武器スキャン）に戻る
 }
-
+function openMagic() {
+    alert("魔法機能: 開発中");
+}
 </script>
 </body>
 </html>
