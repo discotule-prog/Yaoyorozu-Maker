@@ -402,18 +402,26 @@ function lottery(db, label) {
     }
 }
 async function startScan() {
-    if (mode === "B") return; // バトル中はスキャンさせない
-    // ...残りの処理
+    if (mode === "B") return; 
+    
     const btn = document.getElementById('scan-btn');
     const video = document.getElementById('webcam');
+
+    // ★追加：ビデオが止まっていたら再開を試みる（iPhone対策）
+    if (video.paused) {
+        await video.play();
+    }
     
+    // カメラの準備が完全に整っているかチェック
     if (!video || video.readyState !== 4) {
-        log("カメラ準備中... 1秒待って再試行してください");
+        log("カメラを再準備中... 1秒待って再試行してください");
         return;
     }
 
     btn.disabled = true;
     log("AI解析中...");
+    
+    // 以降、try-catch処理へ
     
     try {
         // 1. AI判定 (ここが重いのでエラーになりやすい)
@@ -562,15 +570,13 @@ function resetBattleState(isVictory) {
     pAtkBonus = 1.0;
     pDefBonus = 1.0;
     
-    // 一旦、全ボタンを整理
     mode = "W";
     const scanBtn = document.getElementById('scan-btn');
-    scanBtn.innerText = "WEAPON SCAN";
-    scanBtn.disabled = false;
     
+    // 一旦バトルボタンは無効化
     document.getElementById('atk-btn').disabled = true;
     document.getElementById('magic-btn').disabled = true;
-    
+
     if (isVictory) {
         exp += eExp;
         if (exp >= lv * 100) {
@@ -580,23 +586,26 @@ function resetBattleState(isVictory) {
             php = pMax;
             skillPoints++;
             log(`レベルアップ！ Lv.${lv} SPを1獲得！`);
-            
-            // 重要：魔法メニューを開く間はスキャンさせない
+
+            // レベルアップ時は「MENU OPENING...」にしてボタンを固める
             scanBtn.disabled = true; 
-            scanBtn.innerText = "LEVEL UP!";
-            
+            scanBtn.innerText = "MENU OPENING...";
+
             setTimeout(() => {
                 openMagic();
-                // 魔法メニューを閉じた後にスキャンを許可する仕組みが必要ですが、
-                // まずはボタンを復活させる処理をopenMagic側かここに入れます
                 scanBtn.disabled = false;
                 scanBtn.innerText = "WEAPON SCAN";
-            }, 1000);
+                updateUI(); // UI更新を忘れない
+            }, 1500);
+            return; // ★ここで終了。下の「即座に有効化」を通さない
         }
     }
+
+    // レベルアップしなかった場合、または勝利しなかった場合は即座にスキャン許可
+    scanBtn.disabled = false;
+    scanBtn.innerText = "WEAPON SCAN";
     updateUI();
 }
-
 // --- 魔法システム関数 ---
 
 function openMagic() {
