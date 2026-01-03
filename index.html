@@ -84,7 +84,10 @@ let net, stream;
 let playerElement = null;
 let enemyElement = null;
 let library = JSON.parse(localStorage.getItem('myth_v6_lib')) || { W: {}, E: {}, I: {} };
-
+let pAtk = 0; // スキャンした武器の攻撃力
+let pDef = 0; // スキャンした武器の防御力
+let eAtk = 0; // 出現したモンスターの攻撃力
+let eExp = 0; // 出現したモンスターの経験値
 const ELEMENTS = {
     FIRE:  { name: "火", color: "#ff4444", icon: "🔥", strongTo: "WOOD" },
     WATER: { name: "水", color: "#4444ff", icon: "💧", strongTo: "FIRE" },
@@ -107,22 +110,17 @@ const COLOR_MAPPING = [
 ];
 
 // --- データベース (抜粋。実際は画像に基づき100種展開) ---
-// ※コードが長くなりすぎるため、主要なものと構造を定義
+// --- データベース ---
 const WEAPON_DB = [
-    { no: 100, rarity: "MYTH",   name: "天叢雲剣", keywords: ["sword"] },
-    { no: 99,  rarity: "MYTH",   name: "ロンギヌスの槍", keywords: ["stick"] },
-    { no: 98,  rarity: "MYTH",   name: "チェーンソー", keywords: ["tools"] },
-    { no: 97,  rarity: "MYTH",   name: "超電磁砲", keywords: ["gun"] },
-    { no: 96,  rarity: "LEGEND", name: "正宗", keywords: ["sword", "blade", "iron"] },
-    // ... 画像リストに基づきNo.1-100までプログラム内部で処理
+    { no: 100, rarity: "MYTH", name: "天叢雲剣", keywords: ["sword"], atk: 500, def: 100 },
+    { no: 99,  rarity: "MYTH", name: "ロンギヌスの槍", keywords: ["stick"], atk: 450, def: 80 },
+    // ここに100種類分を並べていきます
 ];
 
 const MONSTER_DB = [
-    { no: 100, rarity: "MYTH",   name: "最後の審判", keywords: ["book"] },
-    { no: 99,  rarity: "MYTH",   name: "ルシファー", keywords: ["bird"] },
-    { no: 98,  rarity: "MYTH",   name: "織田信長", keywords: ["human"] },
-    { no: 10,  rarity: "COMMON", name: "スライム", keywords: ["drink", "water", "bottle", "cap"] },
-    // ... 画像リストに基づきNo.1-100までプログラム内部で処理
+    { no: 100, rarity: "MYTH", name: "最後の審判", keywords: ["book"], hp: 9999, atk: 500, exp: 5000 },
+    { no: 98,  rarity: "MYTH", name: "織田信長", keywords: ["human"], hp: 5000, atk: 300, exp: 1000 },
+    // ここに100種類分を並べていきます
 ];
 
 // --- システムロジック ---
@@ -186,42 +184,63 @@ async function startScan() {
     if (mode === "W") {
         const weapon = lottery(WEAPON_DB, label);
         playerElement = elemKey;
-        log(`武器: ${weapon.name} [${weapon.rarity}]\n属性: ${ELEMENTS[elemKey].icon}`);
+        pAtk = weapon.atk; 
+        pDef = weapon.def; 
+        log(`武器: ${weapon.name} [ATK:${pAtk}]\n属性: ${ELEMENTS[elemKey].icon}`);
         mode = "E";
         btn.innerText = "ENEMY SCAN";
+        btn.disabled = false; // 次のスキャンのためにボタンを戻す
     } else if (mode === "E") {
         const monster = lottery(MONSTER_DB, label);
         enemyElement = elemKey;
         enemyName = monster.name;
-        eMax = (monster.rarity === "MYTH" ? 5000 : monster.rarity === "LEGEND" ? 2000 : 500) + (lv * 100);
+        eMax = monster.hp; 
         ehp = eMax;
-        log(`敵: ${monster.name} [${monster.rarity}]\n属性: ${ELEMENTS[elemKey].icon}`);
-        mode = "B";
+        eAtk = monster.atk; 
+        eExp = monster.exp; 
+        log(`敵: ${monster.name} [HP:${eMax}]\n属性: ${ELEMENTS[elemKey].icon}`);
+        
+        // ★ここが重要：バトルモードへ切り替え
+        mode = "B"; 
         btn.innerText = "SCAN DISABLED";
         document.getElementById('atk-btn').disabled = false;
         document.getElementById('magic-btn').disabled = false;
     }
-    updateUI();
-    btn.disabled = (mode === "B");
+updateUI();
+    // ボタンの無効化判定を関数内に入れる
+    btn.disabled = (mode === "B"); 
 }
 
 function handleAttack() {
     const mod = getElementModifier(playerElement, enemyElement);
-    const dmg = Math.floor((100 + lv * 20) * mod);
+    // プレイヤーの攻撃力(pAtk)とレベルボーナスを使用
+    const dmg = Math.floor((pAtk + lv * 10) * mod);
     ehp = Math.max(0, ehp - dmg);
     applyShake();
+    
     log(`${enemyName}に ${dmg}ダメージ！ (${mod === 1.5 ? '効果絶大!' : mod === 0.5 ? 'イマイチ...' : '通常'})`);
+
     if (ehp <= 0) {
         log(`${enemyName}を倒した！`);
         mode = "W";
         document.getElementById('scan-btn').innerText = "WEAPON SCAN";
         document.getElementById('scan-btn').disabled = false;
         document.getElementById('atk-btn').disabled = true;
-        exp += 50;
-        if (exp >= lv * 100) { lv++; exp = 0; log("レベルアップ！"); }
+        
+        // 経験値を加算し、レベルアップ判定
+        exp += eExp; 
+        if (exp >= lv * 100) { 
+            lv++; 
+            exp = 0; 
+            pMax += 200; // レベルアップで最大HP上昇
+            php = pMax;  // HP全回復
+            log(`レベルアップ！ Lv.${lv} 最大HPが上昇しました！`); 
+        }
     } else {
+        // 敵のターン
         setTimeout(() => {
-            const edmg = 50 + lv * 5;
+            // 計算式: 敵の攻撃力(eAtk) - プレイヤーの防御力(pDef) (最低10ダメージ)
+            const edmg = Math.max(10, eAtk - pDef); 
             php = Math.max(0, php - edmg);
             log(`敵の攻撃！ ${edmg}ダメージ！`);
             if (php <= 0) { alert("GAMEOVER"); location.reload(); }
@@ -230,8 +249,7 @@ function handleAttack() {
     }
     updateUI();
 }
-
-function getElementModifier(a, d) {
+    function getElementModifier(a, d) {
     if (!a || !d) return 1.0;
     if (ELEMENTS[a].strongTo === d) return 1.5;
     if (ELEMENTS[d].strongTo === a) return 0.5;
