@@ -371,8 +371,12 @@ async function startScan() {
     const btn = document.getElementById('scan-btn');
     btn.disabled = true;
     log("スキャン中...");
+    
+    // 1. AIによる物体認識
     const result = await net.classify(document.getElementById('webcam'));
     const label = result[0].className;
+    
+    // 2. カメラ中央の色から属性を決定
     const elemKey = getElementByColor();
 
     if (mode === "W") {
@@ -380,10 +384,22 @@ async function startScan() {
         playerElement = elemKey;
         pAtk = weapon.atk; 
         pDef = weapon.def; 
+        
+        // ★ 図鑑登録処理 (武器)
+        // 武器名、レアリティ、ステータスを登録
+        addToLibrary('weapons', {
+            name: weapon.name, 
+            rarity: weapon.rarity, 
+            atk: weapon.atk, 
+            def: weapon.def,
+            // 属性はプレイヤー要素として後で付与されるため、ここでは不要
+        });
+        
         log(`武器: ${weapon.name} [ATK:${pAtk}]\n属性: ${ELEMENTS[elemKey].icon}`);
         mode = "E";
         btn.innerText = "ENEMY SCAN";
         btn.disabled = false; // 次のスキャンのためにボタンを戻す
+
     } else if (mode === "E") {
         const monster = lottery(MONSTER_DB, label);
         enemyElement = elemKey;
@@ -392,15 +408,27 @@ async function startScan() {
         ehp = eMax;
         eAtk = monster.atk; 
         eExp = monster.exp; 
+        
+        // ★ 図鑑登録処理 (モンスター)
+        // 遭遇した敵の属性(elem)をオブジェクトに追加して登録
+        addToLibrary('monsters', {
+            name: monster.name,
+            rarity: monster.rarity,
+            hp: monster.hp,
+            atk: monster.atk,
+            exp: monster.exp,
+            elem: elemKey // 属性キーを追加
+        });
+        
         log(`敵: ${monster.name} [HP:${eMax}]\n属性: ${ELEMENTS[elemKey].icon}`);
         
         // ★ここが重要：バトルモードへ切り替え
         mode = "B"; 
-        btn.innerText = "SCAN DISABLED";
         document.getElementById('atk-btn').disabled = false;
         document.getElementById('magic-btn').disabled = false;
     }
-updateUI();
+    
+    updateUI();
     // ボタンの無効化判定を関数内に入れる
     btn.disabled = (mode === "B"); 
 }
