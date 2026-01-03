@@ -517,20 +517,31 @@ function handleAttack() {
 
 // 敵の攻撃処理（通常攻撃）
 function enemyTurn() {
-    // 敵の攻撃力にWEEKの効果 (pAtkBonusを使用: 0.5〜1.0)
-    const finalEAtk = eAtk * pAtkBonus; 
-    // プレイヤーの防御力にSELDの効果 (pDefBonusを使用: 1.0〜1.5)
-    const finalPDef = pDef * pDefBonus; 
+    // 1. 敵のダメージ計算
+    // プレイヤーの防御力 pDef を考慮（最低ダメージ1）
+    const dmg = Math.floor(Math.max(1, eAtk - (pDef || 0)));
     
-    // 計算式: 敵の攻撃力 * WEEK倍率 - プレイヤーの防御力 * SELD倍率 (最低ダメージは10)
-    const edmg = Math.max(10, finalEAtk - finalPDef); 
+    // 2. プレイヤーのHPを減らす
+    php = Math.max(0, php - dmg);
     
-    php = Math.max(0, php - edmg);
-    log(`敵の攻撃！ ${edmg}ダメージ！`);
-    if (php <= 0) { alert("GAMEOVER"); location.reload(); }
+    // 3. 演出とログ
+    applyShake(); // 画面を揺らす
+    log(`${enemyName}の攻撃！ ${dmg}のダメージ！`);
+    
+    // 4. 判定
+    if (php <= 0) {
+        log("あなたは倒れてしまった...");
+        setTimeout(() => resetBattleState(false), 2000);
+    } else {
+        // ★ここが重要！★ 
+        // 敵の攻撃が終わったので、プレイヤーのボタンを押せるように戻す
+        document.getElementById('atk-btn').disabled = false;
+        document.getElementById('magic-btn').disabled = false;
+        log("あなたのターンです。");
+    }
+    
     updateUI();
 }
-
 // 魔法使用後の敵の攻撃処理（ロジックはenemyTurnと同じ）
 function enemyTurnAfterMagic() {
     const finalEAtk = eAtk * pAtkBonus; 
