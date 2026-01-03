@@ -155,6 +155,16 @@ button:disabled {
             </div>
         <button onclick="closeMagic()" style="width: 90%; background:#444; margin-bottom: 20px;">BACK</button>
     </div>
+    <div id="library-overlay" class="overlay hidden">
+        <h2 style="color:#0f0;">LIBRARY</h2>
+        <div style="display: flex; gap: 10px; margin-bottom: 10px; width: 90%;">
+            <button onclick="changeLibraryTab('weapons')" id="lib-tab-weapons" style="flex: 1; background: #004400;">WEAPONS</button>
+            <button onclick="changeLibraryTab('monsters')" id="lib-tab-monsters" style="flex: 1;">MONSTERS</button>
+        </div>
+        <div id="library-content" style="width: 90%; flex: 1; overflow-y: auto; border: 1px solid #333; background: rgba(0,0,0,0.5); padding: 10px;">
+            </div>
+        <button onclick="closeLibrary()" style="width: 90%; background:#444; margin-top: 15px; margin-bottom: 20px;">BACK</button>
+    </div>
 <script>
 // --- 基礎データ ---
 let lv = 1, exp = 0, pMax = 1000, php = 1000;
