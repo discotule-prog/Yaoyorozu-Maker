@@ -402,6 +402,8 @@ function lottery(db, label) {
     }
 }
 async function startScan() {
+    if (mode === "B") return; // バトル中はスキャンさせない
+    // ...残りの処理
     const btn = document.getElementById('scan-btn');
     const video = document.getElementById('webcam');
     
