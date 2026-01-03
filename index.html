@@ -420,7 +420,7 @@ async function startScan() {
 
     btn.disabled = true;
     log("AI解析中...");
-    
+    console.log("AI判定開始...");
     // 以降、try-catch処理へ
     
     try {
@@ -428,6 +428,7 @@ async function startScan() {
         let label = "unknown";
         try {
             const result = await net.classify(video);
+            console.log("AI判定完了:", result);
             if (result && result.length > 0) label = result[0].className;
         } catch (aiErr) {
             console.warn("AI判定に失敗しましたが続行します:", aiErr);
