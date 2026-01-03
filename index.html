@@ -218,7 +218,7 @@ const RARITY_RATES = [
 const MAGIC_DATA = {
     HEAL: { name: "回復", type: "Heal", elem: null },
     FIRE: { name: "ファイア", type: "Attack", elem: "FIRE" },
-    AQUA: { name: "アクア", type: "Attack", elem: "WATER" },
+    AQUA: { name: "アクア", type: "Attack", elem: "AQUA" },
     EARTH: { name: "アース", type: "Attack", elem: "EARTH" },
     WOOD: { name: "リーフ", type: "Attack", elem: "WOOD" },
     BRAV: { name: "ブレイブ", type: "Buff", elem: null },
@@ -297,7 +297,7 @@ const MONSTER_DB = [
     { no: 97, rarity: "MYTH", name: "バハムート", keywords: ["lizard", "toy"], hp: 8000, atk: 500, exp: 4500 },
     { no: 96, rarity: "MYTH", name: "ケルベロス", keywords: ["dog", "pet"], hp: 4500, atk: 480, exp: 2500 },
     { no: 95, rarity: "MYTH", name: "フェンリル", keywords: ["dog", "wolf"], hp: 5000, atk: 460, exp: 2800 },
-    { no: 94, rarity: "MYTH", name: "リヴァイアサン", keywords: ["fish", "water"], hp: 6500, atk: 420, exp: 3200 },
+    { no: 94, rarity: "MYTH", name: "リヴァイアサン", keywords: ["fish", "drink"], hp: 6500, atk: 420, exp: 3200 },
     { no: 93, rarity: "MYTH", name: "ヤマタノオロチ", keywords: ["snake", "rope"], hp: 6000, atk: 440, exp: 3500 },
     { no: 92, rarity: "MYTH", name: "大天使ミカエル", keywords: ["sculpture", "doll"], hp: 7500, atk: 400, exp: 4200 },
     { no: 91, rarity: "MYTH", name: "シヴァ", keywords: ["human", "statue"], hp: 8500, atk: 520, exp: 4800 },
@@ -335,7 +335,7 @@ const MONSTER_DB = [
     { no: 25, rarity: "COMMON", name: "マンドラゴラ", keywords: ["plant", "pot"], hp: 250, atk: 50, exp: 80 },
     { no: 24, rarity: "COMMON", name: "バット", keywords: ["umbrella", "black"], hp: 200, atk: 65, exp: 70 },
     { no: 23, rarity: "COMMON", name: "ポイズンスパイダー", keywords: ["mouse", "black"], hp: 220, atk: 100, exp: 150 },
-    { no: 10, rarity: "COMMON", name: "スライム", keywords: ["drink", "water", "bottle", "cap", "blue"], hp: 150, atk: 30, exp: 50 },
+    { no: 10, rarity: "COMMON", name: "スライム", keywords: ["drink", "drink", "bottle", "cap", "blue"], hp: 150, atk: 30, exp: 50 },
     { no: 1, rarity: "COMMON", name: "ラット", keywords: ["mouse", "cheese"], hp: 100, atk: 20, exp: 30 }
 ];
 
@@ -373,20 +373,29 @@ function getElementByColor() {
 
 function lottery(db, label) {
     const labels = label.toLowerCase().split(',').map(s => s.trim());
-    // OR判定で候補抽出
-    let candidates = db.filter(item => item.keywords.some(k => labels.includes(k.toLowerCase())));
-    if (candidates.length === 0) candidates = db;
+    
+    // キーワードに一致するものを探す
+    let candidates = db.filter(item => 
+        item.keywords && item.keywords.some(k => labels.includes(k.toLowerCase()))
+    );
 
-    // レアリティ比率での抽選
+    // 【重要】一致がない場合は、DB全体を候補にする
+    if (candidates.length === 0) {
+        candidates = db;
+    }
+
     let totalWeight = 0;
     const weighted = candidates.map(c => {
-        const w = RARITY_RATES.find(r => r.rarity === c.rarity).rate;
+        // レアリティ設定（RARITY_RATES）との照合
+        const rateEntry = RARITY_RATES.find(r => r.rarity === c.rarity);
+        const w = rateEntry ? rateEntry.rate : 1; // 見つからない場合は重み1
         totalWeight += w;
         return { item: c, w: totalWeight };
     });
 
     const r = Math.random() * totalWeight;
-    return weighted.find(item => r <= item.w).item;
+    const picked = weighted.find(item => r <= item.w);
+    return picked ? picked.item : db[0]; // 万が一の場合も最初のデータを返す
 }
 
 async function startScan() {
@@ -394,65 +403,66 @@ async function startScan() {
     btn.disabled = true;
     log("スキャン中...");
     
-    // 1. AIによる物体認識
-    const result = await net.classify(document.getElementById('webcam'));
-    const label = result[0].className;
-    
-    // 2. カメラ中央の色から属性を決定
-    const elemKey = getElementByColor();
+    try {
+        // 1. AIによる物体認識
+        const result = await net.classify(document.getElementById('webcam'));
+        const label = result[0].className;
+        console.log("AIの判定結果:", label); // 判定内容を確認用に出力
+        
+        // 2. カメラ中央の色から属性を決定
+        const elemKey = getElementByColor();
 
-    if (mode === "W") {
-        const weapon = lottery(WEAPON_DB, label);
-        playerElement = elemKey;
-        pAtk = weapon.atk; 
-        pDef = weapon.def; 
-        
-        // ★ 図鑑登録処理 (武器)
-        // 武器名、レアリティ、ステータスを登録
-        addToLibrary('weapons', {
-            name: weapon.name, 
-            rarity: weapon.rarity, 
-            atk: weapon.atk, 
-            def: weapon.def,
-            // 属性はプレイヤー要素として後で付与されるため、ここでは不要
-        });
-        
-        log(`武器: ${weapon.name} [ATK:${pAtk}]\n属性: ${ELEMENTS[elemKey].icon}`);
-        mode = "E";
-        btn.innerText = "ENEMY SCAN";
-        btn.disabled = false; // 次のスキャンのためにボタンを戻す
+        if (mode === "W") {
+            const weapon = lottery(WEAPON_DB, label);
+            if (!weapon) throw new Error("武器データの取得に失敗しました");
+            
+            playerElement = elemKey;
+            pAtk = weapon.atk; 
+            pDef = weapon.def; 
+            
+            addToLibrary('weapons', {
+                name: weapon.name, 
+                rarity: weapon.rarity, 
+                atk: weapon.atk, 
+                def: weapon.def,
+            });
+            
+            log(`武器: ${weapon.name} [ATK:${pAtk}]\n属性: ${ELEMENTS[elemKey].icon}`);
+            mode = "E";
+            btn.innerText = "ENEMY SCAN";
 
-    } else if (mode === "E") {
-        const monster = lottery(MONSTER_DB, label);
-        enemyElement = elemKey;
-        enemyName = monster.name;
-        eMax = monster.hp; 
-        ehp = eMax;
-        eAtk = monster.atk; 
-        eExp = monster.exp; 
+        } else if (mode === "E") {
+            const monster = lottery(MONSTER_DB, label);
+            if (!monster) throw new Error("モンスターデータの取得に失敗しました");
+
+            enemyElement = elemKey;
+            enemyName = monster.name;
+            eMax = monster.hp; ehp = eMax;
+            eAtk = monster.atk; eExp = monster.exp; 
+            
+            addToLibrary('monsters', {
+                name: monster.name,
+                rarity: monster.rarity,
+                hp: monster.hp,
+                atk: monster.atk,
+                exp: monster.exp,
+                elem: elemKey
+            });
+            
+            log(`敵: ${monster.name} [HP:${eMax}]\n属性: ${ELEMENTS[elemKey].icon}`);
+            mode = "B"; 
+            document.getElementById('atk-btn').disabled = false;
+            document.getElementById('magic-btn').disabled = false;
+        }
         
-        // ★ 図鑑登録処理 (モンスター)
-        // 遭遇した敵の属性(elem)をオブジェクトに追加して登録
-        addToLibrary('monsters', {
-            name: monster.name,
-            rarity: monster.rarity,
-            hp: monster.hp,
-            atk: monster.atk,
-            exp: monster.exp,
-            elem: elemKey // 属性キーを追加
-        });
-        
-        log(`敵: ${monster.name} [HP:${eMax}]\n属性: ${ELEMENTS[elemKey].icon}`);
-        
-        // ★ここが重要：バトルモードへ切り替え
-        mode = "B"; 
-        document.getElementById('atk-btn').disabled = false;
-        document.getElementById('magic-btn').disabled = false;
+        updateUI();
+    } catch (err) {
+        console.error("スキャンエラー:", err);
+        log("スキャン失敗。もう一度試してください。");
+    } finally {
+        // バトルモード以外ならボタンを再度有効化
+        btn.disabled = (mode === "B");
     }
-    
-    updateUI();
-    // ボタンの無効化判定を関数内に入れる
-    btn.disabled = (mode === "B"); 
 }
 
 function handleAttack() {
