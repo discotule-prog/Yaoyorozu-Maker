@@ -556,27 +556,40 @@ function enemyTurnAfterMagic() {
 
 // 戦闘終了後の状態リセットと経験値処理
 function resetBattleState(isVictory) {
-    magicUsedInBattle = false; // 魔法使用フラグをリセット
-    pAtkBonus = 1.0; // バフ/デバフをリセット
+    magicUsedInBattle = false;
+    pAtkBonus = 1.0;
     pDefBonus = 1.0;
     
+    // 一旦、全ボタンを整理
     mode = "W";
-    document.getElementById('scan-btn').innerText = "WEAPON SCAN";
-    document.getElementById('scan-btn').disabled = false;
+    const scanBtn = document.getElementById('scan-btn');
+    scanBtn.innerText = "WEAPON SCAN";
+    scanBtn.disabled = false;
+    
     document.getElementById('atk-btn').disabled = true;
     document.getElementById('magic-btn').disabled = true;
     
     if (isVictory) {
-        // 経験値、Lvアップ処理
         exp += eExp;
         if (exp >= lv * 100) {
             lv++;
             exp = 0;
             pMax += 200;
             php = pMax;
-            skillPoints++; // スキルポイントを1獲得！
-            log(`レベルアップ！ Lv.${lv} 最大HPが上昇しました！ SPを1獲得！`);
-            setTimeout(openMagic, 1000); // Lvアップ時は魔法メニューを強制オープン
+            skillPoints++;
+            log(`レベルアップ！ Lv.${lv} SPを1獲得！`);
+            
+            // 重要：魔法メニューを開く間はスキャンさせない
+            scanBtn.disabled = true; 
+            scanBtn.innerText = "LEVEL UP!";
+            
+            setTimeout(() => {
+                openMagic();
+                // 魔法メニューを閉じた後にスキャンを許可する仕組みが必要ですが、
+                // まずはボタンを復活させる処理をopenMagic側かここに入れます
+                scanBtn.disabled = false;
+                scanBtn.innerText = "WEAPON SCAN";
+            }, 1000);
         }
     }
     updateUI();
