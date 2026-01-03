@@ -508,10 +508,10 @@ function handleAttack() {
         setTimeout(() => resetBattleState(true), 1000);
     } else {
         // まだ倒せていなければ敵のターンへ
-        document.getElementById('atk-btn').disabled = true;
-        document.getElementById('magic-btn').disabled = true;
-        setTimeout(enemyTurn, 800);
-    }
+        document.getElementById('atk-btn').disabled = true; // ボタンを消す
+    document.getElementById('magic-btn').disabled = true;
+    setTimeout(enemyTurn, 1000); // 1秒後に敵のターン
+}
     updateUI();
 }// --- 魔法システムと戦闘補助関数 ---
 
