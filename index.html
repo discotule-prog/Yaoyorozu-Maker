@@ -402,41 +402,47 @@ async function startScan() {
     const btn = document.getElementById('scan-btn');
     const video = document.getElementById('webcam');
     
-    // カメラの準備確認
     if (!video || video.readyState !== 4) {
-        log("カメラを準備中です...数秒待って再試行してください");
-        btn.disabled = false;
+        log("カメラ準備中... 1秒待って再試行してください");
         return;
     }
 
     btn.disabled = true;
-    log("スキャン中...");
+    log("AI解析中...");
     
     try {
-        // 1. AIによる物体認識
-        const result = await net.classify(video);
-        // AIが何も判定できなかった場合でも、空のラベルで抽選を強行する
-        const label = (result && result.length > 0) ? result[0].className : "unknown";
-        console.log("AIの判定結果:", label);
-        
-        // 2. カメラ中央の色から属性を決定
-        const elemKey = getElementByColor();
+        // 1. AI判定 (ここが重いのでエラーになりやすい)
+        let label = "unknown";
+        try {
+            const result = await net.classify(video);
+            if (result && result.length > 0) label = result[0].className;
+        } catch (aiErr) {
+            console.warn("AI判定に失敗しましたが続行します:", aiErr);
+        }
+        console.log("AI結果:", label);
 
+        // 2. 属性決定
+        let elemKey = "FIRE"; // デフォルト
+        try {
+            elemKey = getElementByColor() || "FIRE";
+        } catch (colorErr) {
+            console.warn("色判定失敗:", colorErr);
+        }
+
+        // 3. 抽選と登録
         if (mode === "W") {
-            // 抽選（キーワードがなくてもDBから選ばれる）
             const weapon = lottery(WEAPON_DB, label);
             playerElement = elemKey;
-            pAtk = weapon.atk; 
-            pDef = weapon.def; 
-            
-            // 図鑑登録
-            addToLibrary('weapons', {
-                name: weapon.name, 
-                rarity: weapon.rarity, 
-                atk: weapon.atk, 
-                def: weapon.def,
-            });
-            
+            pAtk = weapon.atk;
+            pDef = weapon.def;
+
+            // 図鑑登録 (エラーになりやすいのでtry-catchで囲む)
+            try {
+                if (typeof addToLibrary === "function") {
+                    addToLibrary('weapons', { name: weapon.name, rarity: weapon.rarity, atk: weapon.atk, def: weapon.def });
+                }
+            } catch (libErr) { console.error("図鑑登録エラー:", libErr); }
+
             log(`武器: ${weapon.name} [ATK:${pAtk}]\n属性: ${ELEMENTS[elemKey].icon}`);
             mode = "E";
             btn.innerText = "ENEMY SCAN";
@@ -446,37 +452,29 @@ async function startScan() {
             const monster = lottery(MONSTER_DB, label);
             enemyElement = elemKey;
             enemyName = monster.name;
-            eMax = monster.hp; 
+            eMax = monster.hp;
             ehp = eMax;
-            eAtk = monster.atk; 
-            eExp = monster.exp; 
-            
-            // 図鑑登録
-            addToLibrary('monsters', {
-                name: monster.name,
-                rarity: monster.rarity,
-                hp: monster.hp,
-                atk: monster.atk,
-                exp: monster.exp,
-                elem: elemKey
-            });
-            
+            eAtk = monster.atk;
+            eExp = monster.exp;
+
+            try {
+                if (typeof addToLibrary === "function") {
+                    addToLibrary('monsters', { name: monster.name, rarity: monster.rarity, hp: monster.hp, atk: monster.atk, exp: monster.exp, elem: elemKey });
+                }
+            } catch (libErr) { console.error("図鑑登録エラー:", libErr); }
+
             log(`敵: ${monster.name} [HP:${eMax}]\n属性: ${ELEMENTS[elemKey].icon}`);
-            mode = "B"; 
+            mode = "B";
             document.getElementById('atk-btn').disabled = false;
             document.getElementById('magic-btn').disabled = false;
         }
-        
         updateUI();
 
     } catch (e) {
-        console.error("スキャンエラー:", e);
-        log("システムエラー。再起動してください。");
+        console.error("重大なエラー:", e);
+        log("スキャンエラー発生。もう一度試してください。");
         btn.disabled = false;
     }
-
-    // バトルモードならボタンを無効化
-    btn.disabled = (mode === "B"); 
 }
 
 function handleAttack() {
