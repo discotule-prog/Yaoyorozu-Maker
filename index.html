@@ -698,7 +698,61 @@ function updateUI() {
 
 function log(m) { document.getElementById('msg').innerText = m; }
 function applyShake() { document.body.classList.add('shake'); setTimeout(() => document.body.classList.remove('shake'), 200); }
-    
+ // --- 図鑑システム用変数 (変数の集まっている場所へ) ---
+let library = {
+    weapons: [], 
+    monsters: [] 
+};
+
+// --- 図鑑システム関数 (関数の集まっている場所へ) ---
+function addToLibrary(type, item) {
+    const list = library[type];
+    // 既に図鑑に登録されているかチェック (名前で判定)
+    if (!list.some(i => i.name === item.name)) {
+        list.push(item);
+        log(`[${item.name}]を図鑑に登録しました！`);
+    }
+}
+
+function openLibrary() {
+    mode = "I"; // インターフェースモード
+    document.getElementById('library-overlay').classList.remove('hidden');
+    changeLibraryTab('weapons'); 
+    updateUI();
+}
+
+function closeLibrary() {
+    document.getElementById('library-overlay').classList.add('hidden');
+    // 状態に応じてモードを戻す
+    if (ehp > 0) mode = "B";
+    else if (pAtk > 0) mode = "E";
+    else mode = "W";
+    updateUI();
+}
+
+function changeLibraryTab(tab) {
+    const contentDiv = document.getElementById('library-content');
+    let html = '';
+
+    document.getElementById('lib-tab-weapons').style.background = (tab === 'weapons' ? '#004400' : '#002200');
+    document.getElementById('lib-tab-monsters').style.background = (tab === 'monsters' ? '#004400' : '#002200');
+
+    if (tab === 'weapons') {
+        library.weapons.forEach(w => {
+            html += `<div style="margin-bottom:8px; border-bottom:1px dashed #333; padding:5px;">
+                        <strong>${w.name}</strong> [${w.rarity}]<br>ATK:${w.atk} DEF:${w.def}</div>`;
+        });
+        if (library.weapons.length === 0) html = '<p>武器データなし</p>';
+    } else {
+        library.monsters.forEach(m => {
+            const icon = ELEMENTS[m.elem]?.icon || "";
+            html += `<div style="margin-bottom:8px; border-bottom:1px dashed #333; padding:5px;">
+                        <strong>${icon}${m.name}</strong> [${m.rarity}]<br>HP:${m.hp} ATK:${m.atk}</div>`;
+        });
+        if (library.monsters.length === 0) html = '<p>モンスターデータなし</p>';
+    }
+    contentDiv.innerHTML = html;
+}   
 </script>
 </body>
 </html>
