@@ -227,16 +227,9 @@ const MAGIC_DATA = {
     BRAK: { name: "ブレイク", type: "Debuff", elem: null }
 };
 
-const RARITY_RATES = [
-    { rarity: "MYTH",   rate: 5 },
-    { rarity: "LEGEND", rate: 10 },
-    { rarity: "ELITE",  rate: 25 },
-    { rarity: "COMMON", rate: 60 }
-];
-
 const COLOR_MAPPING = [
     { elem: "FIRE",  check: (r, g, b) => r > 150 && g < 100 },
-    { elem: "WATER", check: (r, g, b) => b > 150 && r < 100 },
+    { elem: "AQUA",  check: (r, g, b) => b > 150 && r < 100 }, // WATERをAQUAに変更
     { elem: "WOOD",  check: (r, g, b) => g > 120 && r < 120 && b < 120 },
     { elem: "EARTH", check: (r, g, b) => r > 100 && g > 50 && b < 100 }
 ];
