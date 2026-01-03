@@ -372,32 +372,35 @@ function getElementByColor() {
 }
 
 function lottery(db, label) {
-    const labels = label.toLowerCase().split(',').map(s => s.trim());
-    
-    // キーワードに一致するものを探す
-    let candidates = db.filter(item => 
-        item.keywords && item.keywords.some(k => labels.includes(k.toLowerCase()))
-    );
+    try {
+        const labels = label ? label.toLowerCase().split(',').map(s => s.trim()) : ["unknown"];
+        
+        // 1. キーワード一致を検索
+        let candidates = db.filter(item => 
+            item.keywords && item.keywords.some(k => labels.includes(k.toLowerCase()))
+        );
 
-    // 【重要】一致がない場合は、DB全体を候補にする
-    if (candidates.length === 0) {
-        candidates = db;
+        // 2. 一致がなければ全抽選
+        if (candidates.length === 0) candidates = db;
+
+        let totalWeight = 0;
+        const weighted = candidates.map(c => {
+            // レアリティ設定の安全確認
+            const rateObj = (typeof RARITY_RATES !== 'undefined') ? 
+                            RARITY_RATES.find(r => r.rarity === c.rarity) : null;
+            const w = rateObj ? rateObj.rate : 1;
+            totalWeight += w;
+            return { item: c, w: totalWeight };
+        });
+
+        const r = Math.random() * totalWeight;
+        const result = weighted.find(item => r <= item.w);
+        return result ? result.item : db[0];
+    } catch (e) {
+        console.error("Lottery Error:", e);
+        return db[0]; // 最悪、最初の要素を返してフリーズを防ぐ
     }
-
-    let totalWeight = 0;
-    const weighted = candidates.map(c => {
-        // レアリティ設定（RARITY_RATES）との照合
-        const rateEntry = RARITY_RATES.find(r => r.rarity === c.rarity);
-        const w = rateEntry ? rateEntry.rate : 1; // 見つからない場合は重み1
-        totalWeight += w;
-        return { item: c, w: totalWeight };
-    });
-
-    const r = Math.random() * totalWeight;
-    const picked = weighted.find(item => r <= item.w);
-    return picked ? picked.item : db[0]; // 万が一の場合も最初のデータを返す
 }
-
 async function startScan() {
     const btn = document.getElementById('scan-btn');
     const video = document.getElementById('webcam');
@@ -421,13 +424,15 @@ async function startScan() {
         }
         console.log("AI結果:", label);
 
-        // 2. 属性決定
-        let elemKey = "FIRE"; // デフォルト
-        try {
-            elemKey = getElementByColor() || "FIRE";
-        } catch (colorErr) {
-            console.warn("色判定失敗:", colorErr);
-        }
+// 2. 属性決定
+  let elemKey = "FIRE"; // デフォルト
+  try {
+      elemKey = getElementByColor() || "FIRE";
+      // ★ここで名前のズレを強制補正！
+      if (elemKey === "WATER") elemKey = "AQUA"; 
+  } catch (colorErr) {
+      console.warn("色判定失敗:", colorErr);
+  }
 
         // 3. 抽選と登録
         if (mode === "W") {
@@ -750,11 +755,16 @@ function applyShake() { document.body.classList.add('shake'); setTimeout(() => d
 
 // --- 図鑑システム関数 (関数の集まっている場所へ) ---
 function addToLibrary(type, item) {
+    // libraryが未定義ならその場で作成
+    if (typeof library === 'undefined' || !library) {
+        library = { weapons: [], monsters: [] };
+    }
     const list = library[type];
-    // 既に図鑑に登録されているかチェック (名前で判定)
+    if (!list) return;
+
     if (!list.some(i => i.name === item.name)) {
         list.push(item);
-        log(`[${item.name}]を図鑑に登録しました！`);
+        log(`[${item.name}]を図鑑に登録！`);
     }
 }
 
