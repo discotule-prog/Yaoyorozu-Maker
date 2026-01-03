@@ -400,26 +400,36 @@ function lottery(db, label) {
 
 async function startScan() {
     const btn = document.getElementById('scan-btn');
+    const video = document.getElementById('webcam');
+    
+    // カメラの準備確認
+    if (!video || video.readyState !== 4) {
+        log("カメラを準備中です...数秒待って再試行してください");
+        btn.disabled = false;
+        return;
+    }
+
     btn.disabled = true;
     log("スキャン中...");
     
     try {
         // 1. AIによる物体認識
-        const result = await net.classify(document.getElementById('webcam'));
-        const label = result[0].className;
-        console.log("AIの判定結果:", label); // 判定内容を確認用に出力
+        const result = await net.classify(video);
+        // AIが何も判定できなかった場合でも、空のラベルで抽選を強行する
+        const label = (result && result.length > 0) ? result[0].className : "unknown";
+        console.log("AIの判定結果:", label);
         
         // 2. カメラ中央の色から属性を決定
         const elemKey = getElementByColor();
 
         if (mode === "W") {
+            // 抽選（キーワードがなくてもDBから選ばれる）
             const weapon = lottery(WEAPON_DB, label);
-            if (!weapon) throw new Error("武器データの取得に失敗しました");
-            
             playerElement = elemKey;
             pAtk = weapon.atk; 
             pDef = weapon.def; 
             
+            // 図鑑登録
             addToLibrary('weapons', {
                 name: weapon.name, 
                 rarity: weapon.rarity, 
@@ -430,16 +440,18 @@ async function startScan() {
             log(`武器: ${weapon.name} [ATK:${pAtk}]\n属性: ${ELEMENTS[elemKey].icon}`);
             mode = "E";
             btn.innerText = "ENEMY SCAN";
+            btn.disabled = false;
 
         } else if (mode === "E") {
             const monster = lottery(MONSTER_DB, label);
-            if (!monster) throw new Error("モンスターデータの取得に失敗しました");
-
             enemyElement = elemKey;
             enemyName = monster.name;
-            eMax = monster.hp; ehp = eMax;
-            eAtk = monster.atk; eExp = monster.exp; 
+            eMax = monster.hp; 
+            ehp = eMax;
+            eAtk = monster.atk; 
+            eExp = monster.exp; 
             
+            // 図鑑登録
             addToLibrary('monsters', {
                 name: monster.name,
                 rarity: monster.rarity,
@@ -456,41 +468,46 @@ async function startScan() {
         }
         
         updateUI();
-    } catch (err) {
-        console.error("スキャンエラー:", err);
-        log("スキャン失敗。もう一度試してください。");
-    } finally {
-        // バトルモード以外ならボタンを再度有効化
-        btn.disabled = (mode === "B");
+
+    } catch (e) {
+        console.error("スキャンエラー:", e);
+        log("システムエラー。再起動してください。");
+        btn.disabled = false;
     }
+
+    // バトルモードならボタンを無効化
+    btn.disabled = (mode === "B"); 
 }
 
 function handleAttack() {
-    // pAtkBonus/pDefBonus を Buff/Debuff で共用している
+    // 1. 属性補正の計算
     const mod = getElementModifier(playerElement, enemyElement);
     
-    // 計算式: (武器攻撃力 * BRAV倍率 + Lvボーナス) * 属性相性
-    const finalAtk = pAtk * pAtkBonus + lv * 10;
+    // 2. プレイヤーの攻撃力計算 (基本攻撃力 * バフ倍率 + レベルボーナス)
+    const finalAtk = (pAtk * pAtkBonus) + (lv * 10);
     
-    // 敵の防御力にBRAKを適用
-    // eDef は定義されていないため pDefBonus を敵の防御力に適用する（BRAKデバフ）
-    // ※ pAtk, pDef はプレイヤーの武器ステータス
-    const finalEAtkDefense = eAtk * pDefBonus; // BRAK適用 (eAtkは敵の攻撃力なので修正が必要)
+    // 3. ダメージ計算 (攻撃力 * 属性補正)
+    // 敵に防御力設定がないため、シンプルに計算します
+    const dmg = Math.floor(Math.max(1, finalAtk * mod)); 
     
-    // 修正: 敵の防御力は存在しないため、pAtkBonus/pDefBonus を敵の攻撃力(eAtk)とプレイヤーの防御力(pDef)の倍率として使用し、敵の攻撃を減らす形で計算します
-    // 敵の防御力(eDef)がないため、プレイヤー攻撃はシンプルにします。
-    const dmg = Math.floor(Math.max(1, finalAtk * mod)); // 最低ダメージ1
-    
+    // 4. HP減少と演出
     ehp = Math.max(0, ehp - dmg);
-    applyShake();
+    applyShake(); // 画面を揺らす
     
-    log(`${enemyName}に ${dmg}ダメージ！ (${mod === 1.5 ? '効果絶大!' : mod === 0.5 ? 'イマイチ...' : '通常'})`);
+    // 5. ログ表示
+    let effMsg = mod === 1.5 ? "効果絶大！" : (mod === 0.5 ? "イマイチ..." : "");
+    log(`${enemyName}に ${dmg}ダメージ！ ${effMsg}`);
 
+    // 6. 判定
     if (ehp <= 0) {
         log(`${enemyName}を倒した！`);
-        resetBattleState(true); // ★リセット関数を呼び出す
+        // 勝利時は少し待ってからリセット（経験値処理へ）
+        setTimeout(() => resetBattleState(true), 1000);
     } else {
-        setTimeout(enemyTurn, 600); // 敵のターン
+        // まだ倒せていなければ敵のターンへ
+        document.getElementById('atk-btn').disabled = true;
+        document.getElementById('magic-btn').disabled = true;
+        setTimeout(enemyTurn, 800);
     }
     updateUI();
 }// --- 魔法システムと戦闘補助関数 ---
