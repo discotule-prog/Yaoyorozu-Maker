@@ -734,10 +734,7 @@ function updateUI() {
 function log(m) { document.getElementById('msg').innerText = m; }
 function applyShake() { document.body.classList.add('shake'); setTimeout(() => document.body.classList.remove('shake'), 200); }
  // --- 図鑑システム用変数 (変数の集まっている場所へ) ---
-let library = {
-    weapons: [], 
-    monsters: [] 
-};
+
 
 // --- 図鑑システム関数 (関数の集まっている場所へ) ---
 function addToLibrary(type, item) {
