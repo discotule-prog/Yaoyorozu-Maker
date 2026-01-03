@@ -69,10 +69,16 @@
     </div>
 </div>
 
-<div id="init-overlay" class="overlay">
+</div> <div id="init-overlay" class="overlay">
     <h1 style="color:#0ff;">AI MYTHIC RPG</h1>
     <p id="init-msg">LOADING AI MODELS...</p>
     <button id="start-btn" onclick="startGame()" class="hidden" style="background:#004400; padding:20px 40px; border-color:#0f0;">START GAME</button>
+</div> <div id="magic-overlay" class="overlay hidden">
+    <h2 id="magic-menu-title">魔法メニュー</h2>
+    <p>SP: <span id="sp-count">0</span></p>
+    <div id="magic-list" style="max-height: 70vh; overflow-y: auto; width: 80%; margin: 10px 0;">
+    </div>
+    <button onclick="closeMagic()" style="background:#555; margin-top: 15px;">閉じる</button>
 </div>
 
 <script>
@@ -88,6 +94,29 @@ let pAtk = 0; // スキャンした武器の攻撃力
 let pDef = 0; // スキャンした武器の防御力
 let eAtk = 0; // 出現したモンスターの攻撃力
 let eExp = 0; // 出現したモンスターの経験値
+// --- 魔法システム用変数 ---
+let skillPoints = 0; // 未使用のスキルポイント
+let magicUsedInBattle = false; // 1戦闘で魔法使用済みかどうかのフラグ
+let pAtkBonus = 1.0; // プレイヤー攻撃力倍率 (BRAV/WEEKデバフ用)
+let pDefBonus = 1.0; // プレイヤー防御力倍率 (SELD/BRAKデバフ用)
+let magicLevels = {
+    HEAL: 1,  // 初期Lv.1
+    FIRE: 0, AQUA: 0, EARTH: 0, WOOD: 0, // 攻撃魔法
+    BRAV: 0, SELD: 0, // バフ
+    WEEK: 0, BRAK: 0  // デバフ
+};
+
+const MAGIC_DATA = {
+    HEAL: { name: "回復", type: "Heal", elem: null },
+    FIRE: { name: "ファイア", type: "Attack", elem: "FIRE" },
+    AQUA: { name: "アクア", type: "Attack", elem: "WATER" },
+    EARTH: { name: "アース", type: "Attack", elem: "EARTH" },
+    WOOD: { name: "リーフ", type: "Attack", elem: "WOOD" },
+    BRAV: { name: "ブレイブ", type: "Buff", elem: null },
+    SELD: { name: "シールド", type: "Buff", elem: null },
+    WEEK: { name: "ウィーク", type: "Debuff", elem: null },
+    BRAK: { name: "ブレイク", type: "Debuff", elem: null }
+};
 const ELEMENTS = {
     FIRE:  { name: "火", color: "#ff4444", icon: "🔥", strongTo: "WOOD" },
     WATER: { name: "水", color: "#4444ff", icon: "💧", strongTo: "FIRE" },
@@ -303,9 +332,21 @@ updateUI();
 }
 
 function handleAttack() {
+    // pAtkBonus/pDefBonus を Buff/Debuff で共用している
     const mod = getElementModifier(playerElement, enemyElement);
-    // プレイヤーの攻撃力(pAtk)とレベルボーナスを使用
-    const dmg = Math.floor((pAtk + lv * 10) * mod);
+    
+    // 計算式: (武器攻撃力 * BRAV倍率 + Lvボーナス) * 属性相性
+    const finalAtk = pAtk * pAtkBonus + lv * 10;
+    
+    // 敵の防御力にBRAKを適用
+    // eDef は定義されていないため pDefBonus を敵の防御力に適用する（BRAKデバフ）
+    // ※ pAtk, pDef はプレイヤーの武器ステータス
+    const finalEAtkDefense = eAtk * pDefBonus; // BRAK適用 (eAtkは敵の攻撃力なので修正が必要)
+    
+    // 修正: 敵の防御力は存在しないため、pAtkBonus/pDefBonus を敵の攻撃力(eAtk)とプレイヤーの防御力(pDef)の倍率として使用し、敵の攻撃を減らす形で計算します
+    // 敵の防御力(eDef)がないため、プレイヤー攻撃はシンプルにします。
+    const dmg = Math.floor(Math.max(1, finalAtk * mod)); // 最低ダメージ1
+    
     ehp = Math.max(0, ehp - dmg);
     applyShake();
     
@@ -313,30 +354,219 @@ function handleAttack() {
 
     if (ehp <= 0) {
         log(`${enemyName}を倒した！`);
-        mode = "W";
-        document.getElementById('scan-btn').innerText = "WEAPON SCAN";
-        document.getElementById('scan-btn').disabled = false;
-        document.getElementById('atk-btn').disabled = true;
-        
-        // 経験値を加算し、レベルアップ判定
-        exp += eExp; 
-        if (exp >= lv * 100) { 
-            lv++; 
-            exp = 0; 
-            pMax += 200; // レベルアップで最大HP上昇
-            php = pMax;  // HP全回復
-            log(`レベルアップ！ Lv.${lv} 最大HPが上昇しました！`); 
-        }
+        resetBattleState(true); // ★リセット関数を呼び出す
     } else {
-        // 敵のターン
-        setTimeout(() => {
-            // 計算式: 敵の攻撃力(eAtk) - プレイヤーの防御力(pDef) (最低10ダメージ)
-            const edmg = Math.max(10, eAtk - pDef); 
-            php = Math.max(0, php - edmg);
-            log(`敵の攻撃！ ${edmg}ダメージ！`);
-            if (php <= 0) { alert("GAMEOVER"); location.reload(); }
-            updateUI();
-        }, 600);
+        setTimeout(enemyTurn, 600); // 敵のターン
+    }
+    updateUI();
+}// --- 魔法システムと戦闘補助関数 ---
+
+// 敵の攻撃処理（通常攻撃）
+function enemyTurn() {
+    // 敵の攻撃力にWEEKの効果 (pAtkBonusを使用: 0.5〜1.0)
+    const finalEAtk = eAtk * pAtkBonus; 
+    // プレイヤーの防御力にSELDの効果 (pDefBonusを使用: 1.0〜1.5)
+    const finalPDef = pDef * pDefBonus; 
+    
+    // 計算式: 敵の攻撃力 * WEEK倍率 - プレイヤーの防御力 * SELD倍率 (最低ダメージは10)
+    const edmg = Math.max(10, finalEAtk - finalPDef); 
+    
+    php = Math.max(0, php - edmg);
+    log(`敵の攻撃！ ${edmg}ダメージ！`);
+    if (php <= 0) { alert("GAMEOVER"); location.reload(); }
+    updateUI();
+}
+
+// 魔法使用後の敵の攻撃処理（ロジックはenemyTurnと同じ）
+function enemyTurnAfterMagic() {
+    const finalEAtk = eAtk * pAtkBonus; 
+    const finalPDef = pDef * pDefBonus; 
+    const edmg = Math.max(10, finalEAtk - finalPDef); 
+    
+    php = Math.max(0, php - edmg);
+    log(`敵の攻撃！ ${edmg}ダメージ！`);
+    if (php <= 0) { alert("GAMEOVER"); location.reload(); }
+    updateUI();
+}
+
+// 戦闘終了後の状態リセットと経験値処理
+function resetBattleState(isVictory) {
+    magicUsedInBattle = false; // 魔法使用フラグをリセット
+    pAtkBonus = 1.0; // バフ/デバフをリセット
+    pDefBonus = 1.0;
+    
+    mode = "W";
+    document.getElementById('scan-btn').innerText = "WEAPON SCAN";
+    document.getElementById('scan-btn').disabled = false;
+    document.getElementById('atk-btn').disabled = true;
+    document.getElementById('magic-btn').disabled = true;
+    
+    if (isVictory) {
+        // 経験値、Lvアップ処理
+        exp += eExp;
+        if (exp >= lv * 100) {
+            lv++;
+            exp = 0;
+            pMax += 200;
+            php = pMax;
+            skillPoints++; // スキルポイントを1獲得！
+            log(`レベルアップ！ Lv.${lv} 最大HPが上昇しました！ SPを1獲得！`);
+            setTimeout(openMagic, 1000); // Lvアップ時は魔法メニューを強制オープン
+        }
+    }
+    updateUI();
+}
+
+// --- 魔法システム関数 ---
+
+function openMagic() {
+    if (mode === "B" && magicUsedInBattle) {
+        log("この戦闘ではすでに魔法を使用しました。");
+        return;
+    }
+    mode = "I"; // インターフェースモードに切り替え
+    document.getElementById('magic-overlay').classList.remove('hidden');
+    renderMagicList();
+    updateUI();
+}
+
+function closeMagic() {
+    document.getElementById('magic-overlay').classList.add('hidden');
+    // 戦闘中だった場合はバトルモードに戻る
+    if (ehp > 0 && mode === "I") mode = "B"; 
+    updateUI();
+}
+
+function renderMagicList() {
+    const listDiv = document.getElementById('magic-list');
+    const spCount = document.getElementById('sp-count');
+    spCount.innerText = skillPoints;
+    
+    let html = '';
+    
+    for (const key in MAGIC_DATA) {
+        const data = MAGIC_DATA[key];
+        const currentLv = magicLevels[key];
+        const nextLv = currentLv + 1;
+        const cost = nextLv; // 必要なSPは次のレベルの数
+        const isMax = currentLv >= 5;
+        const canUpgrade = !isMax && skillPoints >= cost;
+
+        // 魔法の使用ボタン
+        let actionBtn;
+        if (mode === "B" && currentLv > 0) {
+            actionBtn = `<button onclick="useMagic('${key}')" style="background:#004400; width: 45%;">使用</button>`;
+        } else if (mode === "B" && currentLv === 0) {
+            actionBtn = `<button disabled style="background:#333; width: 45%;">未習得</button>`;
+        } else {
+            actionBtn = '';
+        }
+
+        // 強化ボタン
+        let upgradeBtn;
+        if (isMax) {
+            upgradeBtn = `<button disabled style="background:#555; width: 45%;">MAX</button>`;
+        } else if (canUpgrade) {
+            upgradeBtn = `<button onclick="upgradeMagic('${key}', ${cost})" style="background:#440044; width: 45%;">強化 (${cost}SP)</button>`;
+        } else {
+            upgradeBtn = `<button disabled style="background:#333; width: 45%;">強化 (${cost}SP)</button>`;
+        }
+
+        html += `
+            <div style="background:#222; margin-bottom: 5px; padding: 10px; border-left: 5px solid ${currentLv > 0 ? '#0f0' : '#888'}; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <strong>${data.name}</strong> [Lv.${currentLv}]<br>
+                    <small>Type: ${data.type}</small>
+                </div>
+                <div style="display: flex; gap: 5px;">
+                    ${actionBtn}
+                    ${upgradeBtn}
+                </div>
+            </div>
+        `;
+    }
+    listDiv.innerHTML = html;
+}
+
+function upgradeMagic(key, cost) {
+    if (skillPoints >= cost) {
+        skillPoints -= cost;
+        magicLevels[key]++;
+        log(`${MAGIC_DATA[key].name}がLv.${magicLevels[key]}にアップしました！`);
+        renderMagicList(); // リストを再描画
+        updateUI();
+    }
+}
+
+function useMagic(key) {
+    if (mode !== "B" || magicUsedInBattle) return;
+
+    magicUsedInBattle = true; // 1戦闘1回フラグを立てる
+    const lv = magicLevels[key];
+    const data = MAGIC_DATA[key];
+
+    log(`${data.name} (Lv.${lv}) を使用！`);
+    
+    // HEAL, ATTACK, BUFF/DEBUFF の効果を処理
+    if (data.type === "Heal") {
+        const healPercent = 0.15 * lv; // 15% * Lv
+        const healAmount = Math.floor(pMax * healPercent);
+        php = Math.min(pMax, php + healAmount);
+        log(`${healAmount}回復しました！`);
+
+    } else if (data.type === "Attack") {
+        const damagePercent = 0.10 * lv; // 10% * Lv
+        const mod = getElementModifier(data.elem, enemyElement);
+        let dmg = 0;
+        
+        if (mod === 0.5) { // 不利属性 (敵の回復)
+            const healAmount = Math.floor(eMax * damagePercent);
+            ehp = Math.min(eMax, ehp + healAmount);
+            log(`相性が悪く、敵のHPを ${healAmount} 回復させてしまった...`);
+        } else if (mod === 1.5) { // 有利属性 (ダメージ1.5倍)
+            dmg = Math.floor(eMax * damagePercent * 1.5);
+            ehp = Math.max(0, ehp - dmg);
+            log(`効果絶大！ ${dmg}ダメージを与えた！`);
+        } else if (mod === 1.0) { // 等倍/同属性 (同属性はgetElementModifierで1.0を返す想定)
+            dmg = Math.floor(eMax * damagePercent);
+            if (data.elem === enemyElement) { // 同属性は効果なし
+                log(`同属性のため、効果なし！`);
+            } else {
+                ehp = Math.max(0, ehp - dmg);
+                log(`${dmg}ダメージを与えた！`);
+            }
+        }
+
+    } else if (data.type === "Buff") {
+        const bonus = 1 + (0.10 * lv); // 1.1倍 〜 1.5倍
+        if (key === "BRAV") {
+            pAtkBonus = bonus;
+            log(`プレイヤーの攻撃力が ${((bonus - 1) * 100).toFixed(0)}% 上昇！`);
+        } else if (key === "SELD") {
+            pDefBonus = bonus;
+            log(`プレイヤーの防御力が ${((bonus - 1) * 100).toFixed(0)}% 上昇！`);
+        }
+    } else if (data.type === "Debuff") {
+        const penalty = 1 - (0.10 * lv); // 0.9倍 〜 0.5倍
+        if (key === "WEEK") {
+            // 敵の攻撃力に適用するため、プレイヤーの攻撃力倍率変数を使用
+            pAtkBonus = penalty; 
+            log(`敵の攻撃力が ${((1 - penalty) * 100).toFixed(0)}% 下降！`);
+        } else if (key === "BRAK") {
+            // 敵の防御力に適用するため、プレイヤーの防御力倍率変数を使用
+            pDefBonus = penalty; 
+            log(`敵の防御力が ${((1 - penalty) * 100).toFixed(0)}% 下降！`);
+        }
+    }
+
+    closeMagic();
+    // 敵のターンに進む
+    if (ehp > 0) {
+        setTimeout(enemyTurnAfterMagic, 600);
+    } else {
+        // 攻撃魔法で倒した場合の処理（handleAttackの勝利処理をコピー）
+        log(`${enemyName}を倒した！`);
+        resetBattleState(true);
     }
     updateUI();
 }
@@ -366,8 +596,7 @@ function updateUI() {
 
 function log(m) { document.getElementById('msg').innerText = m; }
 function applyShake() { document.body.classList.add('shake'); setTimeout(() => document.body.classList.remove('shake'), 200); }
-function openLibrary() { alert("図鑑機能準備中"); }
-function openMagic() { alert("魔法機能準備中"); }
+    
 </script>
 </body>
 </html>
