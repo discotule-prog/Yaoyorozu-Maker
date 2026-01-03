@@ -166,29 +166,54 @@ button:disabled {
         <button onclick="closeLibrary()" style="width: 90%; background:#444; margin-top: 15px; margin-bottom: 20px;">BACK</button>
     </div>
 <script>
-// --- 基礎データ ---
+// --- 1. グローバル変数宣言 ---
+// ※同じ変数を二度 let で宣言するとエラーになるため、ここだけで定義します。
+let net; 
+let stream; 
+let mode = "W"; // W:武器, E:敵, B:バトル, I:画面表示中
 let lv = 1, exp = 0, pMax = 1000, php = 1000;
 let ehp = 0, eMax = 0, enemyName = "";
-let mode = "W"; // W, E, B, I
-let net, stream;
 let playerElement = null;
 let enemyElement = null;
-let library = JSON.parse(localStorage.getItem('myth_v6_lib')) || { W: {}, E: {}, I: {} };
-let pAtk = 0; // スキャンした武器の攻撃力
-let pDef = 0; // スキャンした武器の防御力
-let eAtk = 0; // 出現したモンスターの攻撃力
-let eExp = 0; // 出現したモンスターの経験値
-// --- 魔法システム用変数 ---
-let skillPoints = 0; // 未使用のスキルポイント
-let magicUsedInBattle = false; // 1戦闘で魔法使用済みかどうかのフラグ
-let pAtkBonus = 1.0; // プレイヤー攻撃力倍率 (BRAV/WEEKデバフ用)
-let pDefBonus = 1.0; // プレイヤー防御力倍率 (SELD/BRAKデバフ用)
-let magicLevels = {
-    HEAL: 1,  // 初期Lv.1
-    FIRE: 0, AQUA: 0, EARTH: 0, WOOD: 0, // 攻撃魔法
-    BRAV: 0, SELD: 0, // バフ
-    WEEK: 0, BRAK: 0  // デバフ
+
+// 図鑑データの初期化
+let library = { 
+    weapons: [], 
+    monsters: [] 
 };
+
+let pAtk = 0, pDef = 0, eAtk = 0, eExp = 0;
+
+// --- 2. 魔法システム用変数 ---
+let skillPoints = 0; 
+let magicUsedInBattle = false; 
+let pAtkBonus = 1.0; 
+let pDefBonus = 1.0; 
+
+// 魔法レベル（AQUA, WOODを使用）
+let magicLevels = {
+    HEAL: 1, 
+    FIRE: 0, AQUA: 0, EARTH: 0, WOOD: 0, 
+    BRAV: 0, SELD: 0, 
+    WEEK: 0, BRAK: 0  
+};
+
+// --- 3. 属性・レアリティ設定 (指定の相性：FIRE < AQUA < EARTH < WOOD < FIRE) ---
+const ELEMENTS = {
+    AQUA:  { icon: "💧", color: "#4af", strongTo: "FIRE" },  // 水は火に強い
+    EARTH: { icon: "⛰️", color: "#a64", strongTo: "AQUA" },  // 土は水に強い
+    WOOD:  { icon: "🍃", color: "#4c4", strongTo: "EARTH" }, // 木は土に強い
+    FIRE:  { icon: "🔥", color: "#f44", strongTo: "WOOD" }   // 火は木に強い
+};
+
+const RARITY_RATES = [
+    { rarity: "LEGENDARY", rate: 0.01 },
+    { rarity: "EPIC",      rate: 0.05 },
+    { rarity: "RARE",      rate: 0.20 },
+    { rarity: "COMMON",    rate: 0.74 }
+];
+
+// ここから先は以前の MAGIC_DATA の続きを繋げてください
 
 const MAGIC_DATA = {
     HEAL: { name: "回復", type: "Heal", elem: null },
