@@ -107,14 +107,19 @@
 <script>
 // --- 1. グローバル変数宣言 ---
 // ※同じ変数を二度 let で宣言するとエラーになるため、ここだけで定義します。
+// --- 1. グローバル変数宣言 ---
 let net; 
 let stream; 
 let mode = "W"; // W:武器, E:敵, B:バトル, I:画面表示中
 let lv = 1;
-let pAtk = 0;
 let php = 1000, pMax = 1000;
-let playerElement = null; // 最初は属性なし
-let weaponName = "------"; // 初期表示用
+let pAtk = 0; // 1回だけ宣言
+let pDef = 0; // 1回だけ宣言
+let playerElement = null; 
+let weaponName = "------"; 
+
+// 敵データ用
+let eAtk = 0, eExp = 0, ehp = 0, eMax = 0, enemyName = "", enemyElement = null;
 
 // 図鑑データの初期化
 let library = { 
@@ -122,13 +127,12 @@ let library = {
     monsters: [] 
 };
 
-let pAtk = 0, pDef = 0, eAtk = 0, eExp = 0;
-
-// --- 2. 魔法システム用変数 ---
+// --- 2. 魔法・スキルシステム用変数 ---
 let skillPoints = 0; 
 let magicUsedInBattle = false; 
 let pAtkBonus = 1.0; 
 let pDefBonus = 1.0; 
+let learnedMagics = []; // 習得済み魔法リスト
 
 // 魔法レベル（AQUA, WOODを使用）
 let magicLevels = {
