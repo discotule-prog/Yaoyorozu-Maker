@@ -341,30 +341,42 @@ const MONSTER_DB = [
 
 // --- システムロジック ---
 
+// --- システムロジック ---
+
 window.onload = async () => {
+    // HTML内の要素をしっかり取得
     const msgElem = document.getElementById('init-msg');
     const startBtn = document.getElementById('start-btn');
 
     try {
-        log("AIモデルを読み込み中...");
-        // AIモデルのロード
+        // コンソールと画面の両方に状況を出す
+        console.log("AIモデル読み込み開始...");
+        
+        // 1. AIモデルのロード (これが完了するまで次へ行かない)
         net = await mobilenet.load();
         
-        // 画面表示の更新
-        if (msgElem) msgElem.innerText = "AI READY";
-        log("AI READY!");
-        
-        // スタートボタンを表示・活性化
-        if (startBtn) {
-            startBtn.classList.remove('hidden');
-            startBtn.disabled = false;
+        console.log("AIモデル読み込み完了！");
+
+        // 2. 画面表示の更新
+        if (msgElem) {
+            msgElem.innerText = "AI READY";
+            msgElem.style.color = "#0f0"; // 緑色にして準備完了感を出す
         }
+
+        // 3. スタートボタンを出現させる
+        if (startBtn) {
+            startBtn.classList.remove('hidden'); // hiddenクラスを消す
+            startBtn.disabled = false;           // disabledを解除する
+            console.log("スタートボタンを有効化しました");
+        }
+
     } catch(e) { 
-        console.error("AIロード失敗:", e);
-        if (msgElem) msgElem.innerText = "NETWORK ERROR"; 
-        log("ネットワークエラー。再読み込みしてください。");
-        
-        // エラーでも遊べるようにボタンだけは出す（予備策）
+        console.error("AIロード中にエラーが発生しました:", e);
+        if (msgElem) {
+            msgElem.innerText = "NETWORK ERROR";
+            msgElem.style.color = "red";
+        }
+        // エラーが起きても、とりあえずボタンだけは出して遊べるようにする
         if (startBtn) {
             startBtn.classList.remove('hidden');
             startBtn.disabled = false;
