@@ -437,16 +437,17 @@ function lottery(db, label) {
     }
 }
 async function startScan() {
-    if (mode === "B") return; // バトル中は無視
+    if (mode === "B") return;
 
     const video = document.getElementById('webcam');
     const btn = document.getElementById('scan-btn');
 
-    // ★追加：もしビデオが止まっていたら、解析前に再生させる
+    if (!video || !btn) return;
+
+    // ビデオ再生チェック
     if (video.paused) {
         try {
             await video.play();
-            // 再生開始まで少し待つ（スマホの処理待ち）
             await new Promise(resolve => setTimeout(resolve, 300));
         } catch (e) {
             log("カメラの再起動に失敗しました");
@@ -454,91 +455,48 @@ async function startScan() {
         }
     }
     
-    const btn = document.getElementById('scan-btn');
-    const video = document.getElementById('webcam');
-
-    // ★追加：ビデオが止まっていたら再開を試みる（iPhone対策）
-    if (video.paused) {
-        await video.play();
-    }
-    
-    // カメラの準備が完全に整っているかチェック
-    if (!video || video.readyState !== 4) {
-        log("カメラを再準備中... 1秒待って再試行してください");
+    if (video.readyState !== 4) {
+        log("カメラ準備中...");
         return;
     }
 
     btn.disabled = true;
     log("AI解析中...");
-    console.log("AI判定開始...");
-    // 以降、try-catch処理へ
-    
+
     try {
-        // 1. AI判定 (ここが重いのでエラーになりやすい)
         let label = "unknown";
+        const result = await net.classify(video);
+        if (result && result.length > 0) label = result[0].className;
+
+        let elemKey = "FIRE";
         try {
-            const result = await net.classify(video);
-            console.log("AI判定完了:", result);
-            if (result && result.length > 0) label = result[0].className;
-        } catch (aiErr) {
-            console.warn("AI判定に失敗しましたが続行します:", aiErr);
-        }
-        console.log("AI結果:", label);
+            elemKey = getElementByColor() || "FIRE";
+            if (elemKey === "WATER") elemKey = "AQUA"; 
+        } catch (colorErr) { console.warn(colorErr); }
 
-// 2. 属性決定
-  let elemKey = "FIRE"; // デフォルト
-  try {
-      elemKey = getElementByColor() || "FIRE";
-      // ★ここで名前のズレを強制補正！
-      if (elemKey === "WATER") elemKey = "AQUA"; 
-  } catch (colorErr) {
-      console.warn("色判定失敗:", colorErr);
-  }
-
-        // 3. 抽選と登録
         if (mode === "W") {
             const weapon = lottery(WEAPON_DB, label);
             playerElement = elemKey;
             pAtk = weapon.atk;
             pDef = weapon.def;
-
-            // 図鑑登録 (エラーになりやすいのでtry-catchで囲む)
-            try {
-                if (typeof addToLibrary === "function") {
-                    addToLibrary('weapons', { name: weapon.name, rarity: weapon.rarity, atk: weapon.atk, def: weapon.def });
-                }
-            } catch (libErr) { console.error("図鑑登録エラー:", libErr); }
-
             log(`武器: ${weapon.name} [ATK:${pAtk}]\n属性: ${ELEMENTS[elemKey].icon}`);
             mode = "E";
             btn.innerText = "ENEMY SCAN";
             btn.disabled = false;
-
         } else if (mode === "E") {
             const monster = lottery(MONSTER_DB, label);
             enemyElement = elemKey;
             enemyName = monster.name;
-            eMax = monster.hp;
-            ehp = eMax;
-            eAtk = monster.atk;
-            eExp = monster.exp;
-
-            try {
-                if (typeof addToLibrary === "function") {
-                    addToLibrary('monsters', { name: monster.name, rarity: monster.rarity, hp: monster.hp, atk: monster.atk, exp: monster.exp, elem: elemKey });
-                }
-            } catch (libErr) { console.error("図鑑登録エラー:", libErr); }
-
+            eMax = monster.hp; ehp = eMax;
+            eAtk = monster.atk; eExp = monster.exp;
             log(`敵: ${monster.name} [HP:${eMax}]\n属性: ${ELEMENTS[elemKey].icon}`);
             mode = "B";
             document.getElementById('atk-btn').disabled = false;
             document.getElementById('magic-btn').disabled = false;
         }
         updateUI();
-
     } catch (e) {
-        console.error("重大なエラー:", e);
-        log("スキャンエラー発生。もう一度試してください。");
+        log("スキャンエラー。もう一度。");
         btn.disabled = false;
     }
 }
@@ -671,18 +629,25 @@ function openMagic() {
 }
 
 function closeMagic() {
-    // 1. メニューを非表示にする（既存の処理）
-    document.getElementById('magic-modal').style.display = 'none';
+    // 1. IDを magic-overlay に修正
+    const overlay = document.getElementById('magic-overlay');
+    if (overlay) {
+        overlay.classList.add('hidden'); // style.display ではなく class で制御
+    }
 
-    // 2. ★カメラを強制的に再スタートさせる
+    // 2. モードを戻す (バトル中ならB、探索中ならW)
+    if (ehp > 0) {
+        mode = "B";
+    } else {
+        mode = "W";
+    }
+
+    // 3. カメラの再開
     const video = document.getElementById('webcam');
     if (video) {
-        video.play().then(() => {
-            console.log("カメラ再開成功");
-        }).catch(err => {
-            console.warn("カメラ再開に失敗:", err);
-        });
+        video.play().catch(err => console.warn("Camera resume failed:", err));
     }
+    updateUI();
 }
 
 function renderMagicList() {
