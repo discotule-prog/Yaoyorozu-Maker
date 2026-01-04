@@ -402,7 +402,22 @@ function lottery(db, label) {
     }
 }
 async function startScan() {
-    if (mode === "B") return; 
+    if (mode === "B") return; // バトル中は無視
+
+    const video = document.getElementById('webcam');
+    const btn = document.getElementById('scan-btn');
+
+    // ★追加：もしビデオが止まっていたら、解析前に再生させる
+    if (video.paused) {
+        try {
+            await video.play();
+            // 再生開始まで少し待つ（スマホの処理待ち）
+            await new Promise(resolve => setTimeout(resolve, 300));
+        } catch (e) {
+            log("カメラの再起動に失敗しました");
+            return;
+        }
+    }
     
     const btn = document.getElementById('scan-btn');
     const video = document.getElementById('webcam');
@@ -621,10 +636,18 @@ function openMagic() {
 }
 
 function closeMagic() {
-    document.getElementById('magic-overlay').classList.add('hidden');
-    // 戦闘中だった場合はバトルモードに戻る
-    if (ehp > 0 && mode === "I") mode = "B"; 
-    updateUI();
+    // 1. メニューを非表示にする（既存の処理）
+    document.getElementById('magic-modal').style.display = 'none';
+
+    // 2. ★カメラを強制的に再スタートさせる
+    const video = document.getElementById('webcam');
+    if (video) {
+        video.play().then(() => {
+            console.log("カメラ再開成功");
+        }).catch(err => {
+            console.warn("カメラ再開に失敗:", err);
+        });
+    }
 }
 
 function renderMagicList() {
