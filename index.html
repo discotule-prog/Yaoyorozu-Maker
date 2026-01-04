@@ -879,6 +879,47 @@ function changeLibraryTab(tab) {
 }// --- 診断用：これが動けばスクリプト自体は読み込まれています ---
     console.log("スクリプトの最後まで読み込み完了");
     alert("プログラムは最後まで読み込まれました！");
+// --- 最終起動プロセス ---
+
+async function bootGame() {
+    const msgElem = document.getElementById('init-msg');
+    const startBtn = document.getElementById('start-btn');
+
+    try {
+        console.log("AIモデル読み込み開始...");
+        if (msgElem) msgElem.innerText = "LOADING AI MODELS (TFJS)...";
+
+        // AIモデルのロード（ここが最重要）
+        net = await mobilenet.load();
+        
+        console.log("AIモデル読み込み完了！");
+        if (msgElem) {
+            msgElem.innerText = "AI READY";
+            msgElem.style.color = "#0f0"; // 準備完了で緑色に
+        }
+
+        // スタートボタンを表示・有効化
+        if (startBtn) {
+            startBtn.classList.remove('hidden');
+            startBtn.disabled = false;
+            console.log("スタートボタンを有効化しました");
+        }
+    } catch (e) {
+        console.error("起動エラー:", e);
+        if (msgElem) {
+            msgElem.innerText = "NETWORK ERROR: " + e.message;
+            msgElem.style.color = "red";
+        }
+        // エラーが起きても、ボタンだけは出してゲームを遊べるようにする（詰み防止）
+        if (startBtn) {
+            startBtn.classList.remove('hidden');
+            startBtn.disabled = false;
+        }
+    }
+}
+
+// ページ読み込み完了時に実行
+window.addEventListener('load', bootGame);
 </script>
 </body>
 </html>
