@@ -7,164 +7,94 @@
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@latest"></script>
     <style>
-        body { 
-    margin: 0; 
-    background: #000; 
-    color: #0f0; 
-    font-family: 'Courier New', monospace; 
-    overflow: hidden; /* スクロールを禁止 */
-    height: 100vh; /* 画面の高さを100%に固定 */
-    display: flex;
-    flex-direction: column;
-}
+    /* 必須：機能として残すもの */
+    .hidden { display: none !important; }
 
-/* 上部：カメラ映像（全体の40%） */
-#webcam { 
-    width: 100%; 
-    height: 40vh; 
-    object-fit: cover; 
-    border-bottom: 2px solid #0f0;
-}
+    body { 
+        margin: 0; 
+        background: #000; 
+        color: #0f0; 
+        font-family: 'Courier New', monospace; 
+        /* スクロールを許可して詰みを防ぐ */
+        overflow-y: auto; 
+        min-height: 100vh;
+    }
 
-/* 中部：ステータスとログ（全体の30%） */
-#game-ui { 
-    flex: 1; /* 残りのスペースを使う */
-    padding: 10px;
-    display: flex;
-    flex-direction: column;
-}
+    /* 新しいレイアウト内のビデオ設定をCSSで補強 */
+    #webcam { 
+        width: 100%; 
+        height: 100%; 
+        object-fit: cover; 
+    }
 
-.status-bar { 
-    display: flex; 
-    justify-content: space-between; 
-    font-size: 14px; 
-    margin-bottom: 5px;
-}
-
-.hp-box { 
-    width: 45%; 
-    background: #222; 
-    border: 1px solid #0f0; 
-    height: 15px; 
-    position: relative; 
-}
-
-.hp-fill { 
-    height: 100%; 
-    background: #0f0; 
-    width: 100%; 
-    transition: width 0.3s; 
-}
-
-#msg { 
-    background: rgba(0,20,0,0.8); 
-    border: 1px solid #0f0; 
-    padding: 8px; 
-    height: 80px; 
-    overflow-y: auto; 
-    font-size: 13px; 
-    white-space: pre-wrap;
-    margin-bottom: 10px;
-}
-
-/* 下部：操作ボタン（全体の30% / 固定） */
-#controls { 
-    display: grid; 
-    grid-template-columns: 1fr 1fr; 
-    gap: 8px; 
-    padding: 10px;
-    background: #111;
-    border-top: 1px solid #0f0;
-}
-
-button { 
-    padding: 15px 5px; 
-    font-size: 14px; 
-    font-weight: bold;
-    background: #002200; 
-    color: #0f0; 
-    border: 2px solid #0f0; 
-    cursor: pointer;
-}
-
-button:disabled { 
-    border-color: #333; 
-    color: #333; 
-}
-
-/* オーバーレイ（共通設定） */
-.overlay { 
-    position: fixed; 
-    top: 0; left: 0; width: 100%; height: 100%; 
-    background: rgba(0,0,0,0.95); 
-    display: flex; 
-    flex-direction: column; 
-    align-items: center; 
-    justify-content: center; 
-    z-index: 100; 
-}
-
-.hidden { display: none !important; }
-    </style>
+    /* 演出：揺れアニメーション（そのまま残す） */
+    .shake {
+        animation: shake-anim 0.2s cubic-bezier(.36,.07,.19,.97) both;
+    }
+    @keyframes shake-anim {
+        10%, 90% { transform: translate3d(-1px, 0, 0); }
+        20%, 80% { transform: translate3d(2px, 0, 0); }
+        30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+        40%, 60% { transform: translate3d(4px, 0, 0); }
+    }
+</style>
 </head>
 <body>
-    <div style="position: relative; width: 100%; height: 40vh; background: #111;">
-        <div id="main-display" style="position: relative; width: 100%; height: 100%; background: #000; border: 2px solid #0f0; margin: 10px 0;">
-    <video id="webcam" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover;"></video>
-    
-    <div id="log-display" class="hidden" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow-y: auto; background: rgba(0,20,0,0.95); color: #0f0; padding: 10px; font-family: monospace; box-sizing: border-box; text-align: left; font-size: 14px; line-height: 1.4;">
-        </div>
+    <div id="loading-layer" style="position:fixed; top:0; left:0; width:100%; height:100%; background:#000; z-index:1000; display:flex; flex-direction:column; justify-content:center; align-items:center;">
+    <h1 style="color:#0f0; font-family:monospace;">AI SYSTEM</h1>
+    <p id="init-msg" style="color:#0f0; font-family:monospace;">INITIALIZING...</p>
+    <button id="start-btn" class="hidden" onclick="document.getElementById('loading-layer').style.display='none';" style="background:#0f0; color:#000; border:none; padding:15px 30px; font-weight:bold; cursor:pointer;">START GAME</button>
 </div>
-    <div id="game-ui">
-        <div class="status-bar">
-            <div>PLAYER Lv.<span id="p-lv">1</span> <span id="p-elem"></span></div>
-            <div class="hp-box">
-                <div id="p-fill" class="hp-fill"></div>
-                <small style="position:absolute; width:100%; text-align:center; top:0; color:white;">HP:<span id="p-hp-cur">1000</span></small>
-            </div>
+    <div id="game-container" style="background:#000; color:#0f0; font-family:monospace; padding:10px; max-width:500px; margin:auto;">
+
+    <div id="enemy-ui" style="border: 1px solid #f00; padding: 10px; margin-bottom: 10px;">
+        <div style="display: flex; justify-content: space-between;">
+            <span id="e-name" style="font-weight:bold; color:#f00;">E:------</span>
+            <span style="font-size: 0.8em;">ATT:<span id="e-atk">150</span> / DEF:80 / ELE:<span id="e-elem">-</span></span>
         </div>
+        <div style="width: 100%; background: #300; height: 15px; border: 1px solid #f00; margin-top: 5px;">
+            <div id="e-hp-bar" style="width: 100%; height: 100%; background: #f00; transition: width 0.3s;"></div>
+        </div>
+        <div id="e-hp-text" style="text-align:right; font-size:0.8em;">HP:1500/1500</div>
+        <div style="text-align:right; margin-top:-5px;"><span style="background:#f00; color:#000; padding:0 5px;">ENEMY</span></div>
+    </div>
+
+    <div id="main-display" style="position: relative; width: 100%; height: 300px; background: #000; border: 2px solid #0f0; margin-bottom: 10px;">
+        <video id="webcam" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover;"></video>
+        <div id="log-display" class="hidden" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow-y: auto; background: rgba(0,20,0,0.95); color: #0f0; padding: 10px; box-sizing: border-box; font-size: 12px;"></div>
+    </div>
+
+    <div id="player-ui" style="border: 1px solid #0f0; padding: 10px;">
+        <div style="background:#0f0; color:#000; display:inline-block; padding:0 10px; margin-bottom:5px;">PLAYER LEVEL : <span id="p-lv">2</span></div>
+        <div style="width: 100%; background: #030; height: 15px; border: 1px solid #0f0;">
+            <div id="p-hp-bar" style="width: 100%; height: 100%; background: #0f0; transition: width 0.3s;"></div>
+        </div>
+        <div id="p-hp-text" style="font-size:0.8em;">HP:1000/1000</div>
+        <div style="width: 100%; background: #111; height: 10px; border: 1px solid #777; margin-top:5px;">
+            <div id="p-exp-bar" style="width: 0%; height: 100%; background: #0af; transition: width 0.5s;"></div>
+        </div>
+        <div style="font-size:0.8em;">EXP:<span id="p-exp-text">0/100</span></div>
+        <div style="display:flex; justify-content:space-between; margin-top:5px; border-top:1px dotted #0f0; padding-top:5px;">
+            <span>W:--------</span>
+            <span>ATT:<span id="p-atk">750</span> / DEF:0 / ELE:<span id="p-elem">🔥</span></span>
+        </div>
+    </div>
+
+    <div style="margin-top: 10px;">
+        <button id="scan-btn" onclick="startScan()" style="width:100%; background:#004400; color:#0f0; border:2px solid #0f0; padding:15px; font-weight:bold; margin-bottom:10px;">WEAPON SCAN</button>
         
-        <div class="status-bar">
-            <div>ENEMY <span id="e-elem"></span></div>
-            <div class="hp-box">
-                <div id="e-fill" class="hp-fill" style="background:#f00; width:0%;"></div>
-                <small style="position:absolute; width:100%; text-align:center; top:0; color:white;">HP:<span id="e-hp-cur">0</span>/<span id="e-hp-max">0</span></small>
-            </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 2px;">
+            <button id="atk-btn" onclick="attack()" disabled style="background:#222; color:#0f0; border:1px solid #0f0; padding:10px 0;">ATTACK</button>
+            <button id="magic-btn" onclick="openMagic()" disabled style="background:#222; color:#0f0; border:1px solid #0f0; padding:10px 0;">MAGIC</button>
+            <button style="background:#222; color:#777; border:1px solid #444; padding:10px 0;">ITEM</button>
+            <button style="background:#222; color:#777; border:1px solid #444; padding:10px 0;">ESCAPE</button>
         </div>
-
-        <div id="msg">ロード中...</div>
-
-        <div id="controls">
-            <button id="scan-btn" onclick="startScan()" disabled>SCAN</button>
-            <button id="atk-btn" onclick="handleAttack()" disabled>ATTACK</button>
-            <button id="magic-btn" onclick="openMagic()" disabled>MAGIC</button>
-            <button id="lib-btn" onclick="openLibrary()">LIBRARY</button>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2px; margin-top: 2px;">
+            <button style="background:#111; color:#0f0; border:1px solid #0f0; padding:15px;">STATUS</button>
+            <button style="background:#111; color:#0f0; border:1px solid #0f0; padding:15px;">LIBRARY</button>
         </div>
     </div>
-
-    <div id="init-overlay" class="overlay">
-        <h1 style="color:#0ff; text-align:center;">AI MYTHIC RPG</h1>
-        <p id="init-msg">LOADING AI MODELS...</p>
-        <button id="start-btn" onclick="startGame()" class="hidden" style="background:#004400; padding:20px 40px; border:2px solid #0f0;">START GAME</button>
-    </div>
-
-    <div id="magic-overlay" class="overlay hidden">
-        <h2 style="color:#0f0;">MAGIC MENU</h2>
-        <p style="margin: 0;">SP: <span id="sp-count">0</span></p>
-        <div id="magic-list" style="width: 90%; flex: 1; overflow-y: auto; margin: 10px 0; border: 1px solid #333; background: rgba(0,0,0,0.5);">
-            </div>
-        <button onclick="closeMagic()" style="width: 90%; background:#444; margin-bottom: 20px;">BACK</button>
-    </div>
-    <div id="library-overlay" class="overlay hidden">
-        <h2 style="color:#0f0;">LIBRARY</h2>
-        <div style="display: flex; gap: 10px; margin-bottom: 10px; width: 90%;">
-            <button onclick="changeLibraryTab('weapons')" id="lib-tab-weapons" style="flex: 1; background: #004400;">WEAPONS</button>
-            <button onclick="changeLibraryTab('monsters')" id="lib-tab-monsters" style="flex: 1;">MONSTERS</button>
-        </div>
-        <div id="library-content" style="width: 90%; flex: 1; overflow-y: auto; border: 1px solid #333; background: rgba(0,0,0,0.5); padding: 10px;">
-            </div>
-        <button onclick="closeLibrary()" style="width: 90%; background:#444; margin-top: 15px; margin-bottom: 20px;">BACK</button>
-    </div>
+</div>
 <script>
 // --- 1. グローバル変数宣言 ---
 // ※同じ変数を二度 let で宣言するとエラーになるため、ここだけで定義します。
@@ -784,37 +714,43 @@ function useMagic(key) {
 }
 
 function updateUI() {
+    // 敵情報の更新
+    document.getElementById('e-name').innerText = "E:" + (enemyName || "------");
+    document.getElementById('e-atk').innerText = eAtk;
+    document.getElementById('e-elem').innerText = enemyElement ? ELEMENTS[enemyElement].icon : "-";
+    document.getElementById('e-hp-text').innerText = `HP:${ehp}/${eMax}`;
+    
+    // 敵HPバーの計算
+    const ePercent = eMax > 0 ? (ehp / eMax) * 100 : 0;
+    document.getElementById('e-hp-bar').style.width = Math.max(0, ePercent) + "%";
+
+    // プレイヤー情報の更新
     document.getElementById('p-lv').innerText = lv;
-    document.getElementById('p-hp-cur').innerText = php;
-    document.getElementById('p-fill').style.width = (php/pMax*100) + "%";
-    if(playerElement) {
-        document.getElementById('p-elem').innerText = ELEMENTS[playerElement].icon;
-        document.getElementById('p-elem').style.color = ELEMENTS[playerElement].color;
-    }
-    document.getElementById('e-hp-cur').innerText = ehp;
-    document.getElementById('e-hp-max').innerText = eMax;
-    document.getElementById('e-fill').style.width = (eMax > 0 ? (ehp/eMax*100) : 0) + "%";
-    if(enemyElement) {
-        document.getElementById('e-elem').innerText = ELEMENTS[enemyElement].icon;
-        document.getElementById('e-elem').style.color = ELEMENTS[enemyElement].color;
-    }
+    document.getElementById('p-atk').innerText = pAtk;
+    document.getElementById('p-elem').innerText = playerElement ? ELEMENTS[playerElement].icon : "-";
+    document.getElementById('p-hp-text').innerText = `HP:${php}/${pMax}`;
+    document.getElementById('p-exp-text').innerText = `${exp}/${lv * 100}`;
+
+    // プレイヤーHPバーの計算
+    const pPercent = pMax > 0 ? (php / pMax) * 100 : 0;
+    document.getElementById('p-hp-bar').style.width = Math.max(0, pPercent) + "%";
+
+    // 経験値バーの計算
+    const expPercent = (exp / (lv * 100)) * 100;
+    document.getElementById('p-exp-bar').style.width = Math.min(100, expPercent) + "%";
 }
 
 function log(m) {
-    // 1. 今まで通り、画面下のメッセージ欄にも最新の1行を出す
-    const msgElem = document.getElementById('msg');
-    if (msgElem) msgElem.innerText = m;
+    // 画面下部に「msg」というIDがなくなった場合は、ここを削除またはコメントアウト
+    // const msgElem = document.getElementById('msg');
+    // if (msgElem) msgElem.innerText = m;
 
-    // 2. 新しい「ログ画面」に履歴を追加していく
     const logArea = document.getElementById('log-display');
     if (logArea) {
         const line = document.createElement('div');
-        line.style.borderBottom = "1px dotted #030"; // 行の区切り線
-        line.style.marginBottom = "4px";
+        line.style.borderBottom = "1px dotted #030";
         line.innerHTML = `> ${m.replace(/\n/g, '<br>')}`;
         logArea.appendChild(line);
-
-        // 常に最新（一番下）にスクロールする
         logArea.scrollTop = logArea.scrollHeight;
     }
 }
