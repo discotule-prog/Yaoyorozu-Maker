@@ -572,13 +572,12 @@ function resetBattleState(isVictory) {
     pDefBonus = 1.0;
     
     mode = "W";
-    toggleDisplay(false); // ★ここでログからカメラに戻す
+    toggleDisplay(false); // ログからカメラに戻す
     
     const scanBtn = document.getElementById('scan-btn');
-    scanBtn.innerText = "WEAPON SCAN";
-    scanBtn.disabled = false;
-    // ...
-}
+    // バトルボタンを無効化
+    document.getElementById('atk-btn').disabled = true;
+    document.getElementById('magic-btn').disabled = true;
 
     if (isVictory) {
         exp += eExp;
@@ -598,13 +597,13 @@ function resetBattleState(isVictory) {
                 openMagic();
                 scanBtn.disabled = false;
                 scanBtn.innerText = "WEAPON SCAN";
-                updateUI(); // UI更新を忘れない
+                updateUI(); 
             }, 1500);
-            return; // ★ここで終了。下の「即座に有効化」を通さない
+            return; // ここは関数の内側なので正しく動作します
         }
     }
 
-    // レベルアップしなかった場合、または勝利しなかった場合は即座にスキャン許可
+    // レベルアップしなかった場合、または勝利しなかった場合の共通処理
     scanBtn.disabled = false;
     scanBtn.innerText = "WEAPON SCAN";
     updateUI();
