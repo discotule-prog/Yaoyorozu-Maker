@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>AI Mythic RPG v6</title>
-   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@latest"></script>
     <style>
         body { 
     margin: 0; 
@@ -342,11 +342,34 @@ const MONSTER_DB = [
 // --- システムロジック ---
 
 window.onload = async () => {
+    const msgElem = document.getElementById('init-msg');
+    const startBtn = document.getElementById('start-btn');
+
     try {
+        log("AIモデルを読み込み中...");
+        // AIモデルのロード
         net = await mobilenet.load();
-        document.getElementById('init-msg').innerText = "AI READY";
-        document.getElementById('start-btn').classList.remove('hidden');
-    } catch(e) { document.getElementById('init-msg').innerText = "NETWORK ERROR"; }
+        
+        // 画面表示の更新
+        if (msgElem) msgElem.innerText = "AI READY";
+        log("AI READY!");
+        
+        // スタートボタンを表示・活性化
+        if (startBtn) {
+            startBtn.classList.remove('hidden');
+            startBtn.disabled = false;
+        }
+    } catch(e) { 
+        console.error("AIロード失敗:", e);
+        if (msgElem) msgElem.innerText = "NETWORK ERROR"; 
+        log("ネットワークエラー。再読み込みしてください。");
+        
+        // エラーでも遊べるようにボタンだけは出す（予備策）
+        if (startBtn) {
+            startBtn.classList.remove('hidden');
+            startBtn.disabled = false;
+        }
+    }
 };
 
 async function startGame() {
