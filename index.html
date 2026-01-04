@@ -141,13 +141,12 @@ const ELEMENTS = {
     FIRE:  { icon: "🔥", color: "#f44", strongTo: "WOOD" }   // 火は木に強い
 };
 
-// 属性相性データ：[攻撃側] が [防御側] に与えるダメージ倍率
+// 属性相性データ：アイコンを ELEMENTS と統一
 const ELEMENT_CHART = {
-    "🔥": { "🌿": 2.0, "💧": 0.5, "🔥": 0.8 }, // 火は草に強く、水に弱い
-    "💧": { "🔥": 2.0, "🌿": 0.5, "💧": 0.8 }, // 水は火に強く、草に弱い
-    "🌿": { "💧": 2.0, "🔥": 0.5, "🌿": 0.8 }, // 草は水に強く、火に弱い
-    "☀️": { "🌙": 2.0, "☀️": 0.5 },            // 光は闇に強い
-    "🌙": { "☀️": 2.0, "🌙": 0.5 }             // 闇は光に強い
+    "🔥": { "🍃": 2.0, "💧": 0.5, "🔥": 0.8 }, // 火は木(🍃)に強く、水に弱い
+    "💧": { "🔥": 2.0, "⛰️": 0.5, "💧": 0.8 }, // 水は火に強く、土に弱い
+    "⛰️": { "💧": 2.0, "🍃": 0.5, "⛰️": 0.8 }, // 土は水に強く、木に弱い
+    "🍃": { "⛰️": 2.0, "🔥": 0.5, "🍃": 0.8 }  // 木は土に強く、火に弱い
 };
 
 const RARITY_RATES = [
@@ -428,8 +427,13 @@ async function startScan() {
             mode = "B";
     log("バトル開始！");
     toggleDisplay(true); // ★ここでカメラからログに切り替え
-    // ...ボタンの有効化など...
-}
+    // ★ ここに追加：バトルモードになったのでボタンを解放する
+            document.getElementById('atk-btn').disabled = false;
+            document.getElementById('magic-btn').disabled = false;
+            // ついでにスキャンボタンをバトル中は無効にしておくと誤爆を防げます
+            btn.disabled = true; 
+            btn.innerText = "BATTLE IN PROGRESS";
+        }
         updateUI();
     } catch (e) {
         log("スキャンエラー。もう一度。");
@@ -507,6 +511,67 @@ function enemyTurnAfterMagic() {
     log(`敵の攻撃！ ${edmg}ダメージ！`);
     if (php <= 0) { alert("GAMEOVER"); location.reload(); }
     updateUI();
+}
+
+function attack() {
+    if (mode !== "B" || ehp <= 0) return;
+
+    // 1. プレイヤーの攻撃力計算（少しランダム幅を持たせる）
+    let damage = Math.floor(pAtk * (0.9 + Math.random() * 0.2) * pAtkBonus);
+
+    // 2. 属性相性の計算
+    let multiplier = 1.0;
+    // プレイヤーの武器属性アイコンと、敵の属性アイコンを比較
+    const pIcon = playerElement ? playerElement.icon : null;
+    const eIcon = enemyElement ? ELEMENTS[enemyElement].icon : null;
+
+    if (pIcon && eIcon) {
+        multiplier = (ELEMENT_CHART[pIcon] && ELEMENT_CHART[pIcon][eIcon]) ? ELEMENT_CHART[pIcon][eIcon] : 1.0;
+    }
+
+    damage = Math.floor(damage * multiplier);
+    ehp -= damage;
+
+    // 3. 演出とログ
+    applyShake(); // 画面を揺らす
+    log(`あなたの攻撃！ ${enemyName}に ${damage} のダメージ！`);
+    if (multiplier > 1.0) log("✨ 効果はばつぐんだ！");
+    if (multiplier < 1.0) log("🛡️ 効果はいまひとつのようだ...");
+
+    updateUI();
+
+    // 4. 勝利判定または敵の反撃
+    if (ehp <= 0) {
+        ehp = 0;
+        updateUI();
+        log(`${enemyName}を倒した！`);
+        setTimeout(() => resetBattleState(true), 1500);
+    } else {
+        // 1秒後に敵が反撃してくる
+        document.getElementById('atk-btn').disabled = true;
+        setTimeout(enemyAttack, 1000);
+    }
+}
+
+function enemyAttack() {
+    if (mode !== "B" || ehp <= 0) return;
+
+    let eDamage = Math.floor(eAtk * (0.9 + Math.random() * 0.2) / pDefBonus);
+    php -= eDamage;
+    
+    applyShake();
+    log(`${enemyName}の攻撃！ あなたは ${eDamage} のダメージを受けた！`);
+    
+    updateUI();
+
+    if (php <= 0) {
+        php = 0;
+        updateUI();
+        log("あなたは力尽きた...");
+        setTimeout(() => location.reload(), 3000); // 3秒後にリロードしてリトライ
+    } else {
+        document.getElementById('atk-btn').disabled = false;
+    }
 }
 
 // 戦闘終了後の状態リセットと経験値処理
