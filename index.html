@@ -10,22 +10,31 @@
     body { 
         margin: 0; 
         background: #000; 
-        overflow: hidden; /* 全体スクロールを禁止 */
-        height: 100vh; 
+        overflow: hidden; 
+        position: fixed; /* スクロールを完全に禁止 */
+        width: 100%;
+        height: 100%;
     }
     #game-container {
-        max-width: 500px;
-        height: 100vh; /* 画面ぴったりにする */
-        margin: auto;
+        width: 100%;
+        height: 100dvh; /* 動的ビューポート（ツールバーを考慮） */
         display: flex;
         flex-direction: column;
-        justify-content: space-between; /* 要素を上下に振り分ける */
         padding: 5px;
         box-sizing: border-box;
+        justify-content: space-between;
     }
-    /* カメラエリアの高さを少し抑えて、下のボタン類を押し上げる */
     #main-display {
-        height: 35vh !important; 
+        flex: 1; /* カメラエリアが余白を埋める */
+        max-height: 35%; /* カメラが大きくなりすぎないよう制限 */
+        min-height: 180px;
+        position: relative;
+        background: #111;
+        border: 1px solid #444;
+    }
+    #all-controls button {
+        padding: 10px 5px !important; /* ボタンの高さを抑える */
+        font-size: 0.8em;
     }
 </style>
 </head>
@@ -34,7 +43,7 @@
     <h1 style="color:#0f0; font-family:monospace;">AI SYSTEM</h1>
     <p id="init-msg" style="color:#0f0; font-family:monospace;">INITIALIZING...</p>
     <button id="start-btn" class="hidden" 
-    onclick="document.getElementById('loading-layer').style.display='none'; initWebcam();" 
+    onclick="document.getElementById('loading-layer').style.display='none'; document.getElementById('webcam').play();" 
     style="...">
     START GAME
 </button>
@@ -897,22 +906,32 @@ function changeLibraryTab(tab) {
 // ★ここに initWebcam を貼り付け
 async function initWebcam() {
     const video = document.getElementById('webcam');
-    if (!video) return;
+    const initMsg = document.getElementById('init-msg');
+    
     try {
         const stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: "environment" },
+            video: { 
+                facingMode: "environment", // 外カメラを優先
+                width: { ideal: 640 },
+                height: { ideal: 480 }
+            },
             audio: false
         });
         video.srcObject = stream;
-        return new Promise((resolve) => {
-            video.onloadedmetadata = () => {
-                video.play();
-                resolve();
-            };
-        });
+        initMsg.innerText = "CAMERA CONNECTED.";
+        
+        // AIのロードを確認
+        if (typeof net === 'undefined') {
+            initMsg.innerText = "LOADING AI...";
+            net = await mobilenet.load();
+        }
+        
+        // 準備ができたらスタートボタンを表示
+        document.getElementById('start-btn').classList.remove('hidden');
+        initMsg.innerText = "SYSTEM READY.";
     } catch (err) {
-        console.error("Camera Error: ", err);
-        log("カメラの起動に失敗しました。");
+        console.error(err);
+        initMsg.innerText = "CAMERA ERROR: " + err.name;
     }
 }
 
