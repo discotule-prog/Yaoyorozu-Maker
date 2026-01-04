@@ -43,7 +43,11 @@
     <div id="loading-layer" style="position:fixed; top:0; left:0; width:100%; height:100%; background:#000; z-index:1000; display:flex; flex-direction:column; justify-content:center; align-items:center;">
     <h1 style="color:#0f0; font-family:monospace;">AI SYSTEM</h1>
     <p id="init-msg" style="color:#0f0; font-family:monospace;">INITIALIZING...</p>
-    <button id="start-btn" class="hidden" onclick="document.getElementById('loading-layer').style.display='none';" style="background:#0f0; color:#000; border:none; padding:15px 30px; font-weight:bold; cursor:pointer;">START GAME</button>
+    <button id="start-btn" class="hidden" 
+    onclick="document.getElementById('loading-layer').style.display='none'; initWebcam();" 
+    style="...">
+    START GAME
+</button>
 </div>
     <div id="game-container" style="background:#000; color:#0f0; font-family:monospace; padding:10px; max-width:500px; margin:auto;">
 
@@ -60,9 +64,10 @@
     </div>
 
     <div id="main-display" style="position: relative; width: 100%; height: 300px; background: #000; border: 2px solid #0f0; margin-bottom: 10px;">
-        <video id="webcam" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover;"></video>
-        <div id="log-display" class="hidden" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow-y: auto; background: rgba(0,20,0,0.95); color: #0f0; padding: 10px; box-sizing: border-box; font-size: 12px;"></div>
-    </div>
+    <video id="webcam" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover; background: #000;"></video>
+    
+    <div id="log-display" class="hidden" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow-y: auto; background: rgba(0,20,0,0.95); color: #0f0; padding: 10px; box-sizing: border-box; font-size: 12px;"></div>
+</div>
 
     <div id="player-ui" style="border: 1px solid #0f0; padding: 10px;">
         <div style="background:#0f0; color:#000; display:inline-block; padding:0 10px; margin-bottom:5px;">PLAYER LEVEL : <span id="p-lv">2</span></div>
@@ -134,6 +139,15 @@ const ELEMENTS = {
     EARTH: { icon: "⛰️", color: "#a64", strongTo: "AQUA" },  // 土は水に強い
     WOOD:  { icon: "🍃", color: "#4c4", strongTo: "EARTH" }, // 木は土に強い
     FIRE:  { icon: "🔥", color: "#f44", strongTo: "WOOD" }   // 火は木に強い
+};
+
+// 属性相性データ：[攻撃側] が [防御側] に与えるダメージ倍率
+const ELEMENT_CHART = {
+    "🔥": { "🌿": 2.0, "💧": 0.5, "🔥": 0.8 }, // 火は草に強く、水に弱い
+    "💧": { "🔥": 2.0, "🌿": 0.5, "💧": 0.8 }, // 水は火に強く、草に弱い
+    "🌿": { "💧": 2.0, "🔥": 0.5, "🌿": 0.8 }, // 草は水に強く、火に弱い
+    "☀️": { "🌙": 2.0, "☀️": 0.5 },            // 光は闇に強い
+    "🌙": { "☀️": 2.0, "🌙": 0.5 }             // 闇は光に強い
 };
 
 const RARITY_RATES = [
@@ -816,44 +830,57 @@ function changeLibraryTab(tab) {
     alert("プログラムは最後まで読み込まれました！");
 // --- 最終起動プロセス ---
 
+// ★ここに initWebcam を貼り付け
+async function initWebcam() {
+    const video = document.getElementById('webcam');
+    if (!video) return;
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "environment" },
+            audio: false
+        });
+        video.srcObject = stream;
+        return new Promise((resolve) => {
+            video.onloadedmetadata = () => {
+                video.play();
+                resolve();
+            };
+        });
+    } catch (err) {
+        console.error("Camera Error: ", err);
+        log("カメラの起動に失敗しました。");
+    }
+}
+
 async function bootGame() {
     const msgElem = document.getElementById('init-msg');
     const startBtn = document.getElementById('start-btn');
 
     try {
-        console.log("AIモデル読み込み開始...");
-        if (msgElem) msgElem.innerText = "LOADING AI MODELS (TFJS)...";
-
-        // AIモデルのロード（ここが最重要）
+        if (msgElem) msgElem.innerText = "LOADING AI MODELS...";
+        
+        // MobileNetの読み込み
         net = await mobilenet.load();
         
-        console.log("AIモデル読み込み完了！");
         if (msgElem) {
             msgElem.innerText = "AI READY";
-            msgElem.style.color = "#0f0"; // 準備完了で緑色に
+            msgElem.style.color = "#0f0";
         }
 
-        // スタートボタンを表示・有効化
+        // カメラをこの時点で起動しておく
+        await initWebcam();
+
         if (startBtn) {
             startBtn.classList.remove('hidden');
             startBtn.disabled = false;
-            console.log("スタートボタンを有効化しました");
         }
     } catch (e) {
-        console.error("起動エラー:", e);
-        if (msgElem) {
-            msgElem.innerText = "NETWORK ERROR: " + e.message;
-            msgElem.style.color = "red";
-        }
-        // エラーが起きても、ボタンだけは出してゲームを遊べるようにする（詰み防止）
-        if (startBtn) {
-            startBtn.classList.remove('hidden');
-            startBtn.disabled = false;
-        }
+        console.error("bootGame Error:", e);
+        if (msgElem) msgElem.innerText = "ERROR: " + e.message;
     }
 }
 
-// ページ読み込み完了時に実行
+// ページ読み込み時に実行
 window.addEventListener('load', bootGame);
 </script>
 </body>
